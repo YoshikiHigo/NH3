@@ -30,8 +30,10 @@ public class FBParser {
 				(2 <= args.length) ? new FileWriter(args[1]) : new PrintWriter(
 						System.out))) {
 			for (final ClassStats cs : parser.getSummary()) {
-				writer.write(cs.toString());
-				writer.newLine();
+				if (0 < cs.bugs) {
+					writer.write(cs.toString());
+					writer.newLine();
+				}
 			}
 		} catch (final IOException e) {
 			e.printStackTrace();
@@ -240,8 +242,10 @@ public class FBParser {
 		final SourceLine sourceline = new SourceLine(
 				classnameNode.getNodeValue(),
 				(null != startNode) ? Integer.parseInt(startNode.getNodeValue())
-						: 0, (null != endNode) ? Integer.parseInt(endNode
-						.getNodeValue()) : 0, sourcepathNode.getNodeValue(),
+						: 0,
+				(null != endNode) ? Integer.parseInt(endNode.getNodeValue())
+						: 0,
+				(null != sourcepathNode) ? sourcepathNode.getNodeValue() : null,
 				name);
 		return sourceline;
 	}
