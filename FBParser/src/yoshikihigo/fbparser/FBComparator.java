@@ -1,7 +1,9 @@
 package yoshikihigo.fbparser;
 
-import java.util.List;
+import java.util.Map.Entry;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 public class FBComparator {
@@ -78,22 +80,23 @@ public class FBComparator {
 		text.append(Integer.toString(removeBugs));
 		System.out.println(text.toString());
 
-		final List<BugInstance> version1buginstances = version1parser
-				.getBugInstances();
+		final SortedSet<BugInstance> version1buginstances = new TreeSet<BugInstance>(
+				new BugInstance.LocationComparator());
+		version1buginstances.addAll(version1parser.getBugInstances());
 		final SortedSet<BugInstance> version2buginstances = new TreeSet<BugInstance>(
 				new BugInstance.LocationComparator());
-		version2buginstances.addAll(version2parser.getBugInstances());
-		for (final BugInstance buginstance : version1buginstances) {
-			if (!version2buginstances.contains(buginstance)) {
-				if (deletedClasses.contains(buginstance.getClassLocations()
-						.get(0).classname)) {
-					System.out.print("[Deleted File]");
-				} else {
-					System.out.print("[Removed Bug]");
-				}
-				System.out.println(buginstance.toString());
-			}
-		}
+		version2buginstances.addAll(version2buginstances);
+
+		printBugInstances(version1buginstances);
+
+		/*
+		 * for (final BugInstance buginstance : version1buginstances) { if
+		 * (!version2buginstances.contains(buginstance)) { if
+		 * (deletedClasses.contains(buginstance.getClassLocations()
+		 * .get(0).classname)) { System.out.print("[Deleted File]"); } else {
+		 * System.out.print("[Removed Bug]"); }
+		 * System.out.println(buginstance.toString()); } }
+		 */
 	}
 
 	static private int getTotalBugs(final SortedSet<ClassStats> summary) {
@@ -102,5 +105,48 @@ public class FBComparator {
 			sum += cs.bugs;
 		}
 		return sum;
+	}
+
+	static private void printBugInstances(
+			final SortedSet<BugInstance> buginstances) {
+
+		final SortedMap<String, int[]> map = new TreeMap<>();
+
+		for (final BugInstance instance : buginstances) {
+			int[] counts = map.get(instance.type);
+			if (null == counts) {
+				counts = new int[4];
+				counts[0] = 0;
+				counts[1] = 0;
+				counts[2] = 0;
+				counts[3] = 0;
+				map.put(instance.type, counts);
+			}
+			counts[0] += instance.getClassLocations().size();
+			counts[1] += instance.getMethodLocations().size();
+			counts[2] += instance.getFieldLocations().size();
+			counts[3] += instance.getLocalVariableLocations().size();
+		}
+
+		int total = 0;
+		for (final Entry<String, int[]> entry : map.entrySet()) {
+			final StringBuilder text = new StringBuilder();
+			text.append("[");
+			text.append(entry.getKey());
+			text.append("] classes: ");
+			text.append(Integer.toString(entry.getValue()[0]));
+			text.append(", methods: ");
+			text.append(Integer.toString(entry.getValue()[1]));
+			text.append(", fields: ");
+			text.append(Integer.toString(entry.getValue()[2]));
+			text.append(", localvariables: ");
+			text.append(Integer.toString(entry.getValue()[3]));
+			System.out.println(text.toString());
+			total += entry.getValue()[0];
+			total += entry.getValue()[1];
+			total += entry.getValue()[2];
+			total += entry.getValue()[3];
+		}
+		System.out.println(Integer.toString(total));
 	}
 }
