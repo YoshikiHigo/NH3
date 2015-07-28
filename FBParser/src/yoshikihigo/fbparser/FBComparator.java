@@ -1,10 +1,13 @@
 package yoshikihigo.fbparser;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class FBComparator {
 
@@ -85,18 +88,36 @@ public class FBComparator {
 		version1buginstances.addAll(version1parser.getBugInstances());
 		final SortedSet<BugInstance> version2buginstances = new TreeSet<BugInstance>(
 				new BugInstance.LocationComparator());
-		version2buginstances.addAll(version2buginstances);
+		version2buginstances.addAll(version2parser.getBugInstances());
 
+		System.out.println("---------- bugs in the 1st version ----------");
 		printBugInstances(version1buginstances);
+		System.out.println();
+		System.out.println("---------- bugs in the 2st version ----------");
+		printBugInstances(version2buginstances);
+		System.out.println();
 
-		/*
-		 * for (final BugInstance buginstance : version1buginstances) { if
-		 * (!version2buginstances.contains(buginstance)) { if
-		 * (deletedClasses.contains(buginstance.getClassLocations()
-		 * .get(0).classname)) { System.out.print("[Deleted File]"); } else {
-		 * System.out.print("[Removed Bug]"); }
-		 * System.out.println(buginstance.toString()); } }
-		 */
+		final SortedSet<BugInstance> deletedFileBugs = new TreeSet<BugInstance>(
+				new BugInstance.LocationComparator());
+		final SortedSet<BugInstance> removedBugs = new TreeSet<BugInstance>(
+				new BugInstance.LocationComparator());
+		for (final BugInstance buginstance : version1buginstances) {
+			if (!version2buginstances.contains(buginstance)) {
+				if (deletedClasses.contains(buginstance.getClassLocations()
+						.get(0).classname)) {
+					deletedFileBugs.add(buginstance);
+				} else {
+					removedBugs.add(buginstance);
+				}
+			}
+		}
+		System.out.println("---------- bugs in deleted files ----------");
+		printBugInstances(deletedFileBugs);
+		System.out.println();
+		System.out
+				.println("---------- bugs removed by code changes ----------");
+		printBugInstances(removedBugs);
+		System.out.println();
 	}
 
 	static private int getTotalBugs(final SortedSet<ClassStats> summary) {
@@ -110,43 +131,38 @@ public class FBComparator {
 	static private void printBugInstances(
 			final SortedSet<BugInstance> buginstances) {
 
-		final SortedMap<String, int[]> map = new TreeMap<>();
+		final SortedMap<String, AtomicInteger> countMap = new TreeMap<>();
+		final Map<String, Integer> rankMap = new HashMap<>();
+		final Map<String, Integer> priorityMap = new HashMap<>();
+		final Map<String, String> categoryMap = new HashMap<>();
 
 		for (final BugInstance instance : buginstances) {
-			int[] counts = map.get(instance.type);
+
+			AtomicInteger counts = countMap.get(instance.type);
 			if (null == counts) {
-				counts = new int[4];
-				counts[0] = 0;
-				counts[1] = 0;
-				counts[2] = 0;
-				counts[3] = 0;
-				map.put(instance.type, counts);
+				counts = new AtomicInteger(0);
+				countMap.put(instance.type, counts);
 			}
-			counts[0] += instance.getClassLocations().size();
-			counts[1] += instance.getMethodLocations().size();
-			counts[2] += instance.getFieldLocations().size();
-			counts[3] += instance.getLocalVariableLocations().size();
+			counts.incrementAndGet();
+
+			rankMap.put(instance.type, instance.rank);
+			priorityMap.put(instance.type, instance.priority);
+			categoryMap.put(instance.type, instance.category);
 		}
 
-		int total = 0;
-		for (final Entry<String, int[]> entry : map.entrySet()) {
+		for (final Entry<String, AtomicInteger> entry : countMap.entrySet()) {
 			final StringBuilder text = new StringBuilder();
 			text.append("[");
 			text.append(entry.getKey());
-			text.append("] classes: ");
-			text.append(Integer.toString(entry.getValue()[0]));
-			text.append(", methods: ");
-			text.append(Integer.toString(entry.getValue()[1]));
-			text.append(", fields: ");
-			text.append(Integer.toString(entry.getValue()[2]));
-			text.append(", localvariables: ");
-			text.append(Integer.toString(entry.getValue()[3]));
+			text.append("][RANK:");
+			text.append(Integer.toString(rankMap.get(entry.getKey())));
+			text.append("][PRIORITY:");
+			text.append(Integer.toString(priorityMap.get(entry.getKey())));
+			text.append("][");
+			text.append(categoryMap.get(entry.getKey()));
+			text.append("]: ");
+			text.append(Integer.toString(entry.getValue().get()));
 			System.out.println(text.toString());
-			total += entry.getValue()[0];
-			total += entry.getValue()[1];
-			total += entry.getValue()[2];
-			total += entry.getValue()[3];
 		}
-		System.out.println(Integer.toString(total));
 	}
 }
