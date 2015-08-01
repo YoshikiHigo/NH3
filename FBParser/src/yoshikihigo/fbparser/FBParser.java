@@ -92,12 +92,21 @@ public class FBParser {
 						final Node categoryNode = nnMap1
 								.getNamedItem("category");
 
-						final BugInstance instance = new BugInstance(
-								typeNode.getNodeValue(),
-								Integer.parseInt(priorityNode.getNodeValue()),
-								Integer.parseInt(rankNode.getNodeValue()),
-								abbrevNode.getNodeValue(),
-								categoryNode.getNodeValue());
+						final String type = typeNode.getNodeValue();
+						final BugPattern pattern = BugPattern
+								.getBugPattern(type);
+						if (pattern.isFirstSeen()) {
+							final int priority = Integer.parseInt(priorityNode
+									.getNodeValue());
+							final int rank = Integer.parseInt(rankNode
+									.getNodeValue());
+							final String category = categoryNode.getNodeValue();
+							pattern.setPriority(priority);
+							pattern.setRank(rank);
+							pattern.setCategory(category);
+						}
+
+						final BugInstance instance = new BugInstance(pattern);
 
 						for (Node cn2 = cn1.getFirstChild(); null != cn2; cn2 = cn2
 								.getNextSibling()) {
@@ -248,51 +257,6 @@ public class FBParser {
 				(null != sourcepathNode) ? sourcepathNode.getNodeValue() : null,
 				name);
 		return sourceline;
-	}
-
-	public static void print(final BugInstance buginstance) {
-		{
-			final StringBuilder text = new StringBuilder();
-			text.append("type:");
-			text.append(buginstance.type);
-			text.append(", rank:");
-			text.append(Integer.toString(buginstance.rank));
-			text.append(", priority:");
-			text.append(Integer.toString(buginstance.priority));
-			text.append(", category:");
-			text.append(buginstance.category);
-			System.out.println(text.toString());
-		}
-
-		for (final SourceLine sourceline : buginstance.getClassLocations()) {
-			final String text = makeText("class", sourceline);
-			System.out.println(text.toString());
-		}
-
-		for (final SourceLine sourceline : buginstance.getMethodLocations()) {
-			final String text = makeText("method", sourceline);
-			System.out.println(text.toString());
-		}
-
-		for (final SourceLine sourceline : buginstance.getFieldLocations()) {
-			final String text = makeText("field", sourceline);
-			System.out.println(text.toString());
-		}
-
-		for (final SourceLine sourceline : buginstance
-				.getLocalVariableLocations()) {
-			final String text = makeText("local variable", sourceline);
-			System.out.println(text.toString());
-		}
-
-		/*
-		 * final List<SourceLine> sourcelines = buginstance.getSourceLines();
-		 * for (final SourceLine sourceline : sourcelines) { final StringBuilder
-		 * text = new StringBuilder(); text.append(sourceline.classname);
-		 * text.append("\t"); text.append(Integer.toString(sourceline.start));
-		 * text.append("\t"); text.append(Integer.toString(sourceline.end));
-		 * System.out.println(text.toString()); }
-		 */
 	}
 
 	private static String makeText(final String element,

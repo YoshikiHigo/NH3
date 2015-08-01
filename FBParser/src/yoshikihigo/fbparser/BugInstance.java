@@ -6,11 +6,7 @@ import java.util.List;
 
 public class BugInstance {
 
-	final public String type;
-	final public int priority;
-	final public int rank;
-	final public String abbrev;
-	final public String category;
+	final public BugPattern pattrn;
 
 	final private List<SourceLine> classLocations;
 	final private List<SourceLine> methodLocations;
@@ -19,13 +15,8 @@ public class BugInstance {
 
 	final private List<SourceLine> sourcelines;
 
-	public BugInstance(final String type, final int priority, final int rank,
-			final String abbrev, final String category) {
-		this.type = type;
-		this.priority = priority;
-		this.rank = rank;
-		this.abbrev = abbrev;
-		this.category = category;
+	public BugInstance(final BugPattern pattern) {
+		this.pattrn = pattern;
 		this.classLocations = new ArrayList<>();
 		this.methodLocations = new ArrayList<>();
 		this.fieldLocations = new ArrayList<>();
@@ -73,14 +64,16 @@ public class BugInstance {
 		return this.localVariableLocations;
 	}
 
-	static public class LocationComparator implements Comparator<BugInstance> {
+	static public class RankLocationTypeComparator implements
+			Comparator<BugInstance> {
 
 		@Override
 		public int compare(final BugInstance o1, final BugInstance o2) {
 
-			final int typeComparison = o1.type.compareTo(o2.type);
-			if (0 != typeComparison) {
-				return typeComparison;
+			final int rankComparison = Integer.valueOf(o1.pattrn.getRank())
+					.compareTo(o2.pattrn.getRank());
+			if (0 != rankComparison) {
+				return rankComparison;
 			}
 
 			final int classComparison = o1.getClassLocations().get(0)
@@ -88,31 +81,32 @@ public class BugInstance {
 			if (0 != classComparison) {
 				return classComparison;
 			}
-			
-			// final int classComparison = this.compareSortedSet(
-			// o1.getClassLocations(), o2.getClassLocations());
-			// if (0 != classComparison) {
-			// return classComparison;
-			// }
 
-			// final int methodComparison = this.compareSortedSet(
-			// o1.getMethodLocations(), o2.getMethodLocations());
-			// if (0 != methodComparison) {
-			// return methodComparison;
-			// }
-			//
-			// final int fieldComparison = this.compareSortedSet(
-			// o1.getFieldLocations(), o2.getFieldLocations());
-			// if (0 != fieldComparison) {
-			// return fieldComparison;
-			// }
-			//
-			// final int localvariableComparison = this.compareSortedSet(
-			// o1.getLocalVariableLocations(),
-			// o2.getLocalVariableLocations());
-			// if (0 != localvariableComparison) {
-			// return localvariableComparison;
-			// }
+			final int typeComparison = o1.pattrn.name.compareTo(o2.pattrn.name);
+			if (0 != typeComparison) {
+				return typeComparison;
+			}
+
+			return 0;
+		}
+	}
+
+	static public class LocationTypeComparator implements
+			Comparator<BugInstance> {
+
+		@Override
+		public int compare(final BugInstance o1, final BugInstance o2) {
+
+			final int classComparison = o1.getClassLocations().get(0)
+					.compareTo(o2.getClassLocations().get(0));
+			if (0 != classComparison) {
+				return classComparison;
+			}
+
+			final int typeComparison = o1.pattrn.name.compareTo(o2.pattrn.name);
+			if (0 != typeComparison) {
+				return typeComparison;
+			}
 
 			return 0;
 		}
@@ -148,15 +142,13 @@ public class BugInstance {
 	public String toString() {
 		final StringBuilder text = new StringBuilder();
 		text.append("[BugInstance] type: ");
-		text.append(this.type);
+		text.append(this.pattrn.name);
 		text.append(", priority: ");
-		text.append(Integer.toString(this.priority));
+		text.append(Integer.toString(this.pattrn.getPriority()));
 		text.append(", rank: ");
-		text.append(Integer.toString(this.rank));
-		text.append(", abbrev: ");
-		text.append(this.abbrev);
+		text.append(Integer.toString(this.pattrn.getRank()));
 		text.append(", category: ");
-		text.append(this.category);
+		text.append(this.pattrn.getCategory());
 		text.append(System.lineSeparator());
 		for (final SourceLine sourceline : this.classLocations) {
 			final String sourcelineText = SourceLine.makeText("class",

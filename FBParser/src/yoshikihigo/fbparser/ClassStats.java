@@ -1,9 +1,21 @@
 package yoshikihigo.fbparser;
 
+import java.util.SortedSet;
+import java.util.TreeSet;
+
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 
 public class ClassStats implements Comparable<ClassStats> {
+
+	static public SortedSet<String> getClassNames(
+			final SortedSet<ClassStats> classes) {
+		final SortedSet<String> names = new TreeSet<>();
+		for (final ClassStats c : classes) {
+			names.add(c.classname);
+		}
+		return names;
+	}
 
 	static public ClassStats makeClassStats(final Node node) {
 		if (node.getNodeName().equals("ClassStats")) {
