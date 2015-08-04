@@ -68,8 +68,16 @@ public class FBComparator {
 			}
 		}
 
-		printBugInstances(path, version1bugs, version2bugs, survivingBugs,
-				bugsInDeletedFiles, bugsRemovedByChanges);
+		final SortedSet<BugInstance> addedBugs = new TreeSet<>(
+				new BugInstance.RankLocationTypeComparator());
+		for (final BugInstance bug : version2bugs) {
+			if (!version1bugs.contains(bug)) {
+				addedBugs.add(bug);
+			}
+		}
+
+		printBugInstances(path, survivingBugs, addedBugs, bugsInDeletedFiles,
+				bugsRemovedByChanges);
 	}
 
 	static private void printBugNumber(
@@ -138,16 +146,15 @@ public class FBComparator {
 	}
 
 	static private void printBugInstances(final String path,
-			final SortedSet<BugInstance> version1bugs,
-			final SortedSet<BugInstance> version2bugs,
 			final SortedSet<BugInstance> survivingBugs,
+			final SortedSet<BugInstance> addedBugs,
 			final SortedSet<BugInstance> bugsInDeletedFiles,
 			final SortedSet<BugInstance> bugsremovedByChanges) {
 
 		try (final PrintWriter writer = new PrintWriter(new OutputStreamWriter(
 				new FileOutputStream(path), "UTF-8"))) {
 
-			writer.println("bug-types, bugs-in-version1, bugs-in-version2, surviving-bugs, bugs-in-deleted-files, bugs-removed-by-changes");
+			writer.println("bug-types, surviving-bugs, addedBugs, bugs-in-deleted-files, bugs-removed-by-changes");
 
 			for (final BugPattern pattern : BugPattern.getBugPatterns()) {
 				final String type = pattern.name;
@@ -155,18 +162,14 @@ public class FBComparator {
 				final int rank = pattern.getRank();
 				final String category = pattern.getCategory();
 
-				final int numberOfVersion1Bugs = countBugInstances(
-						version1bugs, type);
-				final int numberOfVersion2Bugs = countBugInstances(
-						version2bugs, type);
 				final int numberOfSurvivingBugs = countBugInstances(
 						survivingBugs, type);
+				final int numberOfAddedBugs = countBugInstances(addedBugs, type);
 				final int numberOfBugsInDeletedFiles = countBugInstances(
 						bugsInDeletedFiles, type);
 				final int numberOfBugsRemovedByChanges = countBugInstances(
 						bugsremovedByChanges, type);
-				if ((0 != numberOfVersion1Bugs) || (0 != numberOfVersion2Bugs)
-						|| (0 != numberOfSurvivingBugs)
+				if ((0 != numberOfSurvivingBugs) || (0 != numberOfAddedBugs)
 						|| (0 != numberOfBugsInDeletedFiles)
 						|| (0 != numberOfBugsRemovedByChanges)) {
 					final StringBuilder text = new StringBuilder();
@@ -178,11 +181,9 @@ public class FBComparator {
 					text.append("][CATEGORY:");
 					text.append(category);
 					text.append("], ");
-					text.append(Integer.toString(numberOfVersion1Bugs));
-					text.append(", ");
-					text.append(Integer.toString(numberOfVersion2Bugs));
-					text.append(", ");
 					text.append(Integer.toString(numberOfSurvivingBugs));
+					text.append(", ");
+					text.append(Integer.toString(numberOfAddedBugs));
 					text.append(", ");
 					text.append(Integer.toString(numberOfBugsInDeletedFiles));
 					text.append(", ");
