@@ -29,8 +29,7 @@ public class FBComparator {
 				.getSummary();
 		final SortedSet<ClassStats> version2Classes = version2parser
 				.getSummary();
-
-		printBugNumber(version1Classes, version2Classes);
+		// printBugNumber(version1Classes, version2Classes);
 
 		final SortedSet<ClassStats> deletedClasses = new TreeSet<>();
 		deletedClasses.addAll(version1Classes);
@@ -44,6 +43,8 @@ public class FBComparator {
 		final SortedSet<BugInstance> version2bugs = new TreeSet<BugInstance>(
 				new BugInstance.RankLocationTypeComparator());
 		version2bugs.addAll(version2parser.getBugInstances());
+		System.out.println("bugs in version 1: " + version1bugs.size());
+		System.out.println("bugs in version 2: " + version2bugs.size());
 
 		final SortedSet<BugInstance> survivingBugs = new TreeSet<>(
 				new BugInstance.RankLocationTypeComparator());
@@ -154,13 +155,13 @@ public class FBComparator {
 		try (final PrintWriter writer = new PrintWriter(new OutputStreamWriter(
 				new FileOutputStream(path), "UTF-8"))) {
 
-			writer.println("bug-types, surviving-bugs, addedBugs, bugs-in-deleted-files, bugs-removed-by-changes");
+			writer.println("bug-types, surviving-bugs, added-Bugs, bugs-in-deleted-files, bugs-removed-by-changes");
 
 			for (final BugPattern pattern : BugPattern.getBugPatterns()) {
-				final String type = pattern.name;
-				final int priority = pattern.getPriority();
-				final int rank = pattern.getRank();
-				final String category = pattern.getCategory();
+				final String type = pattern.type;
+				final int priority = pattern.priority;
+				final int rank = pattern.rank;
+				final String category = pattern.category;
 
 				final int numberOfSurvivingBugs = countBugInstances(
 						survivingBugs, type);
@@ -202,7 +203,7 @@ public class FBComparator {
 			final SortedSet<BugInstance> instances, final String type) {
 		int count = 0;
 		for (final BugInstance instance : instances) {
-			if (instance.pattrn.name.equals(type)) {
+			if (instance.pattrn.type.equals(type)) {
 				count++;
 			}
 		}

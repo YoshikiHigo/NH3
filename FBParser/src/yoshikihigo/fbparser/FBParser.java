@@ -93,20 +93,20 @@ public class FBParser {
 								.getNamedItem("category");
 
 						final String type = typeNode.getNodeValue();
-						final BugPattern pattern = BugPattern
-								.getBugPattern(type);
-						if (pattern.isFirstSeen()) {
+						BugPattern pattern = BugPattern.getBugPattern(type);
+						if (null == pattern) {
 							final int priority = Integer.parseInt(priorityNode
 									.getNodeValue());
 							final int rank = Integer.parseInt(rankNode
 									.getNodeValue());
 							final String category = categoryNode.getNodeValue();
-							pattern.setPriority(priority);
-							pattern.setRank(rank);
-							pattern.setCategory(category);
+							pattern = new BugPattern(type, rank, priority,
+									category);
+							BugPattern.addBugPattern(pattern);
 						}
 
 						final BugInstance instance = new BugInstance(pattern);
+						pattern.addBugInstance(this.path, instance);
 
 						for (Node cn2 = cn1.getFirstChild(); null != cn2; cn2 = cn2
 								.getNextSibling()) {
@@ -189,9 +189,7 @@ public class FBParser {
 							}
 						}
 
-						if (0 < instance.getSourceLines().size()) {
-							this.buginstances.add(instance);
-						}
+						this.buginstances.add(instance);
 					}
 
 					else if (cn1.getNodeName().equals("FindBugsSummary")) {

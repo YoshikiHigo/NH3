@@ -1,6 +1,8 @@
 package yoshikihigo.fbparser;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -173,70 +175,64 @@ public class BugPattern implements Comparable<BugPattern> {
 			"SF_SWITCH_NO_DEFAULT", "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD",
 			"DMI_INVOKING_HASHCODE_ON_ARRAY", "INT_VACUOUS_BIT_OPERATION",
 			"ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", "EI_EXPOSE_STATIC_REP2",
-			"SE_BAD_FIELD_STORE", "SE_COMPARATOR_SHOULD_BE_SERIALIZABLE" };
+			"SE_BAD_FIELD_STORE", "SE_COMPARATOR_SHOULD_BE_SERIALIZABLE",
+			"RC_REF_COMPARISON_BAD_PRACTICE_BOOLEAN", "SE_NO_SERIALVERSIONID",
+			"RV_NEGATING_RESULT_OF_COMPARETO", "DMI_COLLECTION_OF_URLS",
+			"INT_BAD_COMPARISON_WITH_INT_VALUE",
+			"RpC_REPEATED_CONDITIONAL_TEST", "DM_BOXED_PRIMITIVE_FOR_PARSING",
+			"MS_OOI_PKGPROTECT" };
 
 	final static private Map<String, BugPattern> PATTERNS = new HashMap<>();
 
-	static {
-		for (final String name : NAMES) {
-			PATTERNS.put(name, new BugPattern(name));
-		}
-	}
+	// static {
+	// for (final String name : NAMES) {
+	// PATTERNS.put(name, new BugPattern(name));
+	// }
+	// }
 
 	public static BugPattern getBugPattern(final String name) {
 		return PATTERNS.get(name);
 	}
 
-	public static SortedSet<BugPattern> getBugPatterns() {
+	static public SortedSet<BugPattern> getBugPatterns() {
 		final SortedSet<BugPattern> patterns = new TreeSet<>();
 		patterns.addAll(PATTERNS.values());
 		return patterns;
 	}
 
-	final public String name;
-	private int priority;
-	private int rank;
-	private String category;
-	final private SortedSet<BugInstance> instances = new TreeSet<>();
-
-	private BugPattern(final String name) {
-		this.name = name;
-		this.priority = -1;
-		this.rank = -1;
-		this.category = null;
+	static public void addBugPattern(final BugPattern pattern) {
+		PATTERNS.put(pattern.type, pattern);
 	}
 
-	public int getPriority() {
-		return this.priority;
-	}
+	final public String type;
+	final public int rank;
+	final public int priority;
+	final public String category;
+	final private Map<Object, List<BugInstance>> instances;
 
-	public void setPriority(final int priority) {
-		this.priority = priority;
-	}
-
-	public int getRank() {
-		return this.rank;
-	}
-
-	public void setRank(final int rank) {
+	public BugPattern(final String type, final int rank, final int priority,
+			final String category) {
+		this.type = type;
 		this.rank = rank;
-	}
-
-	public String getCategory() {
-		return this.category;
-	}
-
-	public void setCategory(final String category) {
+		this.priority = priority;
 		this.category = category;
+		this.instances = new HashMap<Object, List<BugInstance>>();
 	}
 
-	public void addBugInstance(final BugInstance instance) {
-		this.instances.add(instance);
+	public void addBugInstance(final Object version, final BugInstance instance) {
+		List<BugInstance> bugs = this.instances.get(version);
+		if (null == bugs) {
+			bugs = new ArrayList<BugInstance>();
+			this.instances.put(version, bugs);
+		}
+		bugs.add(instance);
 	}
 
-	public SortedSet<BugInstance> getBugInstances() {
+	public SortedSet<BugInstance> getBugInstances(final Object version) {
 		final SortedSet<BugInstance> instances = new TreeSet<>();
-		instances.addAll(this.instances);
+		if (this.instances.containsKey(version)) {
+			instances.addAll(this.instances.get(version));
+		}
 		return instances;
 	}
 
@@ -255,25 +251,21 @@ public class BugPattern implements Comparable<BugPattern> {
 			return priorityComparison;
 		}
 
-		final int nameComparison = this.name.compareTo(target.name);
-		return nameComparison;
-	}
-
-	public boolean isFirstSeen() {
-		return null == category;
+		final int typeComparison = this.type.compareTo(target.type);
+		return typeComparison;
 	}
 
 	@Override
 	public String toString() {
 		final StringBuilder text = new StringBuilder();
 		text.append("[BugPattern] type: ");
-		text.append(this.name);
+		text.append(this.type);
 		text.append(", priority: ");
-		text.append(Integer.toString(this.getPriority()));
+		text.append(Integer.toString(this.priority));
 		text.append(", rank: ");
-		text.append(Integer.toString(this.getRank()));
+		text.append(Integer.toString(this.rank));
 		text.append(", category: ");
-		text.append(this.getCategory());
+		text.append(this.category);
 		return text.toString();
 	}
 }

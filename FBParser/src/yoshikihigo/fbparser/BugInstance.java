@@ -70,8 +70,8 @@ public class BugInstance {
 		@Override
 		public int compare(final BugInstance o1, final BugInstance o2) {
 
-			final int rankComparison = Integer.valueOf(o1.pattrn.getRank())
-					.compareTo(o2.pattrn.getRank());
+			final int rankComparison = Integer.valueOf(o1.pattrn.rank)
+					.compareTo(o2.pattrn.rank);
 			if (0 != rankComparison) {
 				return rankComparison;
 			}
@@ -82,7 +82,7 @@ public class BugInstance {
 				return classComparison;
 			}
 
-			final int typeComparison = o1.pattrn.name.compareTo(o2.pattrn.name);
+			final int typeComparison = o1.pattrn.type.compareTo(o2.pattrn.type);
 			if (0 != typeComparison) {
 				return typeComparison;
 			}
@@ -103,7 +103,7 @@ public class BugInstance {
 				return classComparison;
 			}
 
-			final int typeComparison = o1.pattrn.name.compareTo(o2.pattrn.name);
+			final int typeComparison = o1.pattrn.type.compareTo(o2.pattrn.type);
 			if (0 != typeComparison) {
 				return typeComparison;
 			}
@@ -142,13 +142,13 @@ public class BugInstance {
 	public String toString() {
 		final StringBuilder text = new StringBuilder();
 		text.append("[BugInstance] type: ");
-		text.append(this.pattrn.name);
+		text.append(this.pattrn.type);
 		text.append(", priority: ");
-		text.append(Integer.toString(this.pattrn.getPriority()));
+		text.append(Integer.toString(this.pattrn.priority));
 		text.append(", rank: ");
-		text.append(Integer.toString(this.pattrn.getRank()));
+		text.append(Integer.toString(this.pattrn.rank));
 		text.append(", category: ");
-		text.append(this.pattrn.getCategory());
+		text.append(this.pattrn.category);
 		text.append(System.lineSeparator());
 		for (final SourceLine sourceline : this.classLocations) {
 			final String sourcelineText = SourceLine.makeText("class",
