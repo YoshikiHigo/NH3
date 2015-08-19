@@ -2,6 +2,7 @@ package yoshikihigo.fbparser;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -11,29 +12,31 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 public class FBMeter {
 
 	public static void main(final String[] args) {
 
-		if (3 > args.length) {
-			System.err.println("3 or more command line options are required");
-			System.exit(0);
-		}
+		FBParserConfig.initialize(args);
 
+		final List<String> xmls = FBParserConfig.getInstance().getFBRESULTS();
 		final Map<String, List<BugInstance>> bugInstances = new HashMap<String, List<BugInstance>>();
-		for (int i = 1; i < args.length; i++) {
-			final String xmlFile = args[i];
-			final FBParser parser = new FBParser(xmlFile);
+		for (String xml : xmls) {
+			final FBParser parser = new FBParser(xml);
 			parser.perform();
 			final List<BugInstance> bugs = parser.getBugInstances();
-			bugInstances.put(xmlFile, bugs);
+			bugInstances.put(xml, bugs);
 		}
 
-		final String outputCSVFile = args[0];
-		final List<VersionPair> versionPairs = new ArrayList<VersionPair>();
-		for (int i = 2; i < args.length; i++) {
-			final String earlierXMLFile = args[i - 1];
-			final String latterXMLFile = args[i];
+		final List<Transition> transitions = new ArrayList<Transition>();
+		for (int i = 2; i < xmls.size(); i++) {
+			final String earlierXMLFile = xmls.get(i - 1);
+			final String latterXMLFile = xmls.get(i);
 
 			final SortedSet<BugInstance> earlierBugs = new TreeSet<>(
 					new BugInstance.RankLocationTypeComparator());
@@ -63,13 +66,40 @@ public class FBMeter {
 				}
 			}
 
-			final VersionPair pair = new VersionPair(earlierXMLFile,
+			final Transition pair = new Transition(earlierXMLFile,
 					latterXMLFile, survivingBugs, addedBugs, removedBugs);
-			versionPairs.add(pair);
+			transitions.add(pair);
 		}
 
+		if (FBParserConfig.getInstance().hasMETRICSRESULTCSV()) {
+			final String csvFile = FBParserConfig.getInstance()
+					.getMETRICSRESULTCSV();
+			printInCSV(csvFile, transitions);
+		}
+
+		if (FBParserConfig.getInstance().hasMETRICSRESULTXLSX()) {
+			final String xlsxFile = FBParserConfig.getInstance()
+					.getMETRICSRESULTXLSX();
+			printInXLSX(xlsxFile, transitions);
+		}
+	}
+
+	static private int countBugInstances(
+			final SortedSet<BugInstance> instances, final String type) {
+		int count = 0;
+		for (final BugInstance instance : instances) {
+			if (instance.pattrn.type.equals(type)) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	static private void printInCSV(final String path,
+			final List<Transition> transitions) {
+
 		try (final PrintWriter writer = new PrintWriter(new OutputStreamWriter(
-				new FileOutputStream(outputCSVFile), "UTF-8"))) {
+				new FileOutputStream(path), "UTF-8"))) {
 
 			final StringBuilder typeText = new StringBuilder();
 			final StringBuilder rankText = new StringBuilder();
@@ -114,7 +144,7 @@ public class FBMeter {
 			writer.println(priorityText);
 			writer.println(categoryText);
 
-			for (final VersionPair pair : versionPairs) {
+			for (final Transition pair : transitions) {
 
 				final StringBuilder dataText = new StringBuilder();
 				dataText.append(StringUtility.getName(pair.earlierXMLFile));
@@ -160,25 +190,125 @@ public class FBMeter {
 		}
 	}
 
-	static private int countBugInstances(
-			final SortedSet<BugInstance> instances, final String type) {
-		int count = 0;
-		for (final BugInstance instance : instances) {
-			if (instance.pattrn.type.equals(type)) {
-				count++;
+	static private void printInXLSX(final String path,
+			final List<Transition> transitions) {
+
+		try (final Workbook book = new XSSFWorkbook();
+				final OutputStream stream = new FileOutputStream(path)) {
+
+			final Sheet sheet = book.createSheet();
+			book.setSheetName(0, "metrics");
+
+			final Row typeRow = sheet.createRow(0);
+			final Row rankRow = sheet.createRow(1);
+			final Row priorityRow = sheet.createRow(2);
+			final Row categoryRow = sheet.createRow(3);
+			final Row metricRow = sheet.createRow(4);
+
+			typeRow.createCell(0).setCellValue("TYPE");
+			rankRow.createCell(0).setCellValue("RANK");
+			priorityRow.createCell(0).setCellValue("PRIORITY");
+			categoryRow.createCell(0).setCellValue("CATETORY");
+			metricRow.createCell(0).setCellValue("METRIC");
+
+			int titleColumn = 1;
+
+			for (final BugPattern pattern : BugPattern.getBugPatterns()) {
+
+				typeRow.createCell(titleColumn).setCellValue(pattern.type);
+				sheet.addMergedRegion(new CellRangeAddress(0, 0, titleColumn,
+						titleColumn + 5));
+				rankRow.createCell(titleColumn).setCellValue(pattern.rank);
+				sheet.addMergedRegion(new CellRangeAddress(1, 1, titleColumn,
+						titleColumn + 5));
+				priorityRow.createCell(titleColumn).setCellValue(
+						pattern.priority);
+				sheet.addMergedRegion(new CellRangeAddress(2, 2, titleColumn,
+						titleColumn + 5));
+				categoryRow.createCell(titleColumn).setCellValue(
+						pattern.category);
+				sheet.addMergedRegion(new CellRangeAddress(3, 3, titleColumn,
+						titleColumn + 5));
+				metricRow.createCell(titleColumn).setCellValue(
+						"number-of-surviving-bugs");
+				metricRow.createCell(titleColumn + 1).setCellValue(
+						"number-of-removed-bugs");
+				metricRow.createCell(titleColumn + 2).setCellValue(
+						"number-of-added-bugs");
+				metricRow.createCell(titleColumn + 3).setCellValue(
+						"ratio-of-surviving-bugs");
+				metricRow.createCell(titleColumn + 4).setCellValue(
+						"number-of-solved-old");
+				metricRow.createCell(titleColumn + 5).setCellValue(
+						"number-of-solved-new");
+
+				titleColumn += 6;
 			}
+
+			int dataRow = 5;
+			for (final Transition pair : transitions) {
+
+				final StringBuilder dataText = new StringBuilder();
+				dataText.append(StringUtility.getName(pair.earlierXMLFile));
+				dataText.append("--");
+				dataText.append(StringUtility.getName(pair.latterXMLFile));
+				dataText.append(", ");
+
+				final Row row = sheet.createRow(dataRow);
+				row.createCell(0).setCellValue(dataText.toString());
+
+				int dataColumn = 1;
+				for (final BugPattern pattern : BugPattern.getBugPatterns()) {
+
+					final int numberOfSurvivingBugs = countBugInstances(
+							pair.survivingBugs, pattern.type);
+					final int numberOfAddedBugs = countBugInstances(
+							pair.addedBugs, pattern.type);
+					final int numberOfRemovedBugs = countBugInstances(
+							pair.removedBugs, pattern.type);
+
+					float ratioOfSurviving = (float) numberOfSurvivingBugs
+							/ (float) (numberOfSurvivingBugs + numberOfRemovedBugs);
+					float ratioOfSolvedOld = (float) numberOfRemovedBugs
+							/ (float) (numberOfSurvivingBugs + numberOfRemovedBugs);
+					float ratioOfSolvednew = (float) numberOfRemovedBugs
+							/ (float) (numberOfSurvivingBugs + numberOfAddedBugs);
+
+					row.createCell(dataColumn).setCellValue(
+							numberOfSurvivingBugs);
+					row.createCell(dataColumn + 1).setCellValue(
+							numberOfRemovedBugs);
+					row.createCell(dataColumn + 2).setCellValue(
+							numberOfAddedBugs);
+					row.createCell(dataColumn + 3).setCellValue(
+							ratioOfSurviving);
+					row.createCell(dataColumn + 4).setCellValue(
+							ratioOfSolvedOld);
+					row.createCell(dataColumn + 5).setCellValue(
+							ratioOfSolvednew);
+
+					dataColumn += 6;
+				}
+
+				dataRow += 1;
+			}
+
+			book.write(stream);
 		}
-		return count;
+
+		catch (final IOException e) {
+			e.printStackTrace();
+		}
 	}
 
-	static class VersionPair {
+	static class Transition {
 		final String earlierXMLFile;
 		final String latterXMLFile;
 		final SortedSet<BugInstance> survivingBugs;
 		final SortedSet<BugInstance> addedBugs;
 		final SortedSet<BugInstance> removedBugs;
 
-		VersionPair(final String earlierXMLFile, final String latterXMLFile,
+		Transition(final String earlierXMLFile, final String latterXMLFile,
 				final SortedSet<BugInstance> survivingBugs,
 				final SortedSet<BugInstance> addedBugs,
 				final SortedSet<BugInstance> removedBugs) {
