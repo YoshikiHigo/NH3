@@ -7,6 +7,7 @@ import java.util.List;
 public class BugInstance {
 
 	final public BugPattern pattrn;
+	final public String hash;
 
 	final private List<SourceLine> classLocations;
 	final private List<SourceLine> methodLocations;
@@ -15,8 +16,9 @@ public class BugInstance {
 
 	final private List<SourceLine> sourcelines;
 
-	public BugInstance(final BugPattern pattern) {
+	public BugInstance(final BugPattern pattern, final String hash) {
 		this.pattrn = pattern;
+		this.hash = hash;
 		this.classLocations = new ArrayList<>();
 		this.methodLocations = new ArrayList<>();
 		this.fieldLocations = new ArrayList<>();
@@ -64,6 +66,22 @@ public class BugInstance {
 		return this.localVariableLocations;
 	}
 
+	@Override
+	public int hashCode() {
+		return this.hash.hashCode();
+	}
+
+	@Override
+	public boolean equals(final Object o) {
+
+		if (!(o instanceof BugInstance)) {
+			return false;
+		}
+
+		final BugInstance target = (BugInstance) o;
+		return this.hash.equals(target.hash);
+	}
+
 	static public class RankLocationTypeComparator implements
 			Comparator<BugInstance> {
 
@@ -88,53 +106,6 @@ public class BugInstance {
 			}
 
 			return 0;
-		}
-	}
-
-	static public class LocationTypeComparator implements
-			Comparator<BugInstance> {
-
-		@Override
-		public int compare(final BugInstance o1, final BugInstance o2) {
-
-			final int classComparison = o1.getClassLocations().get(0)
-					.compareTo(o2.getClassLocations().get(0));
-			if (0 != classComparison) {
-				return classComparison;
-			}
-
-			final int typeComparison = o1.pattrn.type.compareTo(o2.pattrn.type);
-			if (0 != typeComparison) {
-				return typeComparison;
-			}
-
-			return 0;
-		}
-
-		private int compareSortedSet(final List<SourceLine> s1,
-				final List<SourceLine> s2) {
-
-			for (int index = 0; true; index++) {
-
-				if ((s1.size() == index) && (s2.size() == index)) {
-					return 0;
-				}
-
-				else if ((s1.size() == index) && (s2.size() > index)) {
-					return -1;
-				}
-
-				else if ((s1.size() > index) && (s2.size() == index)) {
-					return 1;
-				}
-
-				else {
-					int comparison = s1.get(index).compareTo(s2.get(index));
-					if (0 != comparison) {
-						return comparison;
-					}
-				}
-			}
 		}
 	}
 

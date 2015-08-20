@@ -91,6 +91,8 @@ public class FBParser {
 						final Node abbrevNode = nnMap1.getNamedItem("abbrev");
 						final Node categoryNode = nnMap1
 								.getNamedItem("category");
+						final Node instanceHashNode = nnMap1
+								.getNamedItem("instanceHash");
 
 						final String type = typeNode.getNodeValue();
 						BugPattern pattern = BugPattern.getBugPattern(type);
@@ -105,7 +107,10 @@ public class FBParser {
 							BugPattern.addBugPattern(pattern);
 						}
 
-						final BugInstance instance = new BugInstance(pattern);
+						final String instanceHash = instanceHashNode
+								.getNodeValue();
+						final BugInstance instance = new BugInstance(pattern,
+								instanceHash);
 						pattern.addBugInstance(this.path, instance);
 
 						for (Node cn2 = cn1.getFirstChild(); null != cn2; cn2 = cn2

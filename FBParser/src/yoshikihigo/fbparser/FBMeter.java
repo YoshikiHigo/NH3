@@ -7,10 +7,10 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.poi.ss.usermodel.Row;
@@ -39,17 +39,13 @@ public class FBMeter {
 			final String earlierXMLFile = xmls.get(i - 1);
 			final String latterXMLFile = xmls.get(i);
 
-			final SortedSet<BugInstance> earlierBugs = new TreeSet<>(
-					new BugInstance.RankLocationTypeComparator());
-			earlierBugs.addAll(bugInstances.get(earlierXMLFile));
-			final SortedSet<BugInstance> latterBugs = new TreeSet<>(
-					new BugInstance.RankLocationTypeComparator());
-			latterBugs.addAll(bugInstances.get(latterXMLFile));
+			final Set<BugInstance> earlierBugs = new HashSet<>(
+					bugInstances.get(earlierXMLFile));
+			final Set<BugInstance> latterBugs = new HashSet<>(
+					bugInstances.get(latterXMLFile));
 
-			final SortedSet<BugInstance> survivingBugs = new TreeSet<>(
-					new BugInstance.RankLocationTypeComparator());
-			final SortedSet<BugInstance> removedBugs = new TreeSet<BugInstance>(
-					new BugInstance.RankLocationTypeComparator());
+			final Set<BugInstance> survivingBugs = new HashSet<>();
+			final Set<BugInstance> removedBugs = new HashSet<>();
 			for (final BugInstance bug : earlierBugs) {
 
 				if (latterBugs.contains(bug)) {
@@ -59,8 +55,7 @@ public class FBMeter {
 				}
 			}
 
-			final SortedSet<BugInstance> addedBugs = new TreeSet<>(
-					new BugInstance.RankLocationTypeComparator());
+			final Set<BugInstance> addedBugs = new HashSet<>();
 			for (final BugInstance bug : latterBugs) {
 				if (!earlierBugs.contains(bug)) {
 					addedBugs.add(bug);
@@ -85,8 +80,8 @@ public class FBMeter {
 		}
 	}
 
-	static private int countBugInstances(
-			final SortedSet<BugInstance> instances, final String type) {
+	static private int countBugInstances(final Set<BugInstance> instances,
+			final String type) {
 		int count = 0;
 		for (final BugInstance instance : instances) {
 			if (instance.pattrn.type.equals(type)) {
@@ -345,8 +340,7 @@ public class FBMeter {
 							ratioOfSurviving);
 					row.createCell(dataColumn + 4).setCellValue(
 							ratioOfSolvedOld);
-					row.createCell(dataColumn + 5).setCellValue(
-							ratioOfSolvednew);
+					row.createCell(dataColumn + 5).setCellValue("No value");
 
 					dataColumn += 6;
 				}
@@ -363,14 +357,14 @@ public class FBMeter {
 	static class Transition {
 		final String earlierXMLFile;
 		final String latterXMLFile;
-		final SortedSet<BugInstance> survivingBugs;
-		final SortedSet<BugInstance> addedBugs;
-		final SortedSet<BugInstance> removedBugs;
+		final Set<BugInstance> survivingBugs;
+		final Set<BugInstance> addedBugs;
+		final Set<BugInstance> removedBugs;
 
 		Transition(final String earlierXMLFile, final String latterXMLFile,
-				final SortedSet<BugInstance> survivingBugs,
-				final SortedSet<BugInstance> addedBugs,
-				final SortedSet<BugInstance> removedBugs) {
+				final Set<BugInstance> survivingBugs,
+				final Set<BugInstance> addedBugs,
+				final Set<BugInstance> removedBugs) {
 			this.earlierXMLFile = earlierXMLFile;
 			this.latterXMLFile = latterXMLFile;
 			this.survivingBugs = survivingBugs;
