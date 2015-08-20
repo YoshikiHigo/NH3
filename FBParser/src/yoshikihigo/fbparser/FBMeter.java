@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -147,8 +148,6 @@ public class FBMeter {
 			for (final Transition pair : transitions) {
 
 				final StringBuilder dataText = new StringBuilder();
-				dataText.append(StringUtility.getName(pair.earlierXMLFile));
-				dataText.append("--");
 				dataText.append(StringUtility.getName(pair.latterXMLFile));
 				dataText.append(", ");
 
@@ -230,32 +229,30 @@ public class FBMeter {
 				sheet.addMergedRegion(new CellRangeAddress(3, 3, titleColumn,
 						titleColumn + 5));
 				metricRow.createCell(titleColumn).setCellValue(
-						"number-of-surviving-bugs");
+						"#-surviving-bugs");
 				metricRow.createCell(titleColumn + 1).setCellValue(
-						"number-of-removed-bugs");
+						"#-removed-bugs");
 				metricRow.createCell(titleColumn + 2).setCellValue(
-						"number-of-added-bugs");
+						"#-added-bugs");
 				metricRow.createCell(titleColumn + 3).setCellValue(
-						"ratio-of-surviving-bugs");
+						"%-surviving-bugs");
 				metricRow.createCell(titleColumn + 4).setCellValue(
-						"number-of-solved-old");
+						"%-solved-old");
 				metricRow.createCell(titleColumn + 5).setCellValue(
-						"number-of-solved-new");
+						"%-solved-new");
 
 				titleColumn += 6;
 			}
 
 			int dataRow = 5;
+			final Map<String, AtomicInteger> survivingBugs = new HashMap<>();
+			final Map<String, AtomicInteger> removedBugs = new HashMap<>();
+			final Map<String, AtomicInteger> addedBugs = new HashMap<>();
 			for (final Transition pair : transitions) {
 
-				final StringBuilder dataText = new StringBuilder();
-				dataText.append(StringUtility.getName(pair.earlierXMLFile));
-				dataText.append("--");
-				dataText.append(StringUtility.getName(pair.latterXMLFile));
-				dataText.append(", ");
-
 				final Row row = sheet.createRow(dataRow);
-				row.createCell(0).setCellValue(dataText.toString());
+				row.createCell(0).setCellValue(
+						StringUtility.getName(pair.latterXMLFile));
 
 				int dataColumn = 1;
 				for (final BugPattern pattern : BugPattern.getBugPatterns()) {
@@ -287,10 +284,72 @@ public class FBMeter {
 					row.createCell(dataColumn + 5).setCellValue(
 							ratioOfSolvednew);
 
+					{
+						final AtomicInteger number = new AtomicInteger(
+								numberOfSurvivingBugs);
+						survivingBugs.put(pattern.type, number);
+					}
+
+					{
+						AtomicInteger number = removedBugs.get(pattern.type);
+						if (null == number) {
+							number = new AtomicInteger(0);
+							removedBugs.put(pattern.type, number);
+						}
+						number.addAndGet(numberOfRemovedBugs);
+					}
+
+					{
+						AtomicInteger number = addedBugs.get(pattern.type);
+						if (null == number) {
+							number = new AtomicInteger(0);
+							addedBugs.put(pattern.type, number);
+						}
+						number.addAndGet(numberOfAddedBugs);
+					}
+
 					dataColumn += 6;
 				}
 
 				dataRow += 1;
+			}
+
+			{
+				final Row row = sheet.createRow(dataRow);
+				row.createCell(0).setCellValue("summary");
+
+				int dataColumn = 1;
+				for (final BugPattern pattern : BugPattern.getBugPatterns()) {
+
+					final int numberOfSurvivingBugs = survivingBugs.get(
+							pattern.type).get();
+					final int numberOfRemovedBugs = removedBugs.get(
+							pattern.type).get();
+					final int numberOfAddedBugs = addedBugs.get(pattern.type)
+							.get();
+
+					float ratioOfSurviving = (float) numberOfSurvivingBugs
+							/ (float) (numberOfSurvivingBugs + numberOfRemovedBugs);
+					float ratioOfSolvedOld = (float) numberOfRemovedBugs
+							/ (float) (numberOfSurvivingBugs + numberOfRemovedBugs);
+					float ratioOfSolvednew = (float) numberOfRemovedBugs
+							/ (float) (numberOfSurvivingBugs + numberOfAddedBugs);
+
+					row.createCell(dataColumn).setCellValue(
+							numberOfSurvivingBugs);
+					row.createCell(dataColumn + 1).setCellValue(
+							numberOfRemovedBugs);
+					row.createCell(dataColumn + 2).setCellValue(
+							numberOfAddedBugs);
+					row.createCell(dataColumn + 3).setCellValue(
+							ratioOfSurviving);
+					row.createCell(dataColumn + 4).setCellValue(
+							ratioOfSolvedOld);
+					row.createCell(dataColumn + 5).setCellValue(
+							ratioOfSolvednew);
+
+					dataColumn += 6;
+				}
 			}
 
 			book.write(stream);
