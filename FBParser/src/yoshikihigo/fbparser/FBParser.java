@@ -97,100 +97,28 @@ public class FBParser {
 						final String type = typeNode.getNodeValue();
 						BugPattern pattern = BugPattern.getBugPattern(type);
 						if (null == pattern) {
-							final int priority = Integer.parseInt(priorityNode
-									.getNodeValue());
-							final int rank = Integer.parseInt(rankNode
-									.getNodeValue());
 							final String category = categoryNode.getNodeValue();
-							pattern = new BugPattern(type, rank, priority,
-									category);
+							pattern = new BugPattern(type, category);
 							BugPattern.addBugPattern(pattern);
 						}
 
+						final int priority = Integer.parseInt(priorityNode
+								.getNodeValue());
+						final int rank = Integer.parseInt(rankNode
+								.getNodeValue());
 						final String instanceHash = instanceHashNode
 								.getNodeValue();
 						final BugInstance instance = new BugInstance(pattern,
-								instanceHash);
+								rank, priority, instanceHash);
 						pattern.addBugInstance(this.path, instance);
 
 						for (Node cn2 = cn1.getFirstChild(); null != cn2; cn2 = cn2
 								.getNextSibling()) {
 
-							if (cn2.getNodeName().equals("Class")) {
-								final Node classnameNode = cn2.getAttributes()
-										.getNamedItem("classname");
-								final String classname = (null != classnameNode) ? classnameNode
-										.getNodeValue() : null;
-								for (Node cn3 = cn2.getFirstChild(); null != cn3; cn3 = cn3
-										.getNextSibling()) {
-									if (cn3.getNodeName().equals("SourceLine")) {
-										final SourceLine sourceline = getSourceLine(
-												cn3, classname);
-										instance.addClassLocation(sourceline);
-									}
-								}
-							}
-
-							else if (cn2.getNodeName().equals("Method")) {
-								final Node nameNode = cn2.getAttributes()
-										.getNamedItem("name");
-								final String name = (null != nameNode) ? nameNode
-										.getNodeValue() : null;
-								for (Node cn3 = cn2.getFirstChild(); null != cn3; cn3 = cn3
-										.getNextSibling()) {
-									if (cn3.getNodeName().equals("SourceLine")) {
-										final SourceLine sourceline = getSourceLine(
-												cn3, name);
-										instance.addMethodLocation(sourceline);
-									}
-								}
-							}
-
-							else if (cn2.getNodeName().equals("Field")) {
-								final Node nameNode = cn2.getAttributes()
-										.getNamedItem("name");
-								final String name = (null != nameNode) ? nameNode
-										.getNodeValue() : null;
-								for (Node cn3 = cn2.getFirstChild(); null != cn3; cn3 = cn3
-										.getNextSibling()) {
-									if (cn3.getNodeName().equals("SourceLine")) {
-										final SourceLine sourceline = getSourceLine(
-												cn3, name);
-										instance.addFieldLocation(sourceline);
-									}
-								}
-							}
-
-							else if (cn2.getNodeName().equals("LocalVariable")) {
-								final Node nameNode = cn2.getAttributes()
-										.getNamedItem("name");
-								final String name = (null != nameNode) ? nameNode
-										.getNodeValue() : null;
-								for (Node cn3 = cn2.getFirstChild(); null != cn3; cn3 = cn3
-										.getNextSibling()) {
-									if (cn3.getNodeName().equals("SourceLine")) {
-										final SourceLine sourceline = getSourceLine(
-												cn3, name);
-										instance.addLocalVariableLocation(sourceline);
-									}
-								}
-							}
-
 							if (cn2.getNodeName().equals("SourceLine")) {
 								final SourceLine sourceline = getSourceLine(
 										cn2, null);
 								instance.addSourceLine(sourceline);
-							}
-
-							else if (cn2.getNodeName().equals("Type")) {
-								for (Node cn3 = cn2.getFirstChild(); null != cn3; cn3 = cn3
-										.getNextSibling()) {
-									if (cn3.getNodeName().equals("SourceLine")) {
-										final SourceLine sourceline = getSourceLine(
-												cn3, null);
-										instance.addSourceLine(sourceline);
-									}
-								}
 							}
 						}
 

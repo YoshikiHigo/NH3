@@ -1,6 +1,7 @@
 package yoshikihigo.fbparser;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -205,16 +206,11 @@ public class BugPattern implements Comparable<BugPattern> {
 	}
 
 	final public String type;
-	final public int rank;
-	final public int priority;
 	final public String category;
 	final private Map<Object, List<BugInstance>> instances;
 
-	public BugPattern(final String type, final int rank, final int priority,
-			final String category) {
+	public BugPattern(final String type, final String category) {
 		this.type = type;
-		this.rank = rank;
-		this.priority = priority;
 		this.category = category;
 		this.instances = new HashMap<Object, List<BugInstance>>();
 	}
@@ -236,19 +232,102 @@ public class BugPattern implements Comparable<BugPattern> {
 		return instances;
 	}
 
+	public Float getAverageRank() {
+		int sum = 0;
+		final List<Integer> ranks = this.getRanks();
+		for (final Integer value : ranks) {
+			sum += value.intValue();
+		}
+		return Float.valueOf((float) sum / (float) ranks.size());
+	}
+
+	public Float getAveragePriority() {
+		int sum = 0;
+		final List<Integer> priorities = this.getPriorities();
+		for (final Integer value : priorities) {
+			sum += value.intValue();
+		}
+		return Float.valueOf((float) sum / (float) priorities.size());
+	}
+
+	public String getRankText() {
+		final List<Integer> ranks = this.getRanks();
+		Collections.sort(ranks);
+		final int firstValue = ranks.get(0);
+		final int lastValue = ranks.get(ranks.size() - 1);
+		if (firstValue == lastValue) {
+			return Integer.toString(firstValue);
+		} else {
+			final StringBuilder text = new StringBuilder();
+			text.append(this.getAverageRank().toString());
+			text.append(" ( from ");
+			text.append(Integer.toString(firstValue));
+			text.append(" to ");
+			text.append(Integer.toString(lastValue));
+			text.append(")");
+
+			return text.toString();
+		}
+	}
+
+	public String getPriorityText() {
+		final List<Integer> priorities = this.getPriorities();
+		Collections.sort(priorities);
+		final int firstValue = priorities.get(0);
+		final int lastValue = priorities.get(priorities.size() - 1);
+		if (firstValue == lastValue) {
+			return Integer.toString(firstValue);
+		} else {
+			final StringBuilder text = new StringBuilder();
+			text.append(this.getAveragePriority().toString());
+			text.append(" ( from ");
+			text.append(Integer.toString(firstValue));
+			text.append(" to ");
+			text.append(Integer.toString(lastValue));
+			text.append(" )");
+
+			return text.toString();
+		}
+	}
+
+	public List<Integer> getRanks() {
+		final List<Integer> ranks = new ArrayList<Integer>();
+		for (final List<BugInstance> instances : this.instances.values()) {
+			for (final BugInstance instance : instances) {
+				ranks.add(instance.rank);
+			}
+		}
+		return ranks;
+	}
+
+	public List<Integer> getPriorities() {
+		final List<Integer> priorities = new ArrayList<Integer>();
+		for (final List<BugInstance> instances : this.instances.values()) {
+			for (final BugInstance instance : instances) {
+				priorities.add(instance.priority);
+			}
+		}
+		return priorities;
+	}
+
 	@Override
 	public int compareTo(final BugPattern target) {
 
-		final int rankComparison = Integer.valueOf(this.rank).compareTo(
-				target.rank);
+		final int rankComparison = this.getAverageRank().compareTo(
+				target.getAverageRank());
 		if (0 != rankComparison) {
 			return rankComparison;
 		}
 
-		final int priorityComparison = Integer.valueOf(this.priority)
-				.compareTo(target.priority);
+		final int priorityComparison = this.getAveragePriority().compareTo(
+				target.getAveragePriority());
 		if (0 != priorityComparison) {
 			return priorityComparison;
+		}
+
+		final int categoryComparison = this.category.compareTo(target.category);
+		if (0 != categoryComparison) {
+			return categoryComparison;
 		}
 
 		final int typeComparison = this.type.compareTo(target.type);
@@ -260,10 +339,6 @@ public class BugPattern implements Comparable<BugPattern> {
 		final StringBuilder text = new StringBuilder();
 		text.append("[BugPattern] type: ");
 		text.append(this.type);
-		text.append(", priority: ");
-		text.append(Integer.toString(this.priority));
-		text.append(", rank: ");
-		text.append(Integer.toString(this.rank));
 		text.append(", category: ");
 		text.append(this.category);
 		return text.toString();

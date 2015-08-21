@@ -6,23 +6,19 @@ import java.util.List;
 
 public class BugInstance {
 
-	final public BugPattern pattrn;
+	final public BugPattern pattern;
+	final public int rank;
+	final public int priority;
 	final public String hash;
-
-	final private List<SourceLine> classLocations;
-	final private List<SourceLine> methodLocations;
-	final private List<SourceLine> fieldLocations;
-	final private List<SourceLine> localVariableLocations;
 
 	final private List<SourceLine> sourcelines;
 
-	public BugInstance(final BugPattern pattern, final String hash) {
-		this.pattrn = pattern;
+	public BugInstance(final BugPattern pattern, final int rank,
+			final int priority, final String hash) {
+		this.pattern = pattern;
+		this.rank = rank;
+		this.priority = priority;
 		this.hash = hash;
-		this.classLocations = new ArrayList<>();
-		this.methodLocations = new ArrayList<>();
-		this.fieldLocations = new ArrayList<>();
-		this.localVariableLocations = new ArrayList<>();
 		this.sourcelines = new ArrayList<>();
 	}
 
@@ -32,38 +28,6 @@ public class BugInstance {
 
 	public List<SourceLine> getSourceLines() {
 		return new ArrayList<SourceLine>(this.sourcelines);
-	}
-
-	public void addClassLocation(final SourceLine sourceline) {
-		this.classLocations.add(sourceline);
-	}
-
-	public List<SourceLine> getClassLocations() {
-		return this.classLocations;
-	}
-
-	public void addMethodLocation(final SourceLine sourceline) {
-		this.methodLocations.add(sourceline);
-	}
-
-	public List<SourceLine> getMethodLocations() {
-		return this.methodLocations;
-	}
-
-	public void addFieldLocation(final SourceLine sourceline) {
-		this.fieldLocations.add(sourceline);
-	}
-
-	public List<SourceLine> getFieldLocations() {
-		return this.fieldLocations;
-	}
-
-	public void addLocalVariableLocation(final SourceLine sourceline) {
-		this.localVariableLocations.add(sourceline);
-	}
-
-	public List<SourceLine> getLocalVariableLocations() {
-		return this.localVariableLocations;
 	}
 
 	@Override
@@ -88,19 +52,20 @@ public class BugInstance {
 		@Override
 		public int compare(final BugInstance o1, final BugInstance o2) {
 
-			final int rankComparison = Integer.valueOf(o1.pattrn.rank)
-					.compareTo(o2.pattrn.rank);
+			final int rankComparison = Integer.valueOf(o1.rank).compareTo(
+					o2.rank);
 			if (0 != rankComparison) {
 				return rankComparison;
 			}
 
-			final int classComparison = o1.getClassLocations().get(0)
-					.compareTo(o2.getClassLocations().get(0));
+			final int classComparison = o1.getSourceLines().get(0)
+					.compareTo(o2.getSourceLines().get(0));
 			if (0 != classComparison) {
 				return classComparison;
 			}
 
-			final int typeComparison = o1.pattrn.type.compareTo(o2.pattrn.type);
+			final int typeComparison = o1.pattern.type
+					.compareTo(o2.pattern.type);
 			if (0 != typeComparison) {
 				return typeComparison;
 			}
@@ -113,36 +78,16 @@ public class BugInstance {
 	public String toString() {
 		final StringBuilder text = new StringBuilder();
 		text.append("[BugInstance] type: ");
-		text.append(this.pattrn.type);
-		text.append(", priority: ");
-		text.append(Integer.toString(this.pattrn.priority));
+		text.append(this.pattern.type);
 		text.append(", rank: ");
-		text.append(Integer.toString(this.pattrn.rank));
+		text.append(Integer.toString(this.rank));
+		text.append(", priority: ");
+		text.append(Integer.toString(this.priority));
 		text.append(", category: ");
-		text.append(this.pattrn.category);
+		text.append(this.pattern.category);
 		text.append(System.lineSeparator());
-		for (final SourceLine sourceline : this.classLocations) {
-			final String sourcelineText = SourceLine.makeText("class",
-					sourceline);
-			text.append(sourcelineText);
-			text.append(System.lineSeparator());
-		}
-		for (final SourceLine sourceline : this.methodLocations) {
-			final String sourcelineText = SourceLine.makeText("method",
-					sourceline);
-			text.append(sourcelineText);
-			text.append(System.lineSeparator());
-		}
-		for (final SourceLine sourceline : this.fieldLocations) {
-			final String sourcelineText = SourceLine.makeText("field",
-					sourceline);
-			text.append(sourcelineText);
-			text.append(System.lineSeparator());
-		}
-		for (final SourceLine sourceline : this.localVariableLocations) {
-			final String sourcelineText = SourceLine.makeText("localvariable",
-					sourceline);
-			text.append(sourcelineText);
+		for (final SourceLine sourceline : this.sourcelines) {
+			text.append(sourceline.toString());
 			text.append(System.lineSeparator());
 		}
 		return text.toString();

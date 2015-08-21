@@ -84,7 +84,7 @@ public class FBMeter {
 			final String type) {
 		int count = 0;
 		for (final BugInstance instance : instances) {
-			if (instance.pattrn.type.equals(type)) {
+			if (instance.pattern.type.equals(type)) {
 				count++;
 			}
 		}
@@ -112,18 +112,18 @@ public class FBMeter {
 				typeText.append(pattern.type + "[ratio-of-surviving], ");
 				typeText.append(pattern.type + "[ratio-of-solved-old], ");
 				typeText.append(pattern.type + "[ratio-of-solved-new], ");
-				rankText.append(Integer.toString(pattern.rank) + ", ");
-				rankText.append(Integer.toString(pattern.rank) + ", ");
-				rankText.append(Integer.toString(pattern.rank) + ", ");
-				rankText.append(Integer.toString(pattern.rank) + ", ");
-				rankText.append(Integer.toString(pattern.rank) + ", ");
-				rankText.append(Integer.toString(pattern.rank) + ", ");
-				priorityText.append(Integer.toString(pattern.priority) + ", ");
-				priorityText.append(Integer.toString(pattern.priority) + ", ");
-				priorityText.append(Integer.toString(pattern.priority) + ", ");
-				priorityText.append(Integer.toString(pattern.priority) + ", ");
-				priorityText.append(Integer.toString(pattern.priority) + ", ");
-				priorityText.append(Integer.toString(pattern.priority) + ", ");
+				rankText.append(pattern.getRankText());
+				rankText.append(pattern.getRankText());
+				rankText.append(pattern.getRankText());
+				rankText.append(pattern.getRankText());
+				rankText.append(pattern.getRankText());
+				rankText.append(pattern.getRankText());
+				priorityText.append(pattern.getPriorityText());
+				priorityText.append(pattern.getPriorityText());
+				priorityText.append(pattern.getPriorityText());
+				priorityText.append(pattern.getPriorityText());
+				priorityText.append(pattern.getPriorityText());
+				priorityText.append(pattern.getPriorityText());
 				categoryText.append(pattern.category + ", ");
 				categoryText.append(pattern.category + ", ");
 				categoryText.append(pattern.category + ", ");
@@ -212,11 +212,12 @@ public class FBMeter {
 				typeRow.createCell(titleColumn).setCellValue(pattern.type);
 				sheet.addMergedRegion(new CellRangeAddress(0, 0, titleColumn,
 						titleColumn + 5));
-				rankRow.createCell(titleColumn).setCellValue(pattern.rank);
+				rankRow.createCell(titleColumn).setCellValue(
+						pattern.getRankText());
 				sheet.addMergedRegion(new CellRangeAddress(1, 1, titleColumn,
 						titleColumn + 5));
 				priorityRow.createCell(titleColumn).setCellValue(
-						pattern.priority);
+						pattern.getPriorityText());
 				sheet.addMergedRegion(new CellRangeAddress(2, 2, titleColumn,
 						titleColumn + 5));
 				categoryRow.createCell(titleColumn).setCellValue(
