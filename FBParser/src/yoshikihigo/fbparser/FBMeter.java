@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -193,6 +195,20 @@ public class FBMeter {
 			final Sheet sheet = book.createSheet();
 			book.setSheetName(0, "metrics");
 
+			final CellStyle survivingStyle = book.createCellStyle();
+			survivingStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
+			survivingStyle
+					.setFillForegroundColor(IndexedColors.ROSE.getIndex());
+
+			final CellStyle removingStyle = book.createCellStyle();
+			removingStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
+			removingStyle.setFillForegroundColor(IndexedColors.AQUA.getIndex());
+
+			final CellStyle nocareStyle = book.createCellStyle();
+			nocareStyle.setFillPattern(CellStyle.SOLID_FOREGROUND);
+			nocareStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT
+					.getIndex());
+
 			final Row typeRow = sheet.createRow(0);
 			final Row rankRow = sheet.createRow(1);
 			final Row priorityRow = sheet.createRow(2);
@@ -342,6 +358,26 @@ public class FBMeter {
 					row.createCell(dataColumn + 4).setCellValue(
 							ratioOfSolvedOld);
 					row.createCell(dataColumn + 5).setCellValue("No value");
+
+					CellStyle style = null;
+					if ((numberOfSurvivingBugs + numberOfRemovedBugs) < 4) {
+						style = nocareStyle;
+					} else if (ratioOfSurviving <= 0.2d) {
+						style = removingStyle;
+					} else {
+						style = survivingStyle;
+					}
+
+					sheet.getRow(0).getCell(dataColumn).setCellStyle(style);
+					sheet.getRow(1).getCell(dataColumn).setCellStyle(style);
+					sheet.getRow(2).getCell(dataColumn).setCellStyle(style);
+					sheet.getRow(3).getCell(dataColumn).setCellStyle(style);
+					for (int rowIndex = 4; rowIndex <= dataRow; rowIndex++) {
+						for (int columnIndex = dataColumn; columnIndex < (dataColumn + 6); columnIndex++) {
+							sheet.getRow(rowIndex).getCell(columnIndex)
+									.setCellStyle(style);
+						}
+					}
 
 					dataColumn += 6;
 				}
