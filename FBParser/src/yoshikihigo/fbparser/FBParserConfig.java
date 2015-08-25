@@ -42,8 +42,26 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("metricsresultcsv",
-					"metricsresultcsv", true, "metrics results in CSV format");
+			final Option source = new Option("survivingbugscsv",
+					"survivingbugscsv", true, "surviving bugs in CSV format");
+			source.setArgName("csvfile");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
+			final Option source = new Option("removedbugscsv",
+					"removedbugscsv", true, "removed bugs in CSV format");
+			source.setArgName("csvfile");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
+			final Option source = new Option("addedbugscsv", "addedbugscsv",
+					true, "added bugs in CSV format");
 			source.setArgName("csvfile");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -124,16 +142,40 @@ public class FBParserConfig {
 		return versions;
 	}
 
-	public String getMETRICSRESULTCSV() {
-		if (!this.commandLine.hasOption("metricsresultcsv")) {
-			System.err.println("option \"metricsresultcsv\" is not specified.");
+	public String getSURVIVINGBUGSCSV() {
+		if (!this.commandLine.hasOption("survivingbugscsv")) {
+			System.err.println("option \"survivingbugscsv\" is not specified.");
 			System.exit(0);
 		}
-		return this.commandLine.getOptionValue("metricsresultcsv");
+		return this.commandLine.getOptionValue("survivingbugscsv");
 	}
 
-	public boolean hasMETRICSRESULTCSV() {
-		return this.commandLine.hasOption("metricsresultcsv");
+	public boolean hasSURVIVINGBUGSCSV() {
+		return this.commandLine.hasOption("survivingbugscsv");
+	}
+
+	public String getREMOVEDBUGSCSV() {
+		if (!this.commandLine.hasOption("removedbugscsv")) {
+			System.err.println("option \"removedbugscsv\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("removedbugscsv");
+	}
+
+	public boolean hasREMOVEDBUGSCSV() {
+		return this.commandLine.hasOption("removedbugscsv");
+	}
+
+	public String getADDEDBUGSCSV() {
+		if (!this.commandLine.hasOption("addedbugscsv")) {
+			System.err.println("option \"addedbugscsv\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("addedbugscsv");
+	}
+
+	public boolean hasADDEDBUGSCSV() {
+		return this.commandLine.hasOption("addedbugscsv");
 	}
 
 	public String getMETRICSRESULTXLSX() {

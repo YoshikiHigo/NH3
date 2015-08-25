@@ -10,7 +10,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -69,10 +72,22 @@ public class FBMeter {
 			transitions.add(pair);
 		}
 
-		if (FBParserConfig.getInstance().hasMETRICSRESULTCSV()) {
+		if (FBParserConfig.getInstance().hasSURVIVINGBUGSCSV()) {
 			final String csvFile = FBParserConfig.getInstance()
-					.getMETRICSRESULTCSV();
-			printInCSV(csvFile, transitions);
+					.getSURVIVINGBUGSCSV();
+			printInCSV(csvFile, transitions, "surviving");
+		}
+
+		if (FBParserConfig.getInstance().hasREMOVEDBUGSCSV()) {
+			final String csvFile = FBParserConfig.getInstance()
+					.getREMOVEDBUGSCSV();
+			printInCSV(csvFile, transitions, "removed");
+		}
+
+		if (FBParserConfig.getInstance().hasADDEDBUGSCSV()) {
+			final String csvFile = FBParserConfig.getInstance()
+					.getADDEDBUGSCSV();
+			printInCSV(csvFile, transitions, "added");
 		}
 
 		if (FBParserConfig.getInstance().hasMETRICSRESULTXLSX()) {
@@ -94,90 +109,64 @@ public class FBMeter {
 	}
 
 	static private void printInCSV(final String path,
-			final List<Transition> transitions) {
+			final List<Transition> transitions, final String bugText) {
+
+		final SortedMap<BugPattern, StringBuilder> patternsMap = new TreeMap<>();
+		for (final BugPattern pattern : BugPattern.getBugPatterns()) {
+			final StringBuilder text = new StringBuilder();
+			text.append(pattern.type).append(", ")
+					.append(pattern.getRankText()).append(", ")
+					.append(pattern.getPriorityText()).append(", ")
+					.append(pattern.category);
+			patternsMap.put(pattern, text);
+		}
+
+		for (final Transition transition : transitions) {
+			for (final Entry<BugPattern, StringBuilder> entry : patternsMap
+					.entrySet()) {
+				final BugPattern pattern = entry.getKey();
+				final StringBuilder text = entry.getValue();
+
+				final Set<BugInstance> bugs;
+				switch (bugText) {
+				case "surviving": {
+					bugs = transition.survivingBugs;
+					break;
+				}
+				case "removed": {
+					bugs = transition.removedBugs;
+					break;
+				}
+				case "added": {
+					bugs = transition.addedBugs;
+					break;
+				}
+				default: {
+					bugs = new HashSet<>();
+				}
+				}
+				final Set<BugInstance> instances = BugInstance.getBugInstances(
+						bugs, pattern);
+				text.append(", ").append(Integer.toString(instances.size()));
+			}
+		}
 
 		try (final PrintWriter writer = new PrintWriter(new OutputStreamWriter(
 				new FileOutputStream(path), "UTF-8"))) {
 
-			final StringBuilder typeText = new StringBuilder();
-			final StringBuilder rankText = new StringBuilder();
-			final StringBuilder priorityText = new StringBuilder();
-			final StringBuilder categoryText = new StringBuilder();
-			typeText.append("TYPE, ");
-			rankText.append("RANK, ");
-			priorityText.append("PRIORITY, ");
-			categoryText.append("CATEGORY, ");
-			for (final BugPattern pattern : BugPattern.getBugPatterns()) {
-				typeText.append(pattern.type + "[number-of-surviving-bugs],");
-				typeText.append(pattern.type + "[number-of-removed-bugs],");
-				typeText.append(pattern.type + "[number-of-added-bugs],");
-				typeText.append(pattern.type + "[ratio-of-surviving], ");
-				typeText.append(pattern.type + "[ratio-of-solved-old], ");
-				typeText.append(pattern.type + "[ratio-of-solved-new], ");
-				rankText.append(pattern.getRankText());
-				rankText.append(pattern.getRankText());
-				rankText.append(pattern.getRankText());
-				rankText.append(pattern.getRankText());
-				rankText.append(pattern.getRankText());
-				rankText.append(pattern.getRankText());
-				priorityText.append(pattern.getPriorityText());
-				priorityText.append(pattern.getPriorityText());
-				priorityText.append(pattern.getPriorityText());
-				priorityText.append(pattern.getPriorityText());
-				priorityText.append(pattern.getPriorityText());
-				priorityText.append(pattern.getPriorityText());
-				categoryText.append(pattern.category + ", ");
-				categoryText.append(pattern.category + ", ");
-				categoryText.append(pattern.category + ", ");
-				categoryText.append(pattern.category + ", ");
-				categoryText.append(pattern.category + ", ");
-				categoryText.append(pattern.category + ", ");
+			final StringBuilder title = new StringBuilder();
+			title.append("TYPE, RANK, PRIORITY, CATEGORY");
+			for (final Transition transition : transitions) {
+				title.append(",").append(
+						StringUtility.getName(transition.latterXMLFile));
 			}
-			typeText.deleteCharAt(typeText.length() - 1);
-			rankText.deleteCharAt(rankText.length() - 1);
-			priorityText.deleteCharAt(priorityText.length() - 1);
-			categoryText.deleteCharAt(categoryText.length() - 1);
-			writer.println(typeText);
-			writer.println(rankText);
-			writer.println(priorityText);
-			writer.println(categoryText);
+			writer.println(title.toString());
 
-			for (final Transition pair : transitions) {
+			for (final Entry<BugPattern, StringBuilder> entry : patternsMap
+					.entrySet()) {
 
-				final StringBuilder dataText = new StringBuilder();
-				dataText.append(StringUtility.getName(pair.latterXMLFile));
-				dataText.append(", ");
-
-				for (final BugPattern pattern : BugPattern.getBugPatterns()) {
-
-					final int numberOfSurvivingBugs = countBugInstances(
-							pair.survivingBugs, pattern.type);
-					final int numberOfAddedBugs = countBugInstances(
-							pair.addedBugs, pattern.type);
-					final int numberOfRemovedBugs = countBugInstances(
-							pair.removedBugs, pattern.type);
-
-					float ratioOfSurviving = (float) numberOfSurvivingBugs
-							/ (float) (numberOfSurvivingBugs + numberOfRemovedBugs);
-					float ratioOfSolvedOld = (float) numberOfRemovedBugs
-							/ (float) (numberOfSurvivingBugs + numberOfRemovedBugs);
-					float ratioOfSolvednew = (float) numberOfRemovedBugs
-							/ (float) (numberOfSurvivingBugs + numberOfAddedBugs);
-
-					dataText.append(Integer.toString(numberOfSurvivingBugs));
-					dataText.append(", ");
-					dataText.append(Integer.toString(numberOfRemovedBugs));
-					dataText.append(", ");
-					dataText.append(Integer.toString(numberOfAddedBugs));
-					dataText.append(", ");
-					dataText.append(Float.toString(ratioOfSurviving));
-					dataText.append(", ");
-					dataText.append(Float.toString(ratioOfSolvedOld));
-					dataText.append(", ");
-					dataText.append(Float.toString(ratioOfSolvednew));
-					dataText.append(", ");
-				}
-				writer.println(dataText.toString());
+				final StringBuilder text = entry.getValue();
+				writer.println(text.toString());
 			}
 		}
 

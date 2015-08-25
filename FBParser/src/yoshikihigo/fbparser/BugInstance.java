@@ -1,10 +1,26 @@
 package yoshikihigo.fbparser;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class BugInstance {
+
+	static public Set<BugInstance> getBugInstances(
+			final Collection<BugInstance> instances, final BugPattern pattern) {
+
+		final Set<BugInstance> subset = new HashSet<>();
+		for (final BugInstance instance : instances) {
+			if (instance.pattern.equals(pattern)) {
+				subset.add(instance);
+			}
+		}
+
+		return subset;
+	}
 
 	final public BugPattern pattern;
 	final public int rank;
