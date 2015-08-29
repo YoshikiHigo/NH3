@@ -115,8 +115,8 @@ public class FBMeter {
 		for (final BugPattern pattern : BugPattern.getBugPatterns()) {
 			final StringBuilder text = new StringBuilder();
 			text.append(pattern.type).append(", ")
-					.append(pattern.getRankText()).append(", ")
-					.append(pattern.getPriorityText()).append(", ")
+					.append(pattern.getAverageRank()).append(", ")
+					.append(pattern.getAveragePriority()).append(", ")
 					.append(pattern.category);
 			patternsMap.put(pattern, text);
 		}
