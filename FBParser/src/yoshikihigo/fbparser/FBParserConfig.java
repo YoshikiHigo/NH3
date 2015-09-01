@@ -33,6 +33,42 @@ public class FBParserConfig {
 		}
 
 		{
+			final Option source = new Option("repository", "repository", true,
+					"repository of a target software");
+			source.setArgName("number");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
+			final Option source = new Option("startrev", "startrev", true,
+					"revision number of the given XML file");
+			source.setArgName("number");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
+			final Option source = new Option("endrev", "endrev", true,
+					"revision number of ending border");
+			source.setArgName("number");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
+			final Option source = new Option("fbresult", "fbresult", true,
+					"a findbug's result on a target version");
+			source.setArgName("xml file(findbug's result)");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
 			final Option source = new Option("fbresults", "fbresults", true,
 					"findbug's results on target versions");
 			source.setArgName("xml files(findbug's results)");
@@ -125,6 +161,38 @@ public class FBParserConfig {
 			System.exit(0);
 		}
 		return this.commandLine.getOptionValue("src");
+	}
+
+	public String getREPOSITORY() {
+		if (!this.commandLine.hasOption("repository")) {
+			System.err.println("option \"repository\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("repository");
+	}
+
+	public long getSTARTREV() {
+		if (!this.commandLine.hasOption("startrev")) {
+			System.err.println("option \"startrev\" is not specified.");
+			System.exit(0);
+		}
+		return Long.parseLong(this.commandLine.getOptionValue("startrev"));
+	}
+
+	public long getENDREV() {
+		if (!this.commandLine.hasOption("endrev")) {
+			System.err.println("option \"endrev\" is not specified.");
+			System.exit(0);
+		}
+		return Long.parseLong(this.commandLine.getOptionValue("endrev"));
+	}
+
+	public String getFBRESULT() {
+		if (!this.commandLine.hasOption("fbresult")) {
+			System.err.println("option \"fbresult\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("fbresult");
 	}
 
 	public List<String> getFBRESULTS() {
