@@ -18,11 +18,6 @@ public class RangeTransition {
 
 	public Range getRange(final Long revision) {
 
-		final Long firstRevision = this.transition.firstKey();
-		if (revision < firstRevision) {
-			return null;
-		}
-
 		Range range = null;
 		for (final Entry<Long, Range> entry : this.transition.entrySet()) {
 
@@ -48,7 +43,15 @@ public class RangeTransition {
 	}
 
 	public boolean hasDisappeared() {
-		return null == this.getLatestRange();
+		final Range latestRange = this.getLatestRange();
+		if (latestRange instanceof Range_ADDITION
+				|| latestRange instanceof Range_DELETION
+				|| latestRange instanceof Range_REPLACEMENT
+				|| latestRange instanceof Range_UNKNOWN) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	public Long[] getChangedRevisions() {

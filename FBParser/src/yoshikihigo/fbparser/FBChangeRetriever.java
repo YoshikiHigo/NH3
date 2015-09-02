@@ -37,23 +37,18 @@ public class FBChangeRetriever {
 		parser.perform();
 		final List<BugInstance> bugInstances = parser.getBugInstances();
 
-		// remove bugs that do not contain line information
-		for (int index = 0; index < bugInstances.size(); index++) {
-			final BugInstance instance = bugInstances.get(index);
-			if (0 == instance.getSourceLines().get(0).start) {
-				bugInstances.remove(index);
-				index--;
-			}
-		}
-
 		final Map<BugInstance, RangeTransition> transitions = new HashMap<>();
 		for (final BugInstance instance : bugInstances) {
 			final SourceLine sourceline = instance.getSourceLines().get(0);
 			final int startLine = sourceline.start;
 			final int endLine = sourceline.end;
-			final RangeTransition transition = new RangeTransition();
-			transition.add(startrev, new Range(startLine, endLine));
-			transitions.put(instance, transition);
+			if (0 == startLine && 0 == endLine) {
+				transitions.put(instance, null);
+			} else {
+				final RangeTransition transition = new RangeTransition();
+				transition.add(startrev, new Range(startLine, endLine));
+				transitions.put(instance, transition);
+			}
 		}
 
 		try {
@@ -78,7 +73,8 @@ public class FBChangeRetriever {
 
 									final RangeTransition transition = transitions
 											.get(instance);
-									if (transition.hasDisappeared()) {
+									if (null == transition
+											|| transition.hasDisappeared()) {
 										continue;
 									}
 
@@ -105,7 +101,7 @@ public class FBChangeRetriever {
 													}
 												});
 
-										final List<int[]> ranges = getChangedRanges(text
+										final List<Change> ranges = getChangedRanges(text
 												.toString());
 										final Range newRange = moveBuggedArea(
 												transition.getLatestRange(),
@@ -122,14 +118,29 @@ public class FBChangeRetriever {
 				System.out.println(instance.pattern.type + " : "
 						+ instance.getSourceLines().get(0).sourcepath);
 				final RangeTransition transition = transitions.get(instance);
-				final Long[] revisions = transition.getChangedRevisions();
-				for (final Long number : revisions) {
-					final Range range = transition.getRange(number);
-					if (null == range) {
-						System.out.println(number + " : disappeared");
-					} else {
-						System.out.println(number + " : " + range.startLine
-								+ "--" + range.startLine);
+				if (null == transition) {
+					System.out.println("no line information");
+				} else {
+					final Long[] revisions = transition.getChangedRevisions();
+					for (final Long number : revisions) {
+						final Range range = transition.getRange(number);
+						if (range instanceof Range_ADDITION) {
+							System.out.println(number
+									+ " : bugged code was changed (addition)");
+						} else if (range instanceof Range_DELETION) {
+							System.out.println(number
+									+ " : bugged code was changed (deletion)");
+						} else if (range instanceof Range_REPLACEMENT) {
+							System.out
+									.println(number
+											+ " : bugged code was changed (replacement)");
+						} else if (range instanceof Range_UNKNOWN) {
+							System.out.println(number
+									+ " : bugged code was changed (unknown)");
+						} else {
+							System.out.println(number + " : " + range.startLine
+									+ "--" + range.startLine);
+						}
 					}
 				}
 			}
@@ -141,9 +152,9 @@ public class FBChangeRetriever {
 		}
 	}
 
-	static private List<int[]> getChangedRanges(final String text) {
+	static private List<Change> getChangedRanges(final String text) {
 
-		final List<int[]> ranges = new ArrayList<>();
+		final List<Change> ranges = new ArrayList<>();
 
 		try (final BufferedReader reader = new BufferedReader(new StringReader(
 				text))) {
@@ -172,12 +183,10 @@ public class FBChangeRetriever {
 					final int postEnd = postStart
 							+ Integer.parseInt(postRange.substring(postRange
 									.indexOf(',') + 1)) - 3;
-					final int[] range = new int[4];
-					range[0] = preStart;
-					range[1] = preEnd;
-					range[2] = postStart;
-					range[3] = postEnd;
-					ranges.add(range);
+					final Range before = new Range(preStart, preEnd);
+					final Range after = new Range(postStart, postEnd);
+					final Change change = new Change(before, after);
+					ranges.add(change);
 				}
 			}
 		}
@@ -190,22 +199,37 @@ public class FBChangeRetriever {
 	}
 
 	static private Range moveBuggedArea(final Range buggedArea,
-			final List<int[]> changedRanges) {
+			final List<Change> changedRanges) {
 
 		int moved = 0;
-		for (final int[] changedRange : changedRanges) {
+		for (final Change changedRange : changedRanges) {
 
-			if (changedRange[1] < buggedArea.startLine) {
-				moved += (changedRange[3] - changedRange[2])
-						- (changedRange[1] - changedRange[0]);
+			if (changedRange.before.endLine < buggedArea.startLine) {
+				moved += (changedRange.after.endLine - changedRange.after.startLine)
+						- (changedRange.before.endLine - changedRange.before.startLine);
 			}
 
-			else if (buggedArea.endLine < changedRange[0]) {
+			else if (buggedArea.endLine < changedRange.before.startLine) {
 				// do nothing
 			}
 
 			else {
-				return null;
+				final int newStartLine = buggedArea.startLine + moved;
+				final int newEndLine = buggedArea.endLine + moved;
+
+				final int changedBeforeLength = changedRange.before.endLine
+						- changedRange.before.startLine;
+				final int changedAfterLength = changedRange.after.endLine
+						- changedRange.after.startLine;
+				if (0 < changedBeforeLength && 0 < changedAfterLength) {
+					return new Range_REPLACEMENT(newStartLine, newEndLine);
+				} else if (0 < changedBeforeLength) {
+					return new Range_DELETION(newStartLine, newEndLine);
+				} else if (0 < changedAfterLength) {
+					return new Range_ADDITION(newStartLine, newEndLine);
+				} else {
+					return new Range_UNKNOWN(newStartLine, newEndLine);
+				}
 			}
 		}
 
