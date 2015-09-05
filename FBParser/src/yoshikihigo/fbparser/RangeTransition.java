@@ -36,14 +36,20 @@ public class RangeTransition {
 		return range;
 	}
 
-	public Range getLatestRange() {
+	public Range getFirstRange() {
+		final Long firstRevision = this.transition.firstKey();
+		final Range range = this.transition.get(firstRevision);
+		return range;
+	}
+
+	public Range getLastRange() {
 		final Long lastRevision = this.transition.lastKey();
 		final Range range = this.transition.get(lastRevision);
 		return range;
 	}
 
 	public boolean hasDisappeared() {
-		final Range latestRange = this.getLatestRange();
+		final Range latestRange = this.getLastRange();
 		if (latestRange instanceof Range_ADDITION
 				|| latestRange instanceof Range_DELETION
 				|| latestRange instanceof Range_REPLACEMENT

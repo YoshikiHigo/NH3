@@ -33,6 +33,15 @@ public class FBParserConfig {
 		}
 
 		{
+			final Option source = new Option("tr", "transitionresult", true,
+					"transition result of bugs found by FindBugs");
+			source.setArgName("file");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
 			final Option source = new Option("repository", "repository", true,
 					"repository of a target software");
 			source.setArgName("number");
@@ -161,6 +170,14 @@ public class FBParserConfig {
 			System.exit(0);
 		}
 		return this.commandLine.getOptionValue("src");
+	}
+
+	public String getTRANSITIONRESULT() {
+		if (!this.commandLine.hasOption("tr")) {
+			System.err.println("option \"tr\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("tr");
 	}
 
 	public String getREPOSITORY() {
