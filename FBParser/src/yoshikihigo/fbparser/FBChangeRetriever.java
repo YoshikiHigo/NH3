@@ -147,11 +147,8 @@ public class FBChangeRetriever {
 					}
 				}
 			}
-
-		}
-
-		catch (final SVNException e) {
-
+		} catch (final SVNException e) {
+			e.printStackTrace();
 		}
 
 		final FBParser parser2 = new FBParser(fbResult2);

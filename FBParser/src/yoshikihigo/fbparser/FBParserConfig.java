@@ -42,6 +42,24 @@ public class FBParserConfig {
 		}
 
 		{
+			final Option source = new Option("cp", "changepattern", true,
+					"change patterns for removed bugs");
+			source.setArgName("file");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
+			final Option source = new Option("db", "database", true,
+					"change patterns found by CPAnalyzer");
+			source.setArgName("file");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
 			final Option source = new Option("repository", "repository", true,
 					"repository of a target software");
 			source.setArgName("number");
@@ -178,6 +196,22 @@ public class FBParserConfig {
 			System.exit(0);
 		}
 		return this.commandLine.getOptionValue("tr");
+	}
+
+	public String getCHANGEPATTERN() {
+		if (!this.commandLine.hasOption("cp")) {
+			System.err.println("option \"cp\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("cp");
+	}
+	
+	public String getDATABASE() {
+		if (!this.commandLine.hasOption("db")) {
+			System.err.println("option \"db\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("db");
 	}
 
 	public String getREPOSITORY() {
