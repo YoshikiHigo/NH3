@@ -6,10 +6,23 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import yoshikihigo.fbparser.db.DAO;
 import yoshikihigo.fbparser.db.DAO.CHANGEPATTERN_SQL;
@@ -23,18 +36,24 @@ public class FBChangePatternFinder {
 		final String trFile = FBParserConfig.getInstance()
 				.getTRANSITIONRESULT();
 		final String cpFile = FBParserConfig.getInstance().getCHANGEPATTERN();
+		final String mcpFile = FBParserConfig.getInstance()
+				.getMISSINGCHANGEPATTERN();
 		final DAO dao = DAO.getInstance();
 
 		try (final BufferedReader reader = new BufferedReader(
 				new InputStreamReader(new FileInputStream(trFile),
 						"JISAutoDetect"));
-				final PrintWriter writer = new PrintWriter(new BufferedWriter(
-						new OutputStreamWriter(new FileOutputStream(cpFile),
-								"UTF-8")))) {
+				final PrintWriter cpWriter = new PrintWriter(
+						new BufferedWriter(new OutputStreamWriter(
+								new FileOutputStream(cpFile), "UTF-8")));
+				final Workbook book = new XSSFWorkbook();
+				final OutputStream stream = new FileOutputStream(mcpFile)) {
 
 			final String trTitle = reader.readLine();
-			writer.print(trTitle);
-			writer.println(", CHANGEPATTERN-ID, CHANGEPATTERN-SUPPORT");
+			cpWriter.print(trTitle);
+			cpWriter.println(", CHANGEPATTERN-ID, CHANGEPATTERN-SUPPORT");
+
+			final Set<Integer> appearedCPs = new HashSet<>();
 
 			while (true) {
 				final String lineText = reader.readLine();
@@ -56,27 +75,92 @@ public class FBChangePatternFinder {
 							continue;
 						}
 
-						System.out.println("----------" + line.hash
-								+ "----------");
+						// System.out.println("----------" + line.hash
+						// + "----------");
 						final List<CHANGEPATTERN_SQL> cps = dao
 								.getChangePatterns(change.beforeHash,
 										change.afterHash);
 						for (final CHANGEPATTERN_SQL cp : cps) {
-							System.out.println(cp.id);
-							writer.print(lineText);
-							writer.print(", ");
-							writer.print(cp.id);
-							writer.print(", ");
-							writer.println(cp.support);
+							// System.out.println(cp.id);
+							cpWriter.print(lineText);
+							cpWriter.print(", ");
+							cpWriter.print(cp.id);
+							cpWriter.print(", ");
+							cpWriter.println(cp.support);
+							appearedCPs.add(cp.id);
 						}
 					}
 				}
 			}
 
+			final Sheet sheet = book.createSheet();
+			book.setSheetName(0, "missing change patterns");
+			final Row titleRow = sheet.createRow(0);
+			titleRow.createCell(0).setCellValue("RANKING");
+			titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
+			titleRow.createCell(2).setCellValue("CHANGE-PATTERN-ID");
+			titleRow.createCell(3).setCellValue("SUPPORT");
+			titleRow.createCell(4).setCellValue("TEXT-BEFORE-CHANGE");
+			titleRow.createCell(5).setCellValue("TEXT-AFTER-CHANGE");
+
+			int currentRow = 1;
+			int ranking = 1;
+			final List<CHANGEPATTERN_SQL> cps = dao.getFixChangePatterns();
+			for (final CHANGEPATTERN_SQL cp : cps) {
+
+				final boolean foundByFindBugs = appearedCPs.contains(cp.id);
+
+				final Row dataRow = sheet.createRow(currentRow++);
+				dataRow.createCell(0).setCellValue(ranking++);
+				dataRow.createCell(1).setCellValue(
+						foundByFindBugs ? "YES" : "NO");
+				dataRow.createCell(2).setCellValue(cp.id);
+				dataRow.createCell(3).setCellValue(cp.support);
+				dataRow.createCell(4).setCellValue(cp.beforeText);
+				dataRow.createCell(5).setCellValue(cp.afterText);
+
+				final CellStyle style = book.createCellStyle();
+				style.setWrapText(true);
+				style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+				style.setFillForegroundColor(foundByFindBugs ? IndexedColors.ROSE
+						.getIndex() : IndexedColors.WHITE.getIndex());
+				style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+				style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+				style.setBorderRight(XSSFCellStyle.BORDER_THIN);
+				style.setBorderTop(XSSFCellStyle.BORDER_THIN);
+				dataRow.getCell(0).setCellStyle(style);
+				dataRow.getCell(1).setCellStyle(style);
+				dataRow.getCell(2).setCellStyle(style);
+				dataRow.getCell(3).setCellStyle(style);
+				dataRow.getCell(4).setCellStyle(style);
+				dataRow.getCell(5).setCellStyle(style);
+
+				int loc = Math.max(getLOC(cp.beforeText), getLOC(cp.afterText));
+				dataRow.setHeight((short) (loc * dataRow.getHeight()));
+			}
+			sheet.autoSizeColumn(0);
+			sheet.autoSizeColumn(1);
+			sheet.autoSizeColumn(2);
+			sheet.autoSizeColumn(3);
+			sheet.autoSizeColumn(4);
+			sheet.autoSizeColumn(5);
+			book.write(stream);
+
 		} catch (final IOException e) {
 			e.printStackTrace();
 			System.exit(0);
 		}
+	}
+
+	private static int getLOC(final String text) {
+
+		int count = 0;
+		final String newline = System.lineSeparator();
+		final Matcher matcher = Pattern.compile(newline).matcher(text);
+		while (matcher.find()) {
+			count++;
+		}
+		return count + 1;
 	}
 }
 

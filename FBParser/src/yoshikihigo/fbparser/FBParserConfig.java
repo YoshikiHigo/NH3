@@ -51,6 +51,16 @@ public class FBParserConfig {
 		}
 
 		{
+			final Option source = new Option("mcp", "missingchangepattern",
+					true,
+					"change patterns not associated with any of warning-instance removal");
+			source.setArgName("file");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
 			final Option source = new Option("db", "database", true,
 					"change patterns found by CPAnalyzer");
 			source.setArgName("file");
@@ -205,7 +215,15 @@ public class FBParserConfig {
 		}
 		return this.commandLine.getOptionValue("cp");
 	}
-	
+
+	public String getMISSINGCHANGEPATTERN() {
+		if (!this.commandLine.hasOption("mcp")) {
+			System.err.println("option \"mcp\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("mcp");
+	}
+
 	public String getDATABASE() {
 		if (!this.commandLine.hasOption("db")) {
 			System.err.println("option \"db\" is not specified.");

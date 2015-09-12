@@ -120,33 +120,33 @@ public class FBChangeRetriever {
 						}
 					});
 
-			for (final BugInstance instance : bugInstances1) {
-				System.out.println(instance.pattern.type + " : "
-						+ instance.getSourceLines().get(0).sourcepath);
-				final RangeTransition transition = transitions.get(instance);
-				final Long[] revisions = transition.getChangedRevisions();
-				for (final Long number : revisions) {
-					final Range range = transition.getRange(number);
-					if (!range.hasLineInformaltion()) {
-						System.out.println(number + " : no line information");
-					} else if (range instanceof Range_ADDITION) {
-						System.out.println(number
-								+ " : bugged code was changed (addition)");
-					} else if (range instanceof Range_DELETION) {
-						System.out.println(number
-								+ " : bugged code was changed (deletion)");
-					} else if (range instanceof Range_REPLACEMENT) {
-						System.out.println(number
-								+ " : bugged code was changed (replacement)");
-					} else if (range instanceof Range_UNKNOWN) {
-						System.out.println(number
-								+ " : bugged code was changed (unknown)");
-					} else {
-						System.out.println(number + " : " + range.startLine
-								+ "--" + range.startLine);
-					}
-				}
-			}
+//			for (final BugInstance instance : bugInstances1) {
+//				System.out.println(instance.pattern.type + " : "
+//						+ instance.getSourceLines().get(0).sourcepath);
+//				final RangeTransition transition = transitions.get(instance);
+//				final Long[] revisions = transition.getChangedRevisions();
+//				for (final Long number : revisions) {
+//					final Range range = transition.getRange(number);
+//					if (!range.hasLineInformaltion()) {
+//						System.out.println(number + " : no line information");
+//					} else if (range instanceof Range_ADDITION) {
+//						System.out.println(number
+//								+ " : bugged code was changed (addition)");
+//					} else if (range instanceof Range_DELETION) {
+//						System.out.println(number
+//								+ " : bugged code was changed (deletion)");
+//					} else if (range instanceof Range_REPLACEMENT) {
+//						System.out.println(number
+//								+ " : bugged code was changed (replacement)");
+//					} else if (range instanceof Range_UNKNOWN) {
+//						System.out.println(number
+//								+ " : bugged code was changed (unknown)");
+//					} else {
+//						System.out.println(number + " : " + range.startLine
+//								+ "--" + range.startLine);
+//					}
+//				}
+//			}
 		} catch (final SVNException e) {
 			e.printStackTrace();
 		}
