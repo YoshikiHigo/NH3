@@ -27,6 +27,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import yoshikihigo.fbparser.db.DAO;
 import yoshikihigo.fbparser.db.DAO.CHANGEPATTERN_SQL;
 import yoshikihigo.fbparser.db.DAO.CHANGE_SQL;
+import yoshikihigo.fbparser.db.DAO.CODE_SQL;
 
 public class FBChangePatternFinder {
 
@@ -38,6 +39,7 @@ public class FBChangePatternFinder {
 		final String cpFile = FBParserConfig.getInstance().getCHANGEPATTERN();
 		final String mcpFile = FBParserConfig.getInstance()
 				.getMISSINGCHANGEPATTERN();
+		final String bugFile = FBParserConfig.getInstance().getBUG();
 		final DAO dao = DAO.getInstance();
 
 		try (final BufferedReader reader = new BufferedReader(
@@ -53,8 +55,8 @@ public class FBChangePatternFinder {
 			cpWriter.print(trTitle);
 			cpWriter.println(", CHANGEPATTERN-ID, CHANGEPATTERN-SUPPORT");
 
-			final Set<Integer> appearedCPs = new HashSet<>();
-
+			final Set<Integer> foundCPs = new HashSet<>();
+			final Set<String> foundCodes = new HashSet<>();
 			while (true) {
 				final String lineText = reader.readLine();
 				if (null == lineText) {
@@ -87,63 +89,122 @@ public class FBChangePatternFinder {
 							cpWriter.print(cp.id);
 							cpWriter.print(", ");
 							cpWriter.println(cp.support);
-							appearedCPs.add(cp.id);
+							foundCPs.add(cp.id);
+							foundCodes.add(cp.beforeText);
 						}
 					}
 				}
 			}
 
-			final Sheet sheet = book.createSheet();
-			book.setSheetName(0, "missing change patterns");
-			final Row titleRow = sheet.createRow(0);
-			titleRow.createCell(0).setCellValue("RANKING");
-			titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
-			titleRow.createCell(2).setCellValue("CHANGE-PATTERN-ID");
-			titleRow.createCell(3).setCellValue("SUPPORT");
-			titleRow.createCell(4).setCellValue("TEXT-BEFORE-CHANGE");
-			titleRow.createCell(5).setCellValue("TEXT-AFTER-CHANGE");
+			{
+				final Sheet sheet = book.createSheet();
+				book.setSheetName(0, "change-patterns");
+				final Row titleRow = sheet.createRow(0);
+				titleRow.createCell(0).setCellValue("RANKING");
+				titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
+				titleRow.createCell(2).setCellValue("CHANGE-PATTERN-ID");
+				titleRow.createCell(3).setCellValue("SUPPORT");
+				titleRow.createCell(4).setCellValue("TEXT-BEFORE-CHANGE");
+				titleRow.createCell(5).setCellValue("TEXT-AFTER-CHANGE");
 
-			int currentRow = 1;
-			int ranking = 1;
-			final List<CHANGEPATTERN_SQL> cps = dao.getFixChangePatterns();
-			for (final CHANGEPATTERN_SQL cp : cps) {
+				int currentRow = 1;
+				int ranking = 1;
+				final List<CHANGEPATTERN_SQL> cps = dao.getFixChangePatterns();
+				for (final CHANGEPATTERN_SQL cp : cps) {
 
-				final boolean foundByFindBugs = appearedCPs.contains(cp.id);
+					if (cp.beforeText.isEmpty()) {
+						continue;
+					}
 
-				final Row dataRow = sheet.createRow(currentRow++);
-				dataRow.createCell(0).setCellValue(ranking++);
-				dataRow.createCell(1).setCellValue(
-						foundByFindBugs ? "YES" : "NO");
-				dataRow.createCell(2).setCellValue(cp.id);
-				dataRow.createCell(3).setCellValue(cp.support);
-				dataRow.createCell(4).setCellValue(cp.beforeText);
-				dataRow.createCell(5).setCellValue(cp.afterText);
+					final boolean foundByFindBugs = foundCPs.contains(cp.id);
 
-				final CellStyle style = book.createCellStyle();
-				style.setWrapText(true);
-				style.setFillPattern(CellStyle.SOLID_FOREGROUND);
-				style.setFillForegroundColor(foundByFindBugs ? IndexedColors.ROSE
-						.getIndex() : IndexedColors.WHITE.getIndex());
-				style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
-				style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
-				style.setBorderRight(XSSFCellStyle.BORDER_THIN);
-				style.setBorderTop(XSSFCellStyle.BORDER_THIN);
-				dataRow.getCell(0).setCellStyle(style);
-				dataRow.getCell(1).setCellStyle(style);
-				dataRow.getCell(2).setCellStyle(style);
-				dataRow.getCell(3).setCellStyle(style);
-				dataRow.getCell(4).setCellStyle(style);
-				dataRow.getCell(5).setCellStyle(style);
+					final Row dataRow = sheet.createRow(currentRow++);
+					dataRow.createCell(0).setCellValue(ranking++);
+					dataRow.createCell(1).setCellValue(
+							foundByFindBugs ? "YES" : "NO");
+					dataRow.createCell(2).setCellValue(cp.id);
+					dataRow.createCell(3).setCellValue(cp.support);
+					dataRow.createCell(4).setCellValue(cp.beforeText);
+					dataRow.createCell(5).setCellValue(cp.afterText);
 
-				int loc = Math.max(getLOC(cp.beforeText), getLOC(cp.afterText));
-				dataRow.setHeight((short) (loc * dataRow.getHeight()));
+					final CellStyle style = book.createCellStyle();
+					style.setWrapText(true);
+					style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+					style.setFillForegroundColor(foundByFindBugs ? IndexedColors.ROSE
+							.getIndex() : IndexedColors.WHITE.getIndex());
+					style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+					style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+					style.setBorderRight(XSSFCellStyle.BORDER_THIN);
+					style.setBorderTop(XSSFCellStyle.BORDER_THIN);
+					dataRow.getCell(0).setCellStyle(style);
+					dataRow.getCell(1).setCellStyle(style);
+					dataRow.getCell(2).setCellStyle(style);
+					dataRow.getCell(3).setCellStyle(style);
+					dataRow.getCell(4).setCellStyle(style);
+					dataRow.getCell(5).setCellStyle(style);
+
+					int loc = Math.max(getLOC(cp.beforeText),
+							getLOC(cp.afterText));
+					dataRow.setHeight((short) (loc * dataRow.getHeight()));
+				}
+				sheet.autoSizeColumn(0);
+				sheet.autoSizeColumn(1);
+				sheet.autoSizeColumn(2);
+				sheet.autoSizeColumn(3);
+				sheet.autoSizeColumn(4);
+				sheet.autoSizeColumn(5);
 			}
-			sheet.autoSizeColumn(0);
-			sheet.autoSizeColumn(1);
-			sheet.autoSizeColumn(2);
-			sheet.autoSizeColumn(3);
-			sheet.autoSizeColumn(4);
-			sheet.autoSizeColumn(5);
+
+//			{
+//				final Sheet sheet = book.createSheet();
+//				book.setSheetName(1, "code-pre-change");
+//				final Row titleRow = sheet.createRow(0);
+//				titleRow.createCell(0).setCellValue("RANKING");
+//				titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
+//				titleRow.createCell(2).setCellValue("SUPPORT");
+//				titleRow.createCell(3).setCellValue("TEXT-BEFORE-CHANGE");
+//
+//				int currentRow = 1;
+//				int ranking = 1;
+//				final List<CODE_SQL> codes = dao.getFixedCodes();
+//				for (final CODE_SQL code : codes) {
+//
+//					if (code.text.isEmpty()) {
+//						continue;
+//					}
+//
+//					final boolean foundByFindBugs = foundCodes
+//							.contains(code.text);
+//
+//					final Row dataRow = sheet.createRow(currentRow++);
+//					dataRow.createCell(0).setCellValue(ranking++);
+//					dataRow.createCell(1).setCellValue(
+//							foundByFindBugs ? "YES" : "NO");
+//					dataRow.createCell(2).setCellValue(code.support);
+//					dataRow.createCell(3).setCellValue(code.text);
+//
+//					final CellStyle style = book.createCellStyle();
+//					style.setWrapText(true);
+//					style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+//					style.setFillForegroundColor(foundByFindBugs ? IndexedColors.ROSE
+//							.getIndex() : IndexedColors.WHITE.getIndex());
+//					style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+//					style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+//					style.setBorderRight(XSSFCellStyle.BORDER_THIN);
+//					style.setBorderTop(XSSFCellStyle.BORDER_THIN);
+//					dataRow.getCell(0).setCellStyle(style);
+//					dataRow.getCell(1).setCellStyle(style);
+//					dataRow.getCell(2).setCellStyle(style);
+//					dataRow.getCell(3).setCellStyle(style);
+//
+//					int loc = getLOC(code.text);
+//					dataRow.setHeight((short) (loc * dataRow.getHeight()));
+//				}
+//				sheet.autoSizeColumn(0);
+//				sheet.autoSizeColumn(1);
+//				sheet.autoSizeColumn(2);
+//				sheet.autoSizeColumn(3);
+//			}
 			book.write(stream);
 
 		} catch (final IOException e) {

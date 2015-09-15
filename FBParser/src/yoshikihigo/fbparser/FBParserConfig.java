@@ -70,6 +70,15 @@ public class FBParserConfig {
 		}
 
 		{
+			final Option source = new Option("bug", "bugfile", true,
+					"a csv file include bug IDs");
+			source.setArgName("file");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
 			final Option source = new Option("repository", "repository", true,
 					"repository of a target software");
 			source.setArgName("number");
@@ -230,6 +239,14 @@ public class FBParserConfig {
 			System.exit(0);
 		}
 		return this.commandLine.getOptionValue("db");
+	}
+
+	public String getBUG() {
+		if (!this.commandLine.hasOption("bug")) {
+			System.err.println("option \"bug\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("bug");
 	}
 
 	public String getREPOSITORY() {
