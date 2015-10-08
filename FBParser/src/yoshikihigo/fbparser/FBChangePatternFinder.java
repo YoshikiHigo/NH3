@@ -9,6 +9,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,7 +29,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import yoshikihigo.fbparser.db.DAO;
 import yoshikihigo.fbparser.db.DAO.CHANGEPATTERN_SQL;
 import yoshikihigo.fbparser.db.DAO.CHANGE_SQL;
-import yoshikihigo.fbparser.db.DAO.CODE_SQL;
 
 public class FBChangePatternFinder {
 
@@ -104,12 +105,33 @@ public class FBChangePatternFinder {
 				titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
 				titleRow.createCell(2).setCellValue("CHANGE-PATTERN-ID");
 				titleRow.createCell(3).setCellValue("SUPPORT");
-				titleRow.createCell(4).setCellValue("TEXT-BEFORE-CHANGE");
-				titleRow.createCell(5).setCellValue("TEXT-AFTER-CHANGE");
+				titleRow.createCell(4).setCellValue("BUG-FIX SUPPORT");
+				titleRow.createCell(5).setCellValue("TEXT-BEFORE-CHANGE");
+				titleRow.createCell(6).setCellValue("TEXT-AFTER-CHANGE");
 
 				int currentRow = 1;
 				int ranking = 1;
 				final List<CHANGEPATTERN_SQL> cps = dao.getFixChangePatterns();
+				Collections.sort(cps, new Comparator<CHANGEPATTERN_SQL>() {
+
+					@Override
+					public int compare(final CHANGEPATTERN_SQL o1,
+							final CHANGEPATTERN_SQL o2) {
+
+						final float ratio1 = (float) o1.bugfixSupport
+								/ (float) o1.support;
+						final float ratio2 = (float) o2.bugfixSupport
+								/ (float) o2.support;
+						if (ratio1 > ratio2) {
+							return -1;
+						} else if (ratio2 > ratio1) {
+							return 1;
+						} else {
+							return 0;
+						}
+					}
+				});
+
 				for (final CHANGEPATTERN_SQL cp : cps) {
 
 					if (cp.beforeText.isEmpty()) {
@@ -124,8 +146,9 @@ public class FBChangePatternFinder {
 							foundByFindBugs ? "YES" : "NO");
 					dataRow.createCell(2).setCellValue(cp.id);
 					dataRow.createCell(3).setCellValue(cp.support);
-					dataRow.createCell(4).setCellValue(cp.beforeText);
-					dataRow.createCell(5).setCellValue(cp.afterText);
+					dataRow.createCell(4).setCellValue(cp.bugfixSupport);
+					dataRow.createCell(5).setCellValue(cp.beforeText);
+					dataRow.createCell(6).setCellValue(cp.afterText);
 
 					final CellStyle style = book.createCellStyle();
 					style.setWrapText(true);
@@ -142,6 +165,7 @@ public class FBChangePatternFinder {
 					dataRow.getCell(3).setCellStyle(style);
 					dataRow.getCell(4).setCellStyle(style);
 					dataRow.getCell(5).setCellStyle(style);
+					dataRow.getCell(6).setCellStyle(style);
 
 					int loc = Math.max(getLOC(cp.beforeText),
 							getLOC(cp.afterText));
@@ -153,58 +177,59 @@ public class FBChangePatternFinder {
 				sheet.autoSizeColumn(3);
 				sheet.autoSizeColumn(4);
 				sheet.autoSizeColumn(5);
+				sheet.autoSizeColumn(6);
 			}
 
-//			{
-//				final Sheet sheet = book.createSheet();
-//				book.setSheetName(1, "code-pre-change");
-//				final Row titleRow = sheet.createRow(0);
-//				titleRow.createCell(0).setCellValue("RANKING");
-//				titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
-//				titleRow.createCell(2).setCellValue("SUPPORT");
-//				titleRow.createCell(3).setCellValue("TEXT-BEFORE-CHANGE");
-//
-//				int currentRow = 1;
-//				int ranking = 1;
-//				final List<CODE_SQL> codes = dao.getFixedCodes();
-//				for (final CODE_SQL code : codes) {
-//
-//					if (code.text.isEmpty()) {
-//						continue;
-//					}
-//
-//					final boolean foundByFindBugs = foundCodes
-//							.contains(code.text);
-//
-//					final Row dataRow = sheet.createRow(currentRow++);
-//					dataRow.createCell(0).setCellValue(ranking++);
-//					dataRow.createCell(1).setCellValue(
-//							foundByFindBugs ? "YES" : "NO");
-//					dataRow.createCell(2).setCellValue(code.support);
-//					dataRow.createCell(3).setCellValue(code.text);
-//
-//					final CellStyle style = book.createCellStyle();
-//					style.setWrapText(true);
-//					style.setFillPattern(CellStyle.SOLID_FOREGROUND);
-//					style.setFillForegroundColor(foundByFindBugs ? IndexedColors.ROSE
-//							.getIndex() : IndexedColors.WHITE.getIndex());
-//					style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
-//					style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
-//					style.setBorderRight(XSSFCellStyle.BORDER_THIN);
-//					style.setBorderTop(XSSFCellStyle.BORDER_THIN);
-//					dataRow.getCell(0).setCellStyle(style);
-//					dataRow.getCell(1).setCellStyle(style);
-//					dataRow.getCell(2).setCellStyle(style);
-//					dataRow.getCell(3).setCellStyle(style);
-//
-//					int loc = getLOC(code.text);
-//					dataRow.setHeight((short) (loc * dataRow.getHeight()));
-//				}
-//				sheet.autoSizeColumn(0);
-//				sheet.autoSizeColumn(1);
-//				sheet.autoSizeColumn(2);
-//				sheet.autoSizeColumn(3);
-//			}
+			// {
+			// final Sheet sheet = book.createSheet();
+			// book.setSheetName(1, "code-pre-change");
+			// final Row titleRow = sheet.createRow(0);
+			// titleRow.createCell(0).setCellValue("RANKING");
+			// titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
+			// titleRow.createCell(2).setCellValue("SUPPORT");
+			// titleRow.createCell(3).setCellValue("TEXT-BEFORE-CHANGE");
+			//
+			// int currentRow = 1;
+			// int ranking = 1;
+			// final List<CODE_SQL> codes = dao.getFixedCodes();
+			// for (final CODE_SQL code : codes) {
+			//
+			// if (code.text.isEmpty()) {
+			// continue;
+			// }
+			//
+			// final boolean foundByFindBugs = foundCodes
+			// .contains(code.text);
+			//
+			// final Row dataRow = sheet.createRow(currentRow++);
+			// dataRow.createCell(0).setCellValue(ranking++);
+			// dataRow.createCell(1).setCellValue(
+			// foundByFindBugs ? "YES" : "NO");
+			// dataRow.createCell(2).setCellValue(code.support);
+			// dataRow.createCell(3).setCellValue(code.text);
+			//
+			// final CellStyle style = book.createCellStyle();
+			// style.setWrapText(true);
+			// style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+			// style.setFillForegroundColor(foundByFindBugs ? IndexedColors.ROSE
+			// .getIndex() : IndexedColors.WHITE.getIndex());
+			// style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+			// style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+			// style.setBorderRight(XSSFCellStyle.BORDER_THIN);
+			// style.setBorderTop(XSSFCellStyle.BORDER_THIN);
+			// dataRow.getCell(0).setCellStyle(style);
+			// dataRow.getCell(1).setCellStyle(style);
+			// dataRow.getCell(2).setCellStyle(style);
+			// dataRow.getCell(3).setCellStyle(style);
+			//
+			// int loc = getLOC(code.text);
+			// dataRow.setHeight((short) (loc * dataRow.getHeight()));
+			// }
+			// sheet.autoSizeColumn(0);
+			// sheet.autoSizeColumn(1);
+			// sheet.autoSizeColumn(2);
+			// sheet.autoSizeColumn(3);
+			// }
 			book.write(stream);
 
 		} catch (final IOException e) {

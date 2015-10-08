@@ -172,7 +172,7 @@ public class DAO {
 
 			final Set<Integer> bugIDs = this.getBugIDs();
 			final PreparedStatement statement2 = this.connector
-					.prepareStatement("select (select R.message from revisions R where R.number = C.revision) from changes C where C.beforeHash = ? and C.afterHash = ?");
+					.prepareStatement("select C.revision, (select R.message from revisions R where R.number = C.revision) from changes C where C.beforeHash = ? and C.afterHash = ?");
 			CODE: for (final Iterator<CHANGEPATTERN_SQL> iterator = changepatterns
 					.iterator(); iterator.hasNext();) {
 				CHANGEPATTERN_SQL cp = iterator.next();
@@ -180,15 +180,32 @@ public class DAO {
 				statement2.setBytes(2, cp.afterHash);
 				final ResultSet result2 = statement2.executeQuery();
 				while (result2.next()) {
-					final String message = result2.getString(1);
+					final int revision = result2.getInt(1);
+					final String message = result2.getString(2);
 					final Set<Integer> issueIDs = this.getIssueID(message);
 					for (final Integer issueID : issueIDs) {
 						if (bugIDs.contains(issueID)) {
+							cp.revisions.add(revision);
 							continue CODE;
 						}
 					}
 				}
 				iterator.remove();
+			}
+			statement2.close();
+
+			final PreparedStatement statement3 = this.connector
+					.prepareStatement("select count(*) from changes where revision = ? and beforeHash = ? and afterHash = ?");
+			for (final CHANGEPATTERN_SQL cp : changepatterns) {
+				for (final Integer revision : cp.revisions) {
+					statement3.setInt(1, revision);
+					statement3.setBytes(2, cp.beforeHash);
+					statement3.setBytes(3, cp.afterHash);
+					final ResultSet result3 = statement3.executeQuery();
+					assert result3.next() : "SQL execution failure.";
+					final int count = result3.getInt(1);
+					cp.bugfixSupport += count;
+				}
 			}
 
 		} catch (final SQLException e) {
@@ -306,6 +323,8 @@ public class DAO {
 		final public byte[] afterHash;
 		final public String beforeText;
 		final public String afterText;
+		final public List<Integer> revisions;
+		public int bugfixSupport;
 
 		public CHANGEPATTERN_SQL(final int id, final int support,
 				final float confidence, final byte[] beforeHash,
@@ -318,6 +337,8 @@ public class DAO {
 			this.afterHash = afterHash;
 			this.beforeText = beforeText;
 			this.afterText = afterText;
+			this.revisions = new ArrayList<>();
+			this.bugfixSupport = 0;
 		}
 	}
 
