@@ -40,7 +40,6 @@ public class FBChangePatternFinder {
 		final String cpFile = FBParserConfig.getInstance().getCHANGEPATTERN();
 		final String mcpFile = FBParserConfig.getInstance()
 				.getMISSINGCHANGEPATTERN();
-		final String bugFile = FBParserConfig.getInstance().getBUG();
 		final DAO dao = DAO.getInstance();
 
 		try (final BufferedReader reader = new BufferedReader(
@@ -102,12 +101,15 @@ public class FBChangePatternFinder {
 				book.setSheetName(0, "change-patterns");
 				final Row titleRow = sheet.createRow(0);
 				titleRow.createCell(0).setCellValue("RANKING");
-				titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
-				titleRow.createCell(2).setCellValue("CHANGE-PATTERN-ID");
+				titleRow.createCell(1).setCellValue("FOUND BY FINDBUGS");
+				titleRow.createCell(2).setCellValue("CHANGE PATTERN ID");
 				titleRow.createCell(3).setCellValue("SUPPORT");
 				titleRow.createCell(4).setCellValue("BUG-FIX SUPPORT");
-				titleRow.createCell(5).setCellValue("TEXT-BEFORE-CHANGE");
-				titleRow.createCell(6).setCellValue("TEXT-AFTER-CHANGE");
+				titleRow.createCell(5).setCellValue("BEFORE-TEXT SUPPORT");
+				titleRow.createCell(6).setCellValue("BUG-FIX CONFIDENCE");
+				titleRow.createCell(7).setCellValue("BEFORE-TEXT CONFIDENCE");
+				titleRow.createCell(8).setCellValue("TEXT BEFORE CHANGE");
+				titleRow.createCell(9).setCellValue("TEXT AFTER CHANGE");
 
 				int currentRow = 1;
 				int ranking = 1;
@@ -147,8 +149,13 @@ public class FBChangePatternFinder {
 					dataRow.createCell(2).setCellValue(cp.id);
 					dataRow.createCell(3).setCellValue(cp.support);
 					dataRow.createCell(4).setCellValue(cp.bugfixSupport);
-					dataRow.createCell(5).setCellValue(cp.beforeText);
-					dataRow.createCell(6).setCellValue(cp.afterText);
+					dataRow.createCell(5).setCellValue(cp.beforetextSupport);
+					dataRow.createCell(6).setCellValue(
+							(float) cp.bugfixSupport / (float) cp.support);
+					dataRow.createCell(7).setCellValue(
+							(float) cp.support / (float) cp.beforetextSupport);
+					dataRow.createCell(8).setCellValue(cp.beforeText);
+					dataRow.createCell(9).setCellValue(cp.afterText);
 
 					final CellStyle style = book.createCellStyle();
 					style.setWrapText(true);
@@ -166,7 +173,10 @@ public class FBChangePatternFinder {
 					dataRow.getCell(4).setCellStyle(style);
 					dataRow.getCell(5).setCellStyle(style);
 					dataRow.getCell(6).setCellStyle(style);
-
+					dataRow.getCell(7).setCellStyle(style);
+					dataRow.getCell(8).setCellStyle(style);
+					dataRow.getCell(9).setCellStyle(style);
+					
 					int loc = Math.max(getLOC(cp.beforeText),
 							getLOC(cp.afterText));
 					dataRow.setHeight((short) (loc * dataRow.getHeight()));
@@ -178,6 +188,9 @@ public class FBChangePatternFinder {
 				sheet.autoSizeColumn(4);
 				sheet.autoSizeColumn(5);
 				sheet.autoSizeColumn(6);
+				sheet.autoSizeColumn(7);
+				sheet.autoSizeColumn(8);
+				sheet.autoSizeColumn(9);
 			}
 
 			// {

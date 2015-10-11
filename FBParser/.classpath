@@ -29,5 +29,6 @@
 	<classpathentry kind="lib" path="lib/svnkit-1.8.10/lib/svnkit-javahl16-1.8.10.jar"/>
 	<classpathentry kind="lib" path="lib/svnkit-1.8.10/lib/trilead-ssh2-1.0.0-build219.jar"/>
 	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.8.10.1/sqlite-jdbc-3.8.10.1.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/MPAnalyzer"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

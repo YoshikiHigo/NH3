@@ -1,9 +1,11 @@
 package yoshikihigo.fbparser.db;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -15,9 +17,26 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.tmatesoft.svn.core.ISVNDirEntryHandler;
+import org.tmatesoft.svn.core.SVNDepth;
+import org.tmatesoft.svn.core.SVNDirEntry;
+import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNNodeKind;
+import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
+import org.tmatesoft.svn.core.wc.SVNClientManager;
+import org.tmatesoft.svn.core.wc.SVNLogClient;
+import org.tmatesoft.svn.core.wc.SVNRevision;
+import org.tmatesoft.svn.core.wc.SVNWCClient;
+
+import yoshikihigo.cpanalyzer.CPAConfig;
+import yoshikihigo.cpanalyzer.LANGUAGE;
+import yoshikihigo.cpanalyzer.StringUtility;
 import yoshikihigo.fbparser.FBParserConfig;
 
 public class DAO {
@@ -207,12 +226,119 @@ public class DAO {
 					cp.bugfixSupport += count;
 				}
 			}
+			statement3.close();
+
+			CPAConfig.initialize(new String[] { "-n" });
+			for (final CHANGEPATTERN_SQL cp : changepatterns) {
+				final List<yoshikihigo.cpanalyzer.data.Statement> pattern = StringUtility
+						.splitToStatements(cp.beforeText, 1, 1);
+
+				if (!pattern.isEmpty()) {
+
+					System.out.println(cp.id);
+
+					final int revision = cp.revisions.first() - 1;
+					List<List<yoshikihigo.cpanalyzer.data.Statement>> contents = getFileContents(revision);
+					for (final List<yoshikihigo.cpanalyzer.data.Statement> content : contents) {
+						final int count = this.getCount(content, pattern);
+						cp.beforetextSupport += count;
+					}
+				}
+			}
 
 		} catch (final SQLException e) {
 			e.printStackTrace();
 		}
 
 		return changepatterns;
+	}
+
+	private List<List<yoshikihigo.cpanalyzer.data.Statement>> getFileContents(
+			final int revision) {
+
+		try {
+
+			final String repository = FBParserConfig.getInstance()
+					.getREPOSITORY();
+
+			final SVNLogClient logClient = SVNClientManager.newInstance()
+					.getLogClient();
+			final SVNURL url = SVNURL.fromFile(new File(repository));
+			FSRepositoryFactory.setup();
+			final SortedSet<String> filepaths = new TreeSet<String>();
+			logClient.doList(url, SVNRevision.create(revision),
+					SVNRevision.create(revision), true, SVNDepth.INFINITY,
+					SVNDirEntry.DIRENT_ALL, new ISVNDirEntryHandler() {
+
+						@Override
+						public void handleDirEntry(final SVNDirEntry entry)
+								throws SVNException {
+
+							if (entry.getKind() == SVNNodeKind.FILE) {
+								final String path = entry.getRelativePath();
+								if (path.endsWith(".java")) {
+									filepaths.add(path);
+								}
+							}
+						}
+					});
+
+			final List<List<yoshikihigo.cpanalyzer.data.Statement>> contents = new ArrayList<>();
+			final SVNWCClient wcClient = SVNClientManager.newInstance()
+					.getWCClient();
+			for (final String path : filepaths) {
+
+				final SVNURL fileurl = SVNURL.fromFile(new File(repository
+						+ System.getProperty("file.separator") + path));
+				final StringBuilder text = new StringBuilder();
+				wcClient.doGetFileContents(fileurl,
+						SVNRevision.create(revision),
+						SVNRevision.create(revision), false,
+						new OutputStream() {
+							@Override
+							public void write(int b) throws IOException {
+								text.append((char) b);
+							}
+						});
+				final List<yoshikihigo.cpanalyzer.data.Statement> statements = StringUtility
+						.splitToStatements(text.toString(), LANGUAGE.JAVA);
+				contents.add(statements);
+			}
+
+			return contents;
+
+		} catch (final SVNException exception) {
+			exception.printStackTrace();
+		}
+
+		return new ArrayList<List<yoshikihigo.cpanalyzer.data.Statement>>();
+	}
+
+	private int getCount(
+			final List<yoshikihigo.cpanalyzer.data.Statement> statements,
+			final List<yoshikihigo.cpanalyzer.data.Statement> pattern) {
+
+		int count = 0;
+		int pIndex = 0;
+		for (int index = 0; index < statements.size(); index++) {
+
+			// if (Arrays.equals(statements.get(index).hash,
+			// pattern.get(pIndex).hash)) {
+			if (statements.get(index).toString()
+					.equals(pattern.get(pIndex).toString())) {
+				pIndex++;
+				if (pIndex == pattern.size()) {
+					count++;
+					pIndex = 0;
+				}
+			}
+
+			else {
+				pIndex = 0;
+			}
+		}
+
+		return count;
 	}
 
 	public List<CODE_SQL> getFixedCodes() {
@@ -323,8 +449,9 @@ public class DAO {
 		final public byte[] afterHash;
 		final public String beforeText;
 		final public String afterText;
-		final public List<Integer> revisions;
+		final public SortedSet<Integer> revisions;
 		public int bugfixSupport;
+		public int beforetextSupport;
 
 		public CHANGEPATTERN_SQL(final int id, final int support,
 				final float confidence, final byte[] beforeHash,
@@ -337,8 +464,9 @@ public class DAO {
 			this.afterHash = afterHash;
 			this.beforeText = beforeText;
 			this.afterText = afterText;
-			this.revisions = new ArrayList<>();
+			this.revisions = new TreeSet<>();
 			this.bugfixSupport = 0;
+			this.beforetextSupport = 0;
 		}
 	}
 
