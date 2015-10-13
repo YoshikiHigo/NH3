@@ -45,14 +45,14 @@ public class FBChangeRetriever {
 		parser1.perform();
 		final List<BugInstance> bugInstances1 = parser1.getBugInstances();
 
-		final Map<BugInstance, RangeTransition> transitions = new HashMap<>();
+		final Map<BugInstance, WarningLocationTransition> transitions = new HashMap<>();
 		for (final BugInstance instance : bugInstances1) {
 			final SourceLine sourceline = instance.getSourceLines().get(0);
 			final String path = sourceline.sourcepath;
 			final int startLine = sourceline.start;
 			final int endLine = sourceline.end;
-			final RangeTransition transition = new RangeTransition();
-			transition.add(startrev, new Range(path, startLine, endLine));
+			final WarningLocationTransition transition = new WarningLocationTransition();
+			transition.add(startrev, new Location(path, startLine, endLine));
 			transitions.put(instance, transition);
 		}
 
@@ -76,7 +76,7 @@ public class FBChangeRetriever {
 
 								for (final BugInstance instance : bugInstances1) {
 
-									final RangeTransition transition = transitions
+									final WarningLocationTransition transition = transitions
 											.get(instance);
 									if (null == transition
 											|| transition.hasDisappeared()) {
@@ -106,10 +106,10 @@ public class FBChangeRetriever {
 													}
 												});
 
-										final List<Change> ranges = getChangedRanges(
+										final List<ChangedLocation> ranges = getChangedRanges(
 												sourceline.sourcepath,
 												text.toString());
-										final Range newRange = moveBuggedArea(
+										final Location newRange = moveBuggedArea(
 												transition.getLastRange(),
 												ranges);
 										transition.add(number, newRange);
@@ -172,12 +172,12 @@ public class FBChangeRetriever {
 			writer.print("END-POSITION");
 			writer.println();
 
-			for (final Entry<BugInstance, RangeTransition> entry : transitions
+			for (final Entry<BugInstance, WarningLocationTransition> entry : transitions
 					.entrySet()) {
 				final BugInstance instance = entry.getKey();
-				final RangeTransition transition = entry.getValue();
-				final Range firstRange = transition.getFirstRange();
-				final Range lastRange = transition.getLastRange();
+				final WarningLocationTransition transition = entry.getValue();
+				final Location firstRange = transition.getFirstRange();
+				final Location lastRange = transition.getLastRange();
 
 				writer.print(instance.hash);
 				writer.print(",");
@@ -200,13 +200,13 @@ public class FBChangeRetriever {
 				if (!surviving) {
 					if (!lastRange.hasLineInformaltion()) {
 						writer.print("removed(unknown), ");
-					} else if (lastRange instanceof Range_ADDITION) {
+					} else if (lastRange instanceof Location_ADDITION) {
 						writer.print("removed(addition), ");
-					} else if (lastRange instanceof Range_DELETION) {
+					} else if (lastRange instanceof Location_DELETION) {
 						writer.print("removed(deletion), ");
-					} else if (lastRange instanceof Range_REPLACEMENT) {
+					} else if (lastRange instanceof Location_REPLACEMENT) {
 						writer.print("removed(replacement), ");
-					} else if (lastRange instanceof Range_UNKNOWN) {
+					} else if (lastRange instanceof Location_UNKNOWN) {
 						writer.print("removed(unknown), ");
 					} else {
 						writer.print("surviving(tracking), ");
@@ -235,7 +235,7 @@ public class FBChangeRetriever {
 					writer.print(lastRange.getLineRangeText());
 				} else {
 					final Long revision = changedRevisions[changedRevisions.length - 1] - 1;
-					final Range range = transition.getRange(revision);
+					final Location range = transition.getRange(revision);
 					writer.print(range.getLineRangeText());
 				}
 				writer.println();
@@ -245,10 +245,10 @@ public class FBChangeRetriever {
 		}
 	}
 
-	static private List<Change> getChangedRanges(final String path,
+	static private List<ChangedLocation> getChangedRanges(final String path,
 			final String text) {
 
-		final List<Change> ranges = new ArrayList<>();
+		final List<ChangedLocation> ranges = new ArrayList<>();
 
 		try (final BufferedReader reader = new BufferedReader(new StringReader(
 				text))) {
@@ -277,9 +277,9 @@ public class FBChangeRetriever {
 					final int postEnd = postStart
 							+ Integer.parseInt(postRange.substring(postRange
 									.indexOf(',') + 1)) - 3;
-					final Range before = new Range(path, preStart, preEnd);
-					final Range after = new Range(path, postStart, postEnd);
-					final Change change = new Change(before, after);
+					final Location before = new Location(path, preStart, preEnd);
+					final Location after = new Location(path, postStart, postEnd);
+					final ChangedLocation change = new ChangedLocation(before, after);
 					ranges.add(change);
 				}
 			}
@@ -292,11 +292,11 @@ public class FBChangeRetriever {
 		return ranges;
 	}
 
-	static private Range moveBuggedArea(final Range buggedArea,
-			final List<Change> changedRanges) {
+	static private Location moveBuggedArea(final Location buggedArea,
+			final List<ChangedLocation> changedRanges) {
 
 		int moved = 0;
-		for (final Change changedRange : changedRanges) {
+		for (final ChangedLocation changedRange : changedRanges) {
 
 			if (changedRange.before.endLine < buggedArea.startLine) {
 				moved += (changedRange.after.endLine - changedRange.after.startLine)
@@ -317,19 +317,19 @@ public class FBChangeRetriever {
 				final int changedAfterLength = changedRange.after.endLine
 						- changedRange.after.startLine;
 				if (0 < changedBeforeLength && 0 < changedAfterLength) {
-					return new Range_REPLACEMENT(newPath, newStartLine,
+					return new Location_REPLACEMENT(newPath, newStartLine,
 							newEndLine);
 				} else if (0 < changedBeforeLength) {
-					return new Range_DELETION(newPath, newStartLine, newEndLine);
+					return new Location_DELETION(newPath, newStartLine, newEndLine);
 				} else if (0 < changedAfterLength) {
-					return new Range_ADDITION(newPath, newStartLine, newEndLine);
+					return new Location_ADDITION(newPath, newStartLine, newEndLine);
 				} else {
-					return new Range_UNKNOWN(newPath, newStartLine, newEndLine);
+					return new Location_UNKNOWN(newPath, newStartLine, newEndLine);
 				}
 			}
 		}
 
-		final Range newBuggedRange = new Range(buggedArea.path,
+		final Location newBuggedRange = new Location(buggedArea.path,
 				buggedArea.startLine + moved, buggedArea.endLine + moved);
 
 		return newBuggedRange;

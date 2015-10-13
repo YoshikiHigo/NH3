@@ -20,7 +20,7 @@ public class BugFixPatternsMaker {
 				+ "beforeHash blob, " + "afterHash blob, "
 				+ "changetype integer, " + "difftype integer, "
 				+ "support integer, " + "confidence real, " + "nos integer, "
-				+ "bugfix integer";
+				+ "bugfix integer, warningfix integer";
 		final String database = FBParserConfig.getInstance().getDATABASE();
 
 		try {
@@ -56,10 +56,11 @@ public class BugFixPatternsMaker {
 							+ "support, "
 							+ "confidence, "
 							+ "nos, "
-							+ "(select sum(bugfix) from bugfixchanges C where (C.beforeHash = P.beforeHash) and (C.afterHash = P.afterHash)) "
+							+ "(select sum(bugfix) from bugfixchanges C where (C.beforeHash = P.beforeHash) and (C.afterHash = P.afterHash)), "
+							+ "(select sum(warningfix) from bugfixchanges C where (C.beforeHash = P.beforeHash) and (C.afterHash = P.afterHash)) "
 							+ "from patterns P");
 			final PreparedStatement statement3 = connector
-					.prepareStatement("insert into bugfixpatterns values (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+					.prepareStatement("insert into bugfixpatterns values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 			while (results2.next()) {
 				final int id = results2.getInt(1);
 				final byte[] beforeHash = results2.getBytes(2);
@@ -70,6 +71,7 @@ public class BugFixPatternsMaker {
 				final float confidence = results2.getFloat(7);
 				final int nos = results2.getInt(8);
 				final int bugfix = results2.getInt(9);
+				final int warningfix = results2.getInt(10);
 				statement3.setInt(1, id);
 				statement3.setBytes(2, beforeHash);
 				statement3.setBytes(3, afterHash);
@@ -79,6 +81,7 @@ public class BugFixPatternsMaker {
 				statement3.setFloat(7, confidence);
 				statement3.setInt(8, nos);
 				statement3.setInt(9, bugfix);
+				statement3.setInt(10, warningfix);
 				statement3.executeUpdate();
 			}
 			statement2.close();

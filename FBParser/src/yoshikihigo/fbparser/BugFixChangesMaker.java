@@ -21,7 +21,8 @@ public class BugFixChangesMaker {
 				+ "beforeHash blob, " + "afterID integer, "
 				+ "afterHash blob, " + "revision integer, "
 				+ "changetype integer, " + "difftype integer, "
-				+ "bugfix integer, " + "primary key(software, id)";
+				+ "bugfix integer, " + "warningfix, "
+				+ "primary key(software, id)";
 		final String database = FBParserConfig.getInstance().getDATABASE();
 
 		try {
@@ -36,6 +37,10 @@ public class BugFixChangesMaker {
 					.executeUpdate("drop index if exists index_afterHash_bugfixchanges");
 			statement1
 					.executeUpdate("drop index if exists index_beforeHash_afterHash_bugfixchanges");
+			statement1
+					.executeUpdate("drop index if exists index_bugfix_bugfixchanges");
+			statement1
+					.executeUpdate("drop index if exists index_warningfix_bugfixchanges");
 			statement1.executeUpdate("drop table if exists bugfixchanges");
 			statement1.executeUpdate("create table bugfixchanges ("
 					+ BUGFIXCHANGES_SCHEMA + ")");
@@ -45,6 +50,10 @@ public class BugFixChangesMaker {
 					.executeUpdate("create index index_afterHash_bugfixchanges on bugfixchanges(afterHash)");
 			statement1
 					.executeUpdate("create index index_beforeHash_afterHash_bugfixchanges on bugfixchanges(beforeHash, afterHash)");
+			statement1
+					.executeUpdate("create index index_bugfix_bugfixchanges on bugfixchanges(bugfix)");
+			statement1
+					.executeUpdate("create index index_warningfix_bugfixchanges on bugfixchanges(warningfix)");
 			statement1.close();
 
 			final Statement statement2 = connector.createStatement();
@@ -62,7 +71,7 @@ public class BugFixChangesMaker {
 							+ "(select R.bugfix from bugfixrevisions R where R.number = C.revision) "
 							+ "from changes C");
 			final PreparedStatement statement3 = connector
-					.prepareStatement("insert into bugfixchanges values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+					.prepareStatement("insert into bugfixchanges values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 			while (results2.next()) {
 				final String software = results2.getString(1);
 				final int id = results2.getInt(2);
@@ -75,6 +84,7 @@ public class BugFixChangesMaker {
 				final int changetype = results2.getInt(9);
 				final int difftype = results2.getInt(10);
 				final int bugfix = results2.getInt(11);
+				final int warningfix = 0;
 				statement3.setString(1, software);
 				statement3.setInt(2, id);
 				statement3.setString(3, filepath);
@@ -86,6 +96,7 @@ public class BugFixChangesMaker {
 				statement3.setInt(9, changetype);
 				statement3.setInt(10, difftype);
 				statement3.setInt(11, bugfix);
+				statement3.setInt(12, warningfix);
 				statement3.executeUpdate();
 			}
 			statement2.close();
