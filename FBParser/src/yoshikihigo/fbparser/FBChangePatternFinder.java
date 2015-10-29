@@ -98,25 +98,27 @@ public class FBChangePatternFinder {
 
 			{
 				final Sheet sheet = book.createSheet();
-				book.setSheetName(0, "change-patterns");
+				book.setSheetName(0, "change patterns");
 				final Row titleRow = sheet.createRow(0);
 				titleRow.createCell(0).setCellValue("RANKING");
 				titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
 				titleRow.createCell(2).setCellValue("CHANGE-PATTERN-ID");
-				titleRow.createCell(3).setCellValue("SUPPORT");
-				titleRow.createCell(4).setCellValue("BUG-FIX-SUPPORT");
-				titleRow.createCell(5).setCellValue("BEFORE-TEXT-SUPPORT");
-				titleRow.createCell(6).setCellValue(
+				titleRow.createCell(3).setCellValue("AUTHORS");
+				titleRow.createCell(4).setCellValue("FILES");
+				titleRow.createCell(5).setCellValue("SUPPORT");				
+				titleRow.createCell(6).setCellValue("BUG-FIX-SUPPORT");
+				titleRow.createCell(7).setCellValue("BEFORE-TEXT-SUPPORT");
+				titleRow.createCell(8).setCellValue(
 						"CONFIDENCE1" + System.lineSeparator()
 								+ "(BUG-FIX-SUPPORT/SUPPORT)");
-				titleRow.createCell(7).setCellValue(
+				titleRow.createCell(9).setCellValue(
 						"CONFIDENCE2" + System.lineSeparator()
 								+ "(SUPPORT/BEFORE-TEXT-SUPPORT)");
-				titleRow.createCell(8).setCellValue(
+				titleRow.createCell(10).setCellValue(
 						"CONFIDENCE3" + System.lineSeparator()
 								+ "(BUG-FIX-SUPPORT/BEFORE-TEXT-SUPPORT)");
-				titleRow.createCell(9).setCellValue("TEXT-BEFORE-CHANGE");
-				titleRow.createCell(10).setCellValue("TEXT-AFTER-CHANGE");
+				titleRow.createCell(11).setCellValue("TEXT-BEFORE-CHANGE");
+				titleRow.createCell(12).setCellValue("TEXT-AFTER-CHANGE");
 
 				int currentRow = 1;
 				int ranking = 1;
@@ -154,6 +156,8 @@ public class FBChangePatternFinder {
 					dataRow.createCell(1).setCellValue(
 							foundByFindBugs ? "YES" : "NO");
 					dataRow.createCell(2).setCellValue(cp.id);
+					dataRow.createCell(3).setCellValue(cp.authors);
+					dataRow.createCell(4).setCellValue(cp.files);
 					dataRow.createCell(3).setCellValue(cp.support);
 					dataRow.createCell(4).setCellValue(cp.bugfixSupport);
 					dataRow.createCell(5).setCellValue(cp.beforetextSupport);

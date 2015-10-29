@@ -129,7 +129,7 @@ public class DAO {
 
 		try {
 
-			final String sqlText = "select id, support, confidence, "
+			final String sqlText = "select id, support, confidence, authors, files, "
 					+ "(select text from Codes where hash = beforeHash), "
 					+ "(select text from Codes where hash = afterHash) "
 					+ "from patterns where beforeHash = ? and afterHash = ?";
@@ -143,12 +143,14 @@ public class DAO {
 				final int changepatternID = result.getInt(1);
 				final int support = result.getInt(2);
 				final float confidence = result.getFloat(3);
-				final String beforeText = result.getString(4);
-				final String afterText = result.getString(5);
+				final int authors = result.getInt(4);
+				final int files = result.getInt(5);
+				final String beforeText = result.getString(6);
+				final String afterText = result.getString(7);
 
 				final CHANGEPATTERN_SQL changepattern = new CHANGEPATTERN_SQL(
-						changepatternID, support, confidence, beforeHash,
-						afterHash, beforeText, afterText);
+						changepatternID, support, confidence, authors, files,
+						beforeHash, afterHash, beforeText, afterText);
 				changepatterns.add(changepattern);
 			}
 
@@ -168,7 +170,8 @@ public class DAO {
 		try {
 
 			final Statement statement1 = this.connector.createStatement();
-			final String sql = "select id, support, confidence, beforeHash, afterHash, "
+			final String sql = "select id, support, confidence, authors, files, "
+					+ "beforeHash, afterHash, "
 					+ "(select C1.text from codes C1 where C1.hash = beforeHash), "
 					+ "(select C2.text from codes C2 where C2.hash = afterHash) "
 					+ "from patterns order by support desc";
@@ -177,13 +180,15 @@ public class DAO {
 				final int changepatternID = result1.getInt(1);
 				final int support = result1.getInt(2);
 				final float confidence = result1.getFloat(3);
-				final byte[] beforeHash = result1.getBytes(4);
-				final byte[] afterHash = result1.getBytes(5);
-				final String beforeText = result1.getString(6);
-				final String afterText = result1.getString(7);
+				final int authors = result1.getInt(4);
+				final int files = result1.getInt(5);
+				final byte[] beforeHash = result1.getBytes(6);
+				final byte[] afterHash = result1.getBytes(7);
+				final String beforeText = result1.getString(8);
+				final String afterText = result1.getString(9);
 
 				final CHANGEPATTERN_SQL changepattern = new CHANGEPATTERN_SQL(
-						changepatternID, support, confidence, beforeHash,
+						changepatternID, support, confidence, authors, files, beforeHash,
 						afterHash, beforeText, afterText);
 				changepatterns.add(changepattern);
 			}
@@ -445,6 +450,8 @@ public class DAO {
 		final public int id;
 		final public int support;
 		final public float confidence;
+		final public int authors;
+		final public int files;
 		final public byte[] beforeHash;
 		final public byte[] afterHash;
 		final public String beforeText;
@@ -454,12 +461,14 @@ public class DAO {
 		public int beforetextSupport;
 
 		public CHANGEPATTERN_SQL(final int id, final int support,
-				final float confidence, final byte[] beforeHash,
-				final byte[] afterHash, final String beforeText,
-				final String afterText) {
+				final float confidence, final int authors, final int files,
+				final byte[] beforeHash, final byte[] afterHash,
+				final String beforeText, final String afterText) {
 			this.id = id;
 			this.support = support;
 			this.confidence = confidence;
+			this.authors = authors;
+			this.files = files;
 			this.beforeHash = beforeHash;
 			this.afterHash = afterHash;
 			this.beforeText = beforeText;
