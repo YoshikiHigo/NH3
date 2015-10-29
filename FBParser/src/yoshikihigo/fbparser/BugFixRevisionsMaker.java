@@ -27,7 +27,8 @@ public class BugFixRevisionsMaker {
 
 		final String BUGFIXREVISIONS_SCHEMA = "software string, "
 				+ "number integer, " + "date string, " + "message string, "
-				+ "bugfix integer, " + "primary key(software, number)";
+				+ "author string, " + "bugfix integer, "
+				+ "primary key(software, number)";
 		final String database = FBParserConfig.getInstance().getDATABASE();
 		final SortedSet<Integer> bugIDs = this.getBugIDs();
 
@@ -48,14 +49,15 @@ public class BugFixRevisionsMaker {
 
 			final Statement statement2 = connector.createStatement();
 			final ResultSet results2 = statement2
-					.executeQuery("select software, number, date, message from revisions");
+					.executeQuery("select software, number, date, message, author from revisions");
 			final PreparedStatement statement3 = connector
-					.prepareStatement("insert into bugfixrevisions values (?, ?, ?, ?, ?)");
+					.prepareStatement("insert into bugfixrevisions values (?, ?, ?, ?, ?, ?)");
 			while (results2.next()) {
 				final String software = results2.getString(1);
 				final int number = results2.getInt(2);
 				final String date = results2.getString(3);
 				final String message = results2.getString(4);
+				final String author = results2.getString(5);
 				int bugfix = 0;
 				final SortedSet<Integer> relatedIDs = this.extractIDs(message);
 				for (final Integer id : relatedIDs) {
@@ -67,7 +69,8 @@ public class BugFixRevisionsMaker {
 				statement3.setInt(2, number);
 				statement3.setString(3, date);
 				statement3.setString(4, message);
-				statement3.setInt(5, bugfix);
+				statement3.setString(5, author);
+				statement3.setInt(6, bugfix);
 				statement3.executeUpdate();
 			}
 			statement2.close();
