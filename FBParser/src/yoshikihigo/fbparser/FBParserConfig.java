@@ -53,7 +53,7 @@ public class FBParserConfig {
 		{
 			final Option source = new Option("mcp", "missingchangepattern",
 					true,
-					"change patterns not associated with any of warning-instance removal");
+					"bug-fix change patterns not associated with any of warning-instance removal");
 			source.setArgName("file");
 			source.setArgs(1);
 			source.setRequired(false);
