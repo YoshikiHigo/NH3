@@ -19,7 +19,7 @@ public class BugFixChangesMaker {
 		final String BUGFIXCHANGES_SCHEMA = "software string, "
 				+ "id integer, " + "filepath string, " + "beforeID integer, "
 				+ "beforeHash blob, " + "afterID integer, "
-				+ "afterHash blob, " + "revision integer, "
+				+ "afterHash blob, " + "revision integer, " + "date string, "
 				+ "changetype integer, " + "difftype integer, "
 				+ "bugfix integer, " + "warningfix, "
 				+ "primary key(software, id)";
@@ -66,12 +66,13 @@ public class BugFixChangesMaker {
 							+ "C.afterID, "
 							+ "C.afterHash, "
 							+ "C.revision, "
+							+ "C.date, "
 							+ "C.changetype, "
 							+ "C.difftype, "
 							+ "(select R.bugfix from bugfixrevisions R where R.number = C.revision) "
 							+ "from changes C");
 			final PreparedStatement statement3 = connector
-					.prepareStatement("insert into bugfixchanges values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+					.prepareStatement("insert into bugfixchanges values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 			while (results2.next()) {
 				final String software = results2.getString(1);
 				final int id = results2.getInt(2);
@@ -81,9 +82,10 @@ public class BugFixChangesMaker {
 				final int afterID = results2.getInt(6);
 				final byte[] afterHash = results2.getBytes(7);
 				final int revision = results2.getInt(8);
-				final int changetype = results2.getInt(9);
-				final int difftype = results2.getInt(10);
-				final int bugfix = results2.getInt(11);
+				final String date = results2.getString(9);
+				final int changetype = results2.getInt(10);
+				final int difftype = results2.getInt(11);
+				final int bugfix = results2.getInt(12);
 				final int warningfix = 0;
 				statement3.setString(1, software);
 				statement3.setInt(2, id);
@@ -93,10 +95,11 @@ public class BugFixChangesMaker {
 				statement3.setInt(6, afterID);
 				statement3.setBytes(7, afterHash);
 				statement3.setInt(8, revision);
-				statement3.setInt(9, changetype);
-				statement3.setInt(10, difftype);
-				statement3.setInt(11, bugfix);
-				statement3.setInt(12, warningfix);
+				statement3.setString(9, date);
+				statement3.setInt(10, changetype);
+				statement3.setInt(11, difftype);
+				statement3.setInt(12, bugfix);
+				statement3.setInt(13, warningfix);
 				statement3.executeUpdate();
 			}
 			statement2.close();
