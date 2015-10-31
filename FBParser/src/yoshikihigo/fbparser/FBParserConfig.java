@@ -51,9 +51,9 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("mcp", "missingchangepattern",
+			final Option source = new Option("fcp", "fixchangepattern",
 					true,
-					"bug-fix change patterns not associated with any of warning-instance removal");
+					"bug-fix change patterns");
 			source.setArgName("file");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -225,12 +225,12 @@ public class FBParserConfig {
 		return this.commandLine.getOptionValue("cp");
 	}
 
-	public String getMISSINGCHANGEPATTERN() {
-		if (!this.commandLine.hasOption("mcp")) {
-			System.err.println("option \"mcp\" is not specified.");
+	public String getFIXCHANGEPATTERN() {
+		if (!this.commandLine.hasOption("fcp")) {
+			System.err.println("option \"fcp\" is not specified.");
 			System.exit(0);
 		}
-		return this.commandLine.getOptionValue("mcp");
+		return this.commandLine.getOptionValue("fcp");
 	}
 
 	public String getDATABASE() {
