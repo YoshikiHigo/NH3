@@ -37,6 +37,8 @@ public class BugFixPatternsMaker {
 					.executeUpdate("drop index if exists index_afterHash_bugfixpatterns");
 			statement1
 					.executeUpdate("drop index if exists index_beforeHash_afterHash_bugfixpatterns");
+			statement1
+					.executeUpdate("drop index if exists index_bugfix_bugfixpatterns");
 			statement1.executeUpdate("drop table if exists bugfixpatterns");
 			statement1.executeUpdate("create table bugfixpatterns ("
 					+ BUGFIXPATTERNS_SCHEMA + ")");
@@ -46,6 +48,8 @@ public class BugFixPatternsMaker {
 					.executeUpdate("create index index_afterHash_bugfixpatterns on bugfixpatterns(afterHash)");
 			statement1
 					.executeUpdate("create index index_beforeHash_afterHash_bugfixpatterns on bugfixpatterns(beforeHash, afterHash)");
+			statement1
+					.executeUpdate("create index index_bugfix_bugfixpatterns on bugfixpatterns(bugfix)");
 			statement1.close();
 
 			final Statement statement2 = connector.createStatement();

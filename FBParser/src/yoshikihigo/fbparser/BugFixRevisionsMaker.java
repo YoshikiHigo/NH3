@@ -40,11 +40,15 @@ public class BugFixRevisionsMaker {
 			final Statement statement1 = connector.createStatement();
 			statement1
 					.executeUpdate("drop index if exists index_number_bugfixrevisions");
+			statement1
+					.executeUpdate("drop index if exists index_bugfix_bugfixrevisions");
 			statement1.executeUpdate("drop table if exists bugfixrevisions");
 			statement1.executeUpdate("create table bugfixrevisions ("
 					+ BUGFIXREVISIONS_SCHEMA + ")");
 			statement1
 					.executeUpdate("create index index_number_bugfixrevisions on bugfixrevisions(number)");
+			statement1
+					.executeUpdate("create index index_bugfix_bugfixrevisions on bugfixrevisions(bugfix)");
 			statement1.close();
 
 			final Statement statement2 = connector.createStatement();
