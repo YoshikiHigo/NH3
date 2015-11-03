@@ -88,7 +88,7 @@ public class DAO {
 
 		try {
 
-			final String text = "select distinct revision from changes "
+			final String text = "select distinct revision, bugfix from bugfixchanges "
 					+ "where beforeHash = ? and afterHash = ?";
 			final PreparedStatement statement = this.connector
 					.prepareStatement(text);
@@ -98,7 +98,8 @@ public class DAO {
 
 			while (result.next()) {
 				final int number = result.getInt(1);
-				final REVISION_SQL revision = new REVISION_SQL(number);
+				final boolean bugfix = 0 < result.getInt(2);
+				final REVISION_SQL revision = new REVISION_SQL(number, bugfix);
 				revisions.add(revision);
 			}
 
@@ -336,12 +337,12 @@ public class DAO {
 
 					System.out.println(cp.id);
 
-					final int revision = cp.revisions.first() - 1;
-					List<List<yoshikihigo.cpanalyzer.data.Statement>> contents = getFileContents(revision);
-					for (final List<yoshikihigo.cpanalyzer.data.Statement> content : contents) {
-						final int count = this.getCount(content, pattern);
-						cp.beforetextSupport += count;
-					}
+//					final int revision = cp.revisions.first() - 1;
+//					List<List<yoshikihigo.cpanalyzer.data.Statement>> contents = getFileContents(revision);
+//					for (final List<yoshikihigo.cpanalyzer.data.Statement> content : contents) {
+//						final int count = this.getCount(content, pattern);
+//						cp.beforetextSupport += count;
+//					}
 				}
 			}
 
@@ -522,9 +523,11 @@ public class DAO {
 	public static class REVISION_SQL {
 
 		final public int number;
+		final public boolean bugfix;
 
-		public REVISION_SQL(final int number) {
+		public REVISION_SQL(final int number, final boolean bugfix) {
 			this.number = number;
+			this.bugfix = bugfix;
 		}
 
 		@Override
