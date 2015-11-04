@@ -226,8 +226,7 @@ public class FBChangePatternFinder {
 					final CellStyle style = book.createCellStyle();
 					style.setWrapText(true);
 					style.setFillPattern(CellStyle.SOLID_FOREGROUND);
-					style.setFillForegroundColor(foundByFindBugs ? IndexedColors.ROSE
-							.getIndex() : IndexedColors.WHITE.getIndex());
+					style.setFillForegroundColor(IndexedColors.WHITE.getIndex());
 					style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
 					style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
 					style.setBorderRight(XSSFCellStyle.BORDER_THIN);
