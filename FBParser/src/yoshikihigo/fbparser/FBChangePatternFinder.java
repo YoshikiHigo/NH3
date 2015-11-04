@@ -278,6 +278,7 @@ public class FBChangePatternFinder {
 				sheet.setAutoFilter(new CellRangeAddress(firstCell
 						.getRowIndex(), lastCell.getRowIndex(), firstCell
 						.getColumnIndex(), lastCell.getColumnIndex()));
+				sheet.createFreezePane(0, 1, 0, 1);
 			}
 
 			book.write(stream);
