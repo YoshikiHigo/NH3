@@ -32,6 +32,7 @@ import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
@@ -51,6 +52,9 @@ public class FBChangePatternFinder {
 		final String mcpFile = FBParserConfig.getInstance()
 				.getFIXCHANGEPATTERN();
 		final DAO dao = DAO.getInstance();
+
+		Cell firstCell = null;
+		Cell lastCell = null;
 
 		try (final BufferedReader reader = new BufferedReader(
 				new InputStreamReader(new FileInputStream(trFile),
@@ -154,6 +158,10 @@ public class FBChangePatternFinder {
 						4, 2);
 				titleRow.createCell(15).setCellValue("TEXT-BEFORE-CHANGE");
 				titleRow.createCell(16).setCellValue("TEXT-AFTER-CHANGE");
+				// titleRow.createCell(15).setCellValue("Delta-TFIDF");
+				// titleRow.createCell(16).setCellValue("TEXT-BEFORE-CHANGE");
+				// titleRow.createCell(17).setCellValue("TEXT-AFTER-CHANGE");
+				firstCell = titleRow.getCell(0);
 
 				int currentRow = 1;
 				int ranking = 1;
@@ -210,6 +218,10 @@ public class FBChangePatternFinder {
 					dataRow.createCell(14).setCellValue(getOccupancy(cp));
 					dataRow.createCell(15).setCellValue(cp.beforeText);
 					dataRow.createCell(16).setCellValue(cp.afterText);
+					// dataRow.createCell(15).setCellValue(getDeltaTFIDF(cp));
+					// dataRow.createCell(16).setCellValue(cp.beforeText);
+					// dataRow.createCell(17).setCellValue(cp.afterText);
+					lastCell = dataRow.getCell(16);
 
 					final CellStyle style = book.createCellStyle();
 					style.setWrapText(true);
@@ -237,6 +249,7 @@ public class FBChangePatternFinder {
 					dataRow.getCell(14).setCellStyle(style);
 					dataRow.getCell(15).setCellStyle(style);
 					dataRow.getCell(16).setCellStyle(style);
+					// dataRow.getCell(17).setCellStyle(style);
 
 					int loc = Math.max(getLOC(cp.beforeText),
 							getLOC(cp.afterText));
@@ -259,6 +272,13 @@ public class FBChangePatternFinder {
 				sheet.autoSizeColumn(14, true);
 				sheet.setColumnWidth(15, 20480);
 				sheet.setColumnWidth(16, 20480);
+				// sheet.autoSizeColumn(15, true);
+				// sheet.setColumnWidth(16, 20480);
+				// sheet.setColumnWidth(17, 20480);
+
+				sheet.setAutoFilter(new CellRangeAddress(firstCell
+						.getRowIndex(), lastCell.getRowIndex(), firstCell
+						.getColumnIndex(), lastCell.getColumnIndex()));
 			}
 
 			book.write(stream);
@@ -371,6 +391,31 @@ public class FBChangePatternFinder {
 		}
 
 		return sum / revisions.size();
+	}
+
+	private static double getDeltaTFIDF(final CHANGEPATTERN_SQL cp) {
+
+		final double tf = (double) cp.support; // all occurrences
+		final double df1 = (double) cp.bugfixSupport; // occurrences in bug-fix
+														// commits
+		final double df2 = tf - df1; // occurrences not in bug-fix commits
+
+		final List<REVISION_SQL> revisions = DAO.getInstance().getRevisions(
+				cp.beforeHash, cp.afterHash);
+		double n1 = 0d; // bug-fix commits where the change pattern occurs
+		double n2 = 0d; // non-bug-fix commits where the change pattern occurs
+		for (final REVISION_SQL revision : revisions) {
+			if (revision.bugfix) {
+				n1 += 1d;
+			} else {
+				n2 += 1d;
+			}
+		}
+
+		final double value = tf
+				* (Math.log((n1 * df2) / (df1 * n2)) / Math.log(2.0));
+		System.out.println("delta-tfidf: " + value);
+		return value;
 	}
 }
 
