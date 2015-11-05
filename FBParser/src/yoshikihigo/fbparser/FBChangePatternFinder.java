@@ -167,11 +167,9 @@ public class FBChangePatternFinder {
 								+ "(total LOC changed in revision R) "
 								+ "for all the revisions where the pattern appears",
 						4, 2);
-				titleRow.createCell(17).setCellValue("TEXT-BEFORE-CHANGE");
-				titleRow.createCell(18).setCellValue("TEXT-AFTER-CHANGE");
-				// titleRow.createCell(15).setCellValue("Delta-TFIDF");
-				// titleRow.createCell(16).setCellValue("TEXT-BEFORE-CHANGE");
-				// titleRow.createCell(17).setCellValue("TEXT-AFTER-CHANGE");
+				titleRow.createCell(17).setCellValue("Delta-TFIDF");
+				titleRow.createCell(18).setCellValue("TEXT-BEFORE-CHANGE");
+				titleRow.createCell(19).setCellValue("TEXT-AFTER-CHANGE");
 				firstCell = titleRow.getCell(0);
 
 				int currentRow = 1;
@@ -229,12 +227,10 @@ public class FBChangePatternFinder {
 					dataRow.createCell(15).setCellValue(
 							getDayDifference(cp.firstdate, cp.lastdate));
 					dataRow.createCell(16).setCellValue(getOccupancy(cp));
-					dataRow.createCell(17).setCellValue(cp.beforeText);
-					dataRow.createCell(18).setCellValue(cp.afterText);
-					// dataRow.createCell(15).setCellValue(getDeltaTFIDF(cp));
-					// dataRow.createCell(16).setCellValue(cp.beforeText);
-					// dataRow.createCell(17).setCellValue(cp.afterText);
-					lastCell = dataRow.getCell(18);
+					dataRow.createCell(17).setCellValue(getDeltaTFIDF(cp));
+					dataRow.createCell(18).setCellValue(cp.beforeText);
+					dataRow.createCell(19).setCellValue(cp.afterText);
+					lastCell = dataRow.getCell(19);
 
 					final CellStyle style = book.createCellStyle();
 					style.setWrapText(true);
@@ -263,7 +259,7 @@ public class FBChangePatternFinder {
 					dataRow.getCell(16).setCellStyle(style);
 					dataRow.getCell(17).setCellStyle(style);
 					dataRow.getCell(18).setCellStyle(style);
-					// dataRow.getCell(17).setCellStyle(style);
+					dataRow.getCell(19).setCellStyle(style);
 
 					int loc = Math.max(getLOC(cp.beforeText),
 							getLOC(cp.afterText));
@@ -286,11 +282,9 @@ public class FBChangePatternFinder {
 				sheet.autoSizeColumn(14, true);
 				sheet.autoSizeColumn(15, true);
 				sheet.autoSizeColumn(16, true);
-				sheet.setColumnWidth(17, 20480);
+				sheet.autoSizeColumn(17, true);
 				sheet.setColumnWidth(18, 20480);
-				// sheet.autoSizeColumn(15, true);
-				// sheet.setColumnWidth(16, 20480);
-				// sheet.setColumnWidth(17, 20480);
+				sheet.setColumnWidth(19, 20480);
 
 				sheet.setAutoFilter(new CellRangeAddress(firstCell
 						.getRowIndex(), lastCell.getRowIndex(), firstCell
@@ -429,26 +423,42 @@ public class FBChangePatternFinder {
 	private static double getDeltaTFIDF(final CHANGEPATTERN_SQL cp) {
 
 		final double tf = (double) cp.support; // all occurrences
-		final double df1 = (double) cp.bugfixSupport; // occurrences in bug-fix
-														// commits
-		final double df2 = tf - df1; // occurrences not in bug-fix commits
+		final int n1 = DAO
+				.getInstance()
+				.count("select count(distinct filepath) from bugfixchanges where 0 < bugfix");
+		final int n2 = DAO
+				.getInstance()
+				.count("select count(distinct filepath) from bugfixchanges where 0 = bugfix");
+		final int df1 = getFiles(cp, true).size(); // the number of files
+													// including bug-fix changes
+		final int df2 = getFiles(cp, false).size(); // the number of files
+													// including non-bug-fix
+													// changes
+		final double k1 = 1.2d;
+		final double K = 1.2d;
 
-		final List<REVISION_SQL> revisions = DAO.getInstance().getRevisions(
-				cp.beforeHash, cp.afterHash);
-		double n1 = 0d; // bug-fix commits where the change pattern occurs
-		double n2 = 0d; // non-bug-fix commits where the change pattern occurs
-		for (final REVISION_SQL revision : revisions) {
-			if (revision.bugfix) {
-				n1 += 1d;
-			} else {
-				n2 += 1d;
+		final double w = ((k1 + 1) * tf / (K + tf))
+				* (Math.log(((n1 - df1 + 0.5) * (df2 + 0.5))
+						/ ((n2 - df2 + 0.5) * (df1 + 0.5))) / Math.log(2.0));
+		System.out.println("delta-tfidf: " + w);
+		return w;
+	}
+
+	private static SortedSet<String> getFiles(final CHANGEPATTERN_SQL cp,
+			final boolean bugfix) {
+
+		final SortedSet<String> files = new TreeSet<>();
+		final byte[] beforeHash = cp.beforeHash;
+		final byte[] afterHash = cp.afterHash;
+		final List<CHANGE_SQL> changes = DAO.getInstance().getChanges(
+				beforeHash, afterHash);
+		for (final CHANGE_SQL change : changes) {
+			if ((bugfix && change.bugfix) || (!bugfix && !change.bugfix)) {
+				files.add(change.filepath);
 			}
 		}
 
-		final double value = tf
-				* (Math.log((n1 * df2) / (df1 * n2)) / Math.log(2.0));
-		System.out.println("delta-tfidf: " + value);
-		return value;
+		return files;
 	}
 }
 
