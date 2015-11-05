@@ -12,6 +12,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -139,13 +140,13 @@ public class FBChangePatternFinder {
 				titleRow.createCell(5).setCellValue("BUG-FIX-FILES");
 				titleRow.createCell(6).setCellValue("SUPPORT");
 				setCellComment(titleRow.getCell(6), "Higo",
-						"the number of occurences of a given pattern", 3, 1);
+						"the number of occurences of a given pattern", 4, 1);
 				titleRow.createCell(7).setCellValue("BUG-FIX-SUPPORT");
 				setCellComment(
 						titleRow.getCell(7),
 						"Higo",
 						"the number of occurences of a given pattern in bug-fix commits",
-						3, 2);
+						4, 1);
 				titleRow.createCell(8).setCellValue("BEFORE-TEXT-SUPPORT");
 				setCellComment(
 						titleRow.getCell(8),
@@ -156,22 +157,22 @@ public class FBChangePatternFinder {
 						4, 2);
 				titleRow.createCell(9).setCellValue("CONFIDENCE1");
 				setCellComment(titleRow.getCell(9), "Higo",
-						"BUG-FIX-SUPPORT / SUPPORT", 3, 1);
+						"BUG-FIX-SUPPORT / SUPPORT", 4, 1);
 				titleRow.createCell(10).setCellValue("CONFIDENCE2");
 				setCellComment(titleRow.getCell(10), "Higo",
-						"SUPPORT / BEFORE-TEXT-SUPPORT", 3, 1);
+						"SUPPORT / BEFORE-TEXT-SUPPORT", 4, 1);
 				titleRow.createCell(11).setCellValue("CONFIDENCE3");
 				setCellComment(titleRow.getCell(11), "Higo",
-						"BUG-FIX-SUPPORT / BEFORE-TEXT-SUPPORT", 3, 1);
+						"BUG-FIX-SUPPORT / BEFORE-TEXT-SUPPORT", 4, 1);
 				titleRow.createCell(12).setCellValue("COMMITS");
 				setCellComment(titleRow.getCell(12), "Higo",
-						"the number of commits where the pattern appears", 3, 1);
+						"the number of commits where the pattern appears", 4, 1);
 				titleRow.createCell(13).setCellValue("BUG-FIX-COMMIT");
 				setCellComment(
 						titleRow.getCell(13),
 						"Higo",
 						"the number of bug-fix commits where the pattern appears",
-						3, 1);
+						4, 1);
 				titleRow.createCell(14).setCellValue("FIRST-DATE");
 				titleRow.createCell(15).setCellValue("LAST-DATE");
 				titleRow.createCell(16).setCellValue("DATE-DIFFERENCE");
@@ -210,6 +211,8 @@ public class FBChangePatternFinder {
 
 				int currentRow = 1;
 				final List<CHANGEPATTERN_SQL> cps = dao.getFixChangePatterns();
+				Collections
+						.sort(cps, (o1, o2) -> Integer.compare(o1.id, o2.id));
 
 				for (final CHANGEPATTERN_SQL cp : cps) {
 
@@ -231,7 +234,7 @@ public class FBChangePatternFinder {
 							getFiles(cp, true).size());
 					final int support = getChanges(cp).size();
 					final int bugfixSupport = getChanges(cp, true).size();
-					final int beforeTextSupport = 1;// countTextAppearances(cp);
+					final int beforeTextSupport = countTextAppearances(cp);
 					dataRow.createCell(6).setCellValue(support);
 					dataRow.createCell(7).setCellValue(bugfixSupport);
 					dataRow.createCell(8).setCellValue(beforeTextSupport);
