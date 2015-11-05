@@ -1,11 +1,9 @@
 package yoshikihigo.fbparser.db;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -22,21 +20,6 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.tmatesoft.svn.core.ISVNDirEntryHandler;
-import org.tmatesoft.svn.core.SVNDepth;
-import org.tmatesoft.svn.core.SVNDirEntry;
-import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.SVNNodeKind;
-import org.tmatesoft.svn.core.SVNURL;
-import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
-import org.tmatesoft.svn.core.wc.SVNClientManager;
-import org.tmatesoft.svn.core.wc.SVNLogClient;
-import org.tmatesoft.svn.core.wc.SVNRevision;
-import org.tmatesoft.svn.core.wc.SVNWCClient;
-
-import yoshikihigo.cpanalyzer.CPAConfig;
-import yoshikihigo.cpanalyzer.LANGUAGE;
-import yoshikihigo.cpanalyzer.StringUtility;
 import yoshikihigo.fbparser.FBParserConfig;
 
 public class DAO {
@@ -81,10 +64,10 @@ public class DAO {
 		}
 	}
 
-	public List<REVISION_SQL> getRevisions(final byte[] beforeHash,
+	public SortedSet<REVISION_SQL> getRevisions(final byte[] beforeHash,
 			final byte[] afterHash) {
 
-		final List<REVISION_SQL> revisions = new ArrayList<>();
+		final SortedSet<REVISION_SQL> revisions = new TreeSet<>();
 
 		try {
 
@@ -122,6 +105,7 @@ public class DAO {
 			final String text = "select id, revision, filepath, "
 					+ "(select start from codes where id = beforeID), "
 					+ "(select end from codes where id = beforeID), "
+					+ "(select author from revisions where number = revision), "
 					+ "bugfix "
 					+ "from bugfixchanges where beforeHash = ? and afterHash = ?";
 			final PreparedStatement statement = this.connector
@@ -136,10 +120,11 @@ public class DAO {
 				final String filepath = results.getString(3);
 				final int startline = results.getInt(4);
 				final int endline = results.getInt(5);
-				final int bugfix = results.getInt(6);
+				final String author = results.getString(6);
+				final int bugfix = results.getInt(7);
 				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash,
 						afterHash, revision, filepath, startline, endline,
-						0 < bugfix);
+						author, 0 < bugfix);
 				changes.add(change);
 			}
 
@@ -156,8 +141,9 @@ public class DAO {
 
 		final String text = "select id, beforeHash, afterHash, filepath, "
 				+ "(select start from codes where id = beforeID), "
-				+ "(select end from codes where id = beforeID), " + "bugfix "
-				+ "from bugfixchanges where revision = " + revision;
+				+ "(select end from codes where id = beforeID), "
+				+ "(select author from revisions where number = revision), "
+				+ "bugfix " + "from bugfixchanges where revision = " + revision;
 
 		final List<CHANGE_SQL> changes = new ArrayList<>();
 
@@ -172,10 +158,11 @@ public class DAO {
 				final String filepath = results.getString(4);
 				final int startline = results.getInt(5);
 				final int endline = results.getInt(6);
-				final int bugfix = results.getInt(7);
+				final String author = results.getString(7);
+				final int bugfix = results.getInt(8);
 				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash,
 						afterHash, (int) revision, filepath, startline,
-						endline, 0 < bugfix);
+						endline, author, 0 < bugfix);
 				changes.add(change);
 			}
 
@@ -193,8 +180,9 @@ public class DAO {
 
 		final String text = "select id, beforeHash, afterHash, filepath, "
 				+ "(select start from codes where id = beforeID), "
-				+ "(select end from codes where id = beforeID), " + "bugfix "
-				+ "from bugfixchanges where revision = " + revision
+				+ "(select end from codes where id = beforeID), "
+				+ "(select author from revisions where number = revision), "
+				+ "bugfix " + "from bugfixchanges where revision = " + revision
 				+ " and filepath = \'" + path + "\'";
 
 		final List<CHANGE_SQL> changes = new ArrayList<>();
@@ -211,10 +199,11 @@ public class DAO {
 				final String filepath = results.getString(4);
 				final int startline = results.getInt(5);
 				final int endline = results.getInt(6);
-				final int bugfix = results.getInt(7);
+				final String author = results.getString(7);
+				final int bugfix = results.getInt(8);
 				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash,
 						afterHash, (int) revision, filepath, startline,
-						endline, 0 < bugfix);
+						endline, author, 0 < bugfix);
 				changes.add(change);
 			}
 
@@ -235,8 +224,8 @@ public class DAO {
 
 		try {
 
-			final String sqlText = "select id, support, confidence, "
-					+ "authors, files, " + "firstdate, lastdate, "
+			final String sqlText = "select id, confidence, "
+					+ "firstdate, lastdate, "
 					+ "(select text from Codes where hash = beforeHash), "
 					+ "(select text from Codes where hash = afterHash) "
 					+ "from patterns where beforeHash = ? and afterHash = ?";
@@ -248,19 +237,14 @@ public class DAO {
 
 			while (result.next()) {
 				final int changepatternID = result.getInt(1);
-				final int support = result.getInt(2);
-				final float confidence = result.getFloat(3);
-				final int authors = result.getInt(4);
-				final int files = result.getInt(5);
-				final String firstdate = result.getString(6);
-				final String lastdate = result.getString(7);
-				final String beforeText = result.getString(8);
-				final String afterText = result.getString(9);
+				final String firstdate = result.getString(2);
+				final String lastdate = result.getString(3);
+				final String beforeText = result.getString(4);
+				final String afterText = result.getString(5);
 
 				final CHANGEPATTERN_SQL changepattern = new CHANGEPATTERN_SQL(
-						changepatternID, support, confidence, authors, files,
-						firstdate, lastdate, beforeHash, afterHash, beforeText,
-						afterText);
+						changepatternID, firstdate, lastdate, beforeHash,
+						afterHash, beforeText, afterText);
 				changepatterns.add(changepattern);
 			}
 
@@ -279,79 +263,29 @@ public class DAO {
 
 		try {
 
-			final PreparedStatement statement1 = this.connector
-					.prepareStatement("select distinct revision from bugfixchanges "
-							+ "where beforeHash = ? and afterHash = ?");
-			final Statement statement2 = this.connector.createStatement();
-			final String sql = "select id, support, confidence, authors, files, "
+			final Statement statement = this.connector.createStatement();
+			final String sql = "select id, "
 					+ "firstdate, lastdate, "
 					+ "beforeHash, afterHash, "
 					+ "(select C1.text from codes C1 where C1.hash = beforeHash), "
 					+ "(select C2.text from codes C2 where C2.hash = afterHash) "
 					+ "from bugfixpatterns where 0 < bugfix order by support desc";
-			final ResultSet result2 = statement2.executeQuery(sql);
+			final ResultSet result2 = statement.executeQuery(sql);
 			while (result2.next()) {
 				final int changepatternID = result2.getInt(1);
-				final int support = result2.getInt(2);
-				final float confidence = result2.getFloat(3);
-				final int authors = result2.getInt(4);
-				final int files = result2.getInt(5);
-				final String firstdate = result2.getString(6);
-				final String lastdate = result2.getString(7);
-				final byte[] beforeHash = result2.getBytes(8);
-				final byte[] afterHash = result2.getBytes(9);
-				final String beforeText = result2.getString(10);
-				final String afterText = result2.getString(11);
+				final String firstdate = result2.getString(2);
+				final String lastdate = result2.getString(3);
+				final byte[] beforeHash = result2.getBytes(4);
+				final byte[] afterHash = result2.getBytes(5);
+				final String beforeText = result2.getString(6);
+				final String afterText = result2.getString(7);
 
 				final CHANGEPATTERN_SQL changepattern = new CHANGEPATTERN_SQL(
-						changepatternID, support, confidence, authors, files,
-						firstdate, lastdate, beforeHash, afterHash, beforeText,
-						afterText);
-
-				statement1.setBytes(1, beforeHash);
-				statement1.setBytes(2, afterHash);
-				final ResultSet results1 = statement1.executeQuery();
-				while (results1.next()) {
-					final int revision = results1.getInt(1);
-					changepattern.revisions.add(revision);
-				}
-
+						changepatternID, firstdate, lastdate, beforeHash,
+						afterHash, beforeText, afterText);
 				changepatterns.add(changepattern);
 			}
-			statement1.close();
-			statement2.close();
-
-			final PreparedStatement statement3 = this.connector
-					.prepareStatement("select count(*) from bugfixchanges where 0 < bugfix and beforeHash = ? and afterHash = ?");
-			for (final CHANGEPATTERN_SQL cp : changepatterns) {
-				statement3.setBytes(1, cp.beforeHash);
-				statement3.setBytes(2, cp.afterHash);
-				final ResultSet results3 = statement3.executeQuery();
-				assert results3.next() : "SQL execution failure.";
-				final int count = results3.getInt(1);
-				cp.bugfixSupport += count;
-			}
-			statement3.close();
-
-			CPAConfig.initialize(new String[] { "-n" });
-			for (final CHANGEPATTERN_SQL cp : changepatterns) {
-				final List<yoshikihigo.cpanalyzer.data.Statement> pattern = StringUtility
-						.splitToStatements(cp.beforeText, 1, 1);
-
-				if (!pattern.isEmpty()) {
-
-					System.out.println(cp.id);
-
-					// final int revision = cp.revisions.first() - 1;
-					// List<List<yoshikihigo.cpanalyzer.data.Statement>>
-					// contents = getFileContents(revision);
-					// for (final List<yoshikihigo.cpanalyzer.data.Statement>
-					// content : contents) {
-					// final int count = this.getCount(content, pattern);
-					// cp.beforetextSupport += count;
-					// }
-				}
-			}
+			statement.close();
 
 		} catch (final SQLException e) {
 			e.printStackTrace();
@@ -373,92 +307,6 @@ public class DAO {
 
 		} catch (final SQLException e) {
 			e.printStackTrace();
-		}
-
-		return count;
-	}
-
-	private List<List<yoshikihigo.cpanalyzer.data.Statement>> getFileContents(
-			final int revision) {
-
-		try {
-
-			final String repository = FBParserConfig.getInstance()
-					.getREPOSITORY();
-
-			final SVNLogClient logClient = SVNClientManager.newInstance()
-					.getLogClient();
-			final SVNURL url = SVNURL.fromFile(new File(repository));
-			FSRepositoryFactory.setup();
-			final SortedSet<String> filepaths = new TreeSet<String>();
-			logClient.doList(url, SVNRevision.create(revision),
-					SVNRevision.create(revision), true, SVNDepth.INFINITY,
-					SVNDirEntry.DIRENT_ALL, new ISVNDirEntryHandler() {
-
-						@Override
-						public void handleDirEntry(final SVNDirEntry entry)
-								throws SVNException {
-
-							if (entry.getKind() == SVNNodeKind.FILE) {
-								final String path = entry.getRelativePath();
-								if (path.endsWith(".java")) {
-									filepaths.add(path);
-								}
-							}
-						}
-					});
-
-			final List<List<yoshikihigo.cpanalyzer.data.Statement>> contents = new ArrayList<>();
-			final SVNWCClient wcClient = SVNClientManager.newInstance()
-					.getWCClient();
-			for (final String path : filepaths) {
-
-				final SVNURL fileurl = SVNURL.fromFile(new File(repository
-						+ System.getProperty("file.separator") + path));
-				final StringBuilder text = new StringBuilder();
-				wcClient.doGetFileContents(fileurl,
-						SVNRevision.create(revision),
-						SVNRevision.create(revision), false,
-						new OutputStream() {
-							@Override
-							public void write(int b) throws IOException {
-								text.append((char) b);
-							}
-						});
-				final List<yoshikihigo.cpanalyzer.data.Statement> statements = StringUtility
-						.splitToStatements(text.toString(), LANGUAGE.JAVA);
-				contents.add(statements);
-			}
-
-			return contents;
-
-		} catch (final SVNException exception) {
-			exception.printStackTrace();
-		}
-
-		return new ArrayList<List<yoshikihigo.cpanalyzer.data.Statement>>();
-	}
-
-	private int getCount(
-			final List<yoshikihigo.cpanalyzer.data.Statement> statements,
-			final List<yoshikihigo.cpanalyzer.data.Statement> pattern) {
-
-		int count = 0;
-		int pIndex = 0;
-		for (int index = 0; index < statements.size(); index++) {
-
-			if (statements.get(index).toString()
-					.equals(pattern.get(pIndex).toString())) {
-				pIndex++;
-				if (pIndex == pattern.size()) {
-					count++;
-					pIndex = 0;
-				}
-			}
-
-			else {
-				pIndex = 0;
-			}
 		}
 
 		return count;
@@ -545,7 +393,7 @@ public class DAO {
 		return ids;
 	}
 
-	public static class REVISION_SQL {
+	public static class REVISION_SQL implements Comparable<REVISION_SQL> {
 
 		final public int number;
 		final public boolean bugfix;
@@ -569,6 +417,17 @@ public class DAO {
 			final REVISION_SQL target = (REVISION_SQL) o;
 			return this.hashCode() == target.hashCode();
 		}
+
+		@Override
+		public int compareTo(final REVISION_SQL target) {
+			if (this.number < target.number) {
+				return -1;
+			} else if (this.number > target.number) {
+				return 1;
+			} else {
+				return 0;
+			}
+		}
 	}
 
 	public static class CHANGE_SQL {
@@ -580,12 +439,13 @@ public class DAO {
 		final public String filepath;
 		final public int startline;
 		final public int endline;
+		final public String author;
 		final public boolean bugfix;
 
 		public CHANGE_SQL(final int id, final byte[] beforeHash,
 				final byte[] afterHash, final int revision,
 				final String filepath, final int startline, final int endline,
-				final boolean bugfix) {
+				final String author, final boolean bugfix) {
 			this.id = id;
 			this.beforeHash = beforeHash;
 			this.afterHash = afterHash;
@@ -593,6 +453,7 @@ public class DAO {
 			this.filepath = filepath;
 			this.startline = startline;
 			this.endline = endline;
+			this.author = author;
 			this.bugfix = bugfix;
 		}
 
@@ -615,39 +476,24 @@ public class DAO {
 	public static class CHANGEPATTERN_SQL {
 
 		final public int id;
-		final public int support;
-		final public float confidence;
-		final public int authors;
-		final public int files;
 		final public String firstdate;
 		final public String lastdate;
 		final public byte[] beforeHash;
 		final public byte[] afterHash;
 		final public String beforeText;
 		final public String afterText;
-		final public SortedSet<Integer> revisions;
-		public int bugfixSupport;
-		public int beforetextSupport;
 
-		public CHANGEPATTERN_SQL(final int id, final int support,
-				final float confidence, final int authors, final int files,
-				final String firstdate, final String lastdate,
-				final byte[] beforeHash, final byte[] afterHash,
-				final String beforeText, final String afterText) {
+		public CHANGEPATTERN_SQL(final int id, final String firstdate,
+				final String lastdate, final byte[] beforeHash,
+				final byte[] afterHash, final String beforeText,
+				final String afterText) {
 			this.id = id;
-			this.support = support;
-			this.confidence = confidence;
-			this.authors = authors;
-			this.files = files;
 			this.firstdate = firstdate;
 			this.lastdate = lastdate;
 			this.beforeHash = beforeHash;
 			this.afterHash = afterHash;
 			this.beforeText = beforeText;
 			this.afterText = afterText;
-			this.revisions = new TreeSet<>();
-			this.bugfixSupport = 0;
-			this.beforetextSupport = 0;
 		}
 	}
 
