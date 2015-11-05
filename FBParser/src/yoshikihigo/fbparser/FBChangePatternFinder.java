@@ -17,7 +17,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.StringTokenizer;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -145,19 +147,28 @@ public class FBChangePatternFinder {
 				titleRow.createCell(10).setCellValue("CONFIDENCE3");
 				setCellComment(titleRow.getCell(10), "Higo",
 						"BUG-FIX-SUPPORT / BEFORE-TEXT-SUPPORT", 3, 1);
-				titleRow.createCell(11).setCellValue("FIRST-DATE");
-				titleRow.createCell(12).setCellValue("LAST-DATE");
-				titleRow.createCell(13).setCellValue("DATE-DIFFERENCE");
-				titleRow.createCell(14).setCellValue("OCCUPANCY");
+				titleRow.createCell(11).setCellValue("COMMITS");
+				setCellComment(titleRow.getCell(11), "Higo",
+						"the number of commits where the pattern appears", 3, 1);
+				titleRow.createCell(12).setCellValue("BUG-FIX-COMMIT");
 				setCellComment(
-						titleRow.getCell(14),
+						titleRow.getCell(12),
+						"Higo",
+						"the number of bug-fix commits where the pattern appears",
+						3, 1);
+				titleRow.createCell(13).setCellValue("FIRST-DATE");
+				titleRow.createCell(14).setCellValue("LAST-DATE");
+				titleRow.createCell(15).setCellValue("DATE-DIFFERENCE");
+				titleRow.createCell(16).setCellValue("OCCUPANCY");
+				setCellComment(
+						titleRow.getCell(16),
 						"Higo",
 						"average of (LOC of a given pattern changed in revision R) / "
 								+ "(total LOC changed in revision R) "
 								+ "for all the revisions where the pattern appears",
 						4, 2);
-				titleRow.createCell(15).setCellValue("TEXT-BEFORE-CHANGE");
-				titleRow.createCell(16).setCellValue("TEXT-AFTER-CHANGE");
+				titleRow.createCell(17).setCellValue("TEXT-BEFORE-CHANGE");
+				titleRow.createCell(18).setCellValue("TEXT-AFTER-CHANGE");
 				// titleRow.createCell(15).setCellValue("Delta-TFIDF");
 				// titleRow.createCell(16).setCellValue("TEXT-BEFORE-CHANGE");
 				// titleRow.createCell(17).setCellValue("TEXT-AFTER-CHANGE");
@@ -211,17 +222,19 @@ public class FBChangePatternFinder {
 					dataRow.createCell(10).setCellValue(
 							(float) cp.bugfixSupport
 									/ (float) cp.beforetextSupport);
-					dataRow.createCell(11).setCellValue(cp.firstdate);
-					dataRow.createCell(12).setCellValue(cp.lastdate);
-					dataRow.createCell(13).setCellValue(
+					dataRow.createCell(11).setCellValue(getCommits(cp, false));
+					dataRow.createCell(12).setCellValue(getCommits(cp, true));
+					dataRow.createCell(13).setCellValue(cp.firstdate);
+					dataRow.createCell(14).setCellValue(cp.lastdate);
+					dataRow.createCell(15).setCellValue(
 							getDayDifference(cp.firstdate, cp.lastdate));
-					dataRow.createCell(14).setCellValue(getOccupancy(cp));
-					dataRow.createCell(15).setCellValue(cp.beforeText);
-					dataRow.createCell(16).setCellValue(cp.afterText);
+					dataRow.createCell(16).setCellValue(getOccupancy(cp));
+					dataRow.createCell(17).setCellValue(cp.beforeText);
+					dataRow.createCell(18).setCellValue(cp.afterText);
 					// dataRow.createCell(15).setCellValue(getDeltaTFIDF(cp));
 					// dataRow.createCell(16).setCellValue(cp.beforeText);
 					// dataRow.createCell(17).setCellValue(cp.afterText);
-					lastCell = dataRow.getCell(16);
+					lastCell = dataRow.getCell(18);
 
 					final CellStyle style = book.createCellStyle();
 					style.setWrapText(true);
@@ -248,6 +261,8 @@ public class FBChangePatternFinder {
 					dataRow.getCell(14).setCellStyle(style);
 					dataRow.getCell(15).setCellStyle(style);
 					dataRow.getCell(16).setCellStyle(style);
+					dataRow.getCell(17).setCellStyle(style);
+					dataRow.getCell(18).setCellStyle(style);
 					// dataRow.getCell(17).setCellStyle(style);
 
 					int loc = Math.max(getLOC(cp.beforeText),
@@ -269,8 +284,10 @@ public class FBChangePatternFinder {
 				sheet.autoSizeColumn(12, true);
 				sheet.autoSizeColumn(13, true);
 				sheet.autoSizeColumn(14, true);
-				sheet.setColumnWidth(15, 20480);
-				sheet.setColumnWidth(16, 20480);
+				sheet.autoSizeColumn(15, true);
+				sheet.autoSizeColumn(16, true);
+				sheet.setColumnWidth(17, 20480);
+				sheet.setColumnWidth(18, 20480);
 				// sheet.autoSizeColumn(15, true);
 				// sheet.setColumnWidth(16, 20480);
 				// sheet.setColumnWidth(17, 20480);
@@ -352,6 +369,22 @@ public class FBChangePatternFinder {
 		final long difference = calendar2.getTime().getTime()
 				- calendar1.getTime().getTime();
 		return (int) (difference / 1000l / 60l / 60l / 24l);
+	}
+
+	private static int getCommits(final CHANGEPATTERN_SQL cp,
+			final boolean onlyBugfix) {
+		final byte[] beforeHash = cp.beforeHash;
+		final byte[] afterHash = cp.afterHash;
+		final List<CHANGE_SQL> changesInPattern = DAO.getInstance().getChanges(
+				beforeHash, afterHash);
+		final SortedSet<Integer> revisions = new TreeSet<>();
+		for (final CHANGE_SQL change : changesInPattern) {
+			if (!onlyBugfix || (onlyBugfix && change.bugfix)) {
+				revisions.add(change.revision);
+			}
+		}
+
+		return revisions.size();
 	}
 
 	private static float getOccupancy(final CHANGEPATTERN_SQL cp) {
