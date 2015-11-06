@@ -217,10 +217,10 @@ public class DAO {
 		return changes;
 	}
 
-	public List<CHANGEPATTERN_SQL> getChangePatterns(final byte[] beforeHash,
+	public List<PATTERN_SQL> getChangePatterns(final byte[] beforeHash,
 			final byte[] afterHash) {
 
-		final List<CHANGEPATTERN_SQL> changepatterns = new ArrayList<>();
+		final List<PATTERN_SQL> changepatterns = new ArrayList<>();
 
 		try {
 
@@ -242,7 +242,7 @@ public class DAO {
 				final String beforeText = result.getString(4);
 				final String afterText = result.getString(5);
 
-				final CHANGEPATTERN_SQL changepattern = new CHANGEPATTERN_SQL(
+				final PATTERN_SQL changepattern = new PATTERN_SQL(
 						changepatternID, firstdate, lastdate, beforeHash,
 						afterHash, beforeText, afterText);
 				changepatterns.add(changepattern);
@@ -257,9 +257,9 @@ public class DAO {
 		return changepatterns;
 	}
 
-	public List<CHANGEPATTERN_SQL> getFixChangePatterns() {
+	public List<PATTERN_SQL> getFixChangePatterns() {
 
-		final List<CHANGEPATTERN_SQL> changepatterns = new ArrayList<>();
+		final List<PATTERN_SQL> changepatterns = new ArrayList<>();
 
 		try {
 
@@ -280,7 +280,7 @@ public class DAO {
 				final String beforeText = result2.getString(6);
 				final String afterText = result2.getString(7);
 
-				final CHANGEPATTERN_SQL changepattern = new CHANGEPATTERN_SQL(
+				final PATTERN_SQL changepattern = new PATTERN_SQL(
 						changepatternID, firstdate, lastdate, beforeHash,
 						afterHash, beforeText, afterText);
 				changepatterns.add(changepattern);
@@ -473,7 +473,7 @@ public class DAO {
 		}
 	}
 
-	public static class CHANGEPATTERN_SQL {
+	public static class PATTERN_SQL {
 
 		final public int id;
 		final public String firstdate;
@@ -483,7 +483,7 @@ public class DAO {
 		final public String beforeText;
 		final public String afterText;
 
-		public CHANGEPATTERN_SQL(final int id, final String firstdate,
+		public PATTERN_SQL(final int id, final String firstdate,
 				final String lastdate, final byte[] beforeHash,
 				final byte[] afterHash, final String beforeText,
 				final String afterText) {

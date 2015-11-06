@@ -55,8 +55,8 @@ import yoshikihigo.cpanalyzer.CPAConfig;
 import yoshikihigo.cpanalyzer.LANGUAGE;
 import yoshikihigo.cpanalyzer.StringUtility;
 import yoshikihigo.fbparser.db.DAO;
-import yoshikihigo.fbparser.db.DAO.CHANGEPATTERN_SQL;
 import yoshikihigo.fbparser.db.DAO.CHANGE_SQL;
+import yoshikihigo.fbparser.db.DAO.PATTERN_SQL;
 import yoshikihigo.fbparser.db.DAO.REVISION_SQL;
 
 public class FBChangePatternFinder {
@@ -67,28 +67,22 @@ public class FBChangePatternFinder {
 		final String trFile = FBParserConfig.getInstance()
 				.getTRANSITIONRESULT();
 		final String cpFile = FBParserConfig.getInstance().getCHANGEPATTERN();
-		final String mcpFile = FBParserConfig.getInstance()
+		final String fcpFile = FBParserConfig.getInstance()
 				.getFIXCHANGEPATTERN();
 		final DAO dao = DAO.getInstance();
 
-		Cell firstCell = null;
-		Cell lastCell = null;
-
+		final Set<Integer> foundPatternIDs = new HashSet<>();
 		try (final BufferedReader reader = new BufferedReader(
 				new InputStreamReader(new FileInputStream(trFile),
 						"JISAutoDetect"));
-				final PrintWriter cpWriter = new PrintWriter(
-						new BufferedWriter(new OutputStreamWriter(
-								new FileOutputStream(cpFile), "UTF-8")));
-				final Workbook book = new XSSFWorkbook();
-				final OutputStream stream = new FileOutputStream(mcpFile)) {
+				final PrintWriter writer = new PrintWriter(new BufferedWriter(
+						new OutputStreamWriter(new FileOutputStream(cpFile),
+								"UTF-8")))) {
 
 			final String trTitle = reader.readLine();
-			cpWriter.print(trTitle);
-			cpWriter.println(", CHANGEPATTERN-ID, CHANGEPATTERN-SUPPORT");
+			writer.print(trTitle);
+			writer.println(", CHANGEPATTERN-ID, CHANGEPATTERN-SUPPORT");
 
-			final Set<Integer> foundCPs = new HashSet<>();
-			final Set<String> foundCodes = new HashSet<>();
 			while (true) {
 				final String lineText = reader.readLine();
 				if (null == lineText) {
@@ -109,214 +103,245 @@ public class FBChangePatternFinder {
 							continue;
 						}
 
-						// System.out.println("----------" + line.hash
-						// + "----------");
-						final List<CHANGEPATTERN_SQL> cps = dao
-								.getChangePatterns(change.beforeHash,
-										change.afterHash);
-						for (final CHANGEPATTERN_SQL cp : cps) {
-							// System.out.println(cp.id);
-							cpWriter.print(lineText);
-							cpWriter.print(", ");
-							cpWriter.print(cp.id);
-							cpWriter.print(", ");
-							cpWriter.println(getChanges(cp).size());
-							foundCPs.add(cp.id);
-							foundCodes.add(cp.beforeText);
+						final List<PATTERN_SQL> cps = dao.getChangePatterns(
+								change.beforeHash, change.afterHash);
+						for (final PATTERN_SQL cp : cps) {
+							writer.print(lineText);
+							writer.print(", ");
+							writer.print(cp.id);
+							writer.print(", ");
+							writer.println(getChanges(cp).size());
+							foundPatternIDs.add(cp.id);
 						}
 					}
 				}
 			}
+		} catch (final IOException e) {
+			e.printStackTrace();
+			System.exit(0);
+		}
 
-			{
-				final Sheet sheet = book.createSheet();
-				book.setSheetName(0, "change patterns");
-				final Row titleRow = sheet.createRow(0);
-				titleRow.createCell(0).setCellValue("CHANGE-PATTERN-ID");
-				titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
-				titleRow.createCell(2).setCellValue("AUTHORS");
-				titleRow.createCell(3).setCellValue("BUG-FIX-AUTHORS");
-				titleRow.createCell(4).setCellValue("FILES");
-				titleRow.createCell(5).setCellValue("BUG-FIX-FILES");
-				titleRow.createCell(6).setCellValue("SUPPORT");
-				setCellComment(titleRow.getCell(6), "Higo",
-						"the number of occurences of a given pattern", 4, 1);
-				titleRow.createCell(7).setCellValue("BUG-FIX-SUPPORT");
-				setCellComment(
-						titleRow.getCell(7),
-						"Higo",
-						"the number of occurences of a given pattern in bug-fix commits",
-						4, 1);
-				titleRow.createCell(8).setCellValue("BEFORE-TEXT-SUPPORT");
-				setCellComment(
-						titleRow.getCell(8),
-						"Higo",
-						"the number of code fragments whose texts are "
-								+ "identical to before-text of a given pattern "
-								+ "in the commit where the pattern appears initially",
-						4, 2);
-				titleRow.createCell(9).setCellValue("CONFIDENCE1");
-				setCellComment(titleRow.getCell(9), "Higo",
-						"BUG-FIX-SUPPORT / SUPPORT", 4, 1);
-				titleRow.createCell(10).setCellValue("CONFIDENCE2");
-				setCellComment(titleRow.getCell(10), "Higo",
-						"SUPPORT / BEFORE-TEXT-SUPPORT", 4, 1);
-				titleRow.createCell(11).setCellValue("CONFIDENCE3");
-				setCellComment(titleRow.getCell(11), "Higo",
-						"BUG-FIX-SUPPORT / BEFORE-TEXT-SUPPORT", 4, 1);
-				titleRow.createCell(12).setCellValue("COMMITS");
-				setCellComment(titleRow.getCell(12), "Higo",
-						"the number of commits where the pattern appears", 4, 1);
-				titleRow.createCell(13).setCellValue("BUG-FIX-COMMIT");
-				setCellComment(
-						titleRow.getCell(13),
-						"Higo",
-						"the number of bug-fix commits where the pattern appears",
-						4, 1);
-				titleRow.createCell(14).setCellValue("FIRST-DATE");
-				titleRow.createCell(15).setCellValue("LAST-DATE");
-				titleRow.createCell(16).setCellValue("DATE-DIFFERENCE");
-				titleRow.createCell(17).setCellValue("OCCUPANCY");
-				setCellComment(
-						titleRow.getCell(17),
-						"Higo",
-						"average of (LOC of a given pattern changed in revision R) / "
-								+ "(total LOC changed in revision R) "
-								+ "for all the revisions where the pattern appears",
-						4, 2);
-				titleRow.createCell(18).setCellValue("Delta-TFIDF");
-				setCellComment(
-						titleRow.getCell(18),
-						"Higo",
-						"delta-TFIDF was calculated with the following formula"
-								+ System.lineSeparator()
-								+ "(k1 + 1)*tf/(K_tf) log (((N1 - df1 + 0.5)*(df2 + 0.5))/((N2 - df2 + 0.5)*(df1 + 0.5)))"
-								+ System.lineSeparator()
-								+ "tf : the number of occurrences of a given a pattern"
-								+ System.lineSeparator()
-								+ "N1: the number of all files changed in bug-fix commits"
-								+ System.lineSeparator()
-								+ "N2: the number of all files changed in non-bug-fix commits"
-								+ System.lineSeparator()
-								+ "df1: the number of files changed in bug-fix commits for a given pattern"
-								+ System.lineSeparator()
-								+ "df2: the number of files changed in non-bug-fix commits for a given pattern"
-								+ System.lineSeparator()
-								+ "k1: 1.2 (parameter)"
-								+ System.lineSeparator() + "K: 1.2 (parameter)",
-						5, 4);
-				titleRow.createCell(19).setCellValue("TEXT-BEFORE-CHANGE");
-				titleRow.createCell(20).setCellValue("TEXT-AFTER-CHANGE");
-				firstCell = titleRow.getCell(0);
+		try (final Workbook book = new XSSFWorkbook();
+				final OutputStream stream = new FileOutputStream(fcpFile)) {
 
-				int currentRow = 1;
-				final List<CHANGEPATTERN_SQL> cps = dao.getFixChangePatterns();
-				Collections
-						.sort(cps, (o1, o2) -> Integer.compare(o1.id, o2.id));
+			Cell firstCell = null;
+			Cell lastCell = null;
 
-				for (final CHANGEPATTERN_SQL cp : cps) {
+			final Sheet sheet = book.createSheet();
+			book.setSheetName(0, "change patterns");
+			final Row titleRow = sheet.createRow(0);
+			titleRow.createCell(0).setCellValue("PATTERN-ID");
+			titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
+			titleRow.createCell(2).setCellValue("AUTHORS");
+			titleRow.createCell(3).setCellValue("BUG-FIX-AUTHORS");
+			titleRow.createCell(4).setCellValue("FILES");
+			titleRow.createCell(5).setCellValue("BUG-FIX-FILES");
+			titleRow.createCell(6).setCellValue("SUPPORT");
+			titleRow.createCell(7).setCellValue("BUG-FIX-SUPPORT");
+			titleRow.createCell(8).setCellValue("BEFORE-TEXT-SUPPORT");
+			titleRow.createCell(9).setCellValue("CONFIDENCE1");
+			titleRow.createCell(10).setCellValue("CONFIDENCE2");
+			titleRow.createCell(11).setCellValue("CONFIDENCE3");
+			titleRow.createCell(12).setCellValue("COMMITS");
+			titleRow.createCell(13).setCellValue("BUG-FIX-COMMIT");
+			titleRow.createCell(14).setCellValue("FIRST-DATE");
+			titleRow.createCell(15).setCellValue("LAST-DATE");
+			titleRow.createCell(16).setCellValue("DATE-DIFFERENCE");
+			titleRow.createCell(17).setCellValue("OCCUPANCY");
+			titleRow.createCell(18).setCellValue("Delta-TFIDF");
+			titleRow.createCell(19).setCellValue("TEXT-BEFORE-CHANGE");
+			titleRow.createCell(20).setCellValue("TEXT-AFTER-CHANGE");
+			titleRow.createCell(21).setCellValue("AUTHOR-LIST");
+			titleRow.createCell(22).setCellValue("FILE-LIST");
 
-					if (cp.beforeText.isEmpty()) {
-						continue;
-					}
+			firstCell = titleRow.getCell(0);
 
-					final boolean foundByFindBugs = foundCPs.contains(cp.id);
+			setCellComment(
+					titleRow.getCell(2),
+					"Higo",
+					"the number of authors that committed the change pattern in all commits",
+					5, 1);
+			setCellComment(
+					titleRow.getCell(3),
+					"Higo",
+					"the number of authors commited the change pattern in bug-fix commits",
+					5, 1);
+			setCellComment(
+					titleRow.getCell(4),
+					"Higo",
+					"the number of files where the change pattern appeared in all commits",
+					5, 1);
+			setCellComment(
+					titleRow.getCell(5),
+					"Higo",
+					"the number of files where the change pattern appeared in bug-fix commits",
+					5, 1);
+			setCellComment(titleRow.getCell(6), "Higo",
+					"the number of occurences of a given pattern", 4, 1);
+			setCellComment(
+					titleRow.getCell(7),
+					"Higo",
+					"the number of occurences of a given pattern in bug-fix commits",
+					4, 1);
+			setCellComment(
+					titleRow.getCell(8),
+					"Higo",
+					"the number of code fragments whose texts are "
+							+ "identical to before-text of a given pattern "
+							+ "in the commit where the pattern appears initially",
+					4, 2);
+			setCellComment(titleRow.getCell(9), "Higo",
+					"BUG-FIX-SUPPORT / SUPPORT", 4, 1);
+			setCellComment(titleRow.getCell(10), "Higo",
+					"SUPPORT / BEFORE-TEXT-SUPPORT", 4, 1);
+			setCellComment(titleRow.getCell(11), "Higo",
+					"BUG-FIX-SUPPORT / BEFORE-TEXT-SUPPORT", 4, 1);
+			setCellComment(titleRow.getCell(12), "Higo",
+					"the number of commits where the pattern appears", 4, 1);
+			setCellComment(titleRow.getCell(13), "Higo",
+					"the number of bug-fix commits where the pattern appears",
+					4, 1);
+			setCellComment(
+					titleRow.getCell(17),
+					"Higo",
+					"average of (LOC of a given pattern changed in revision R) / "
+							+ "(total LOC changed in revision R) "
+							+ "for all the revisions where the pattern appears",
+					4, 2);
+			setCellComment(
+					titleRow.getCell(18),
+					"Higo",
+					"delta-TFIDF was calculated with the following formula"
+							+ System.lineSeparator()
+							+ "(k1 + 1)*tf/(K_tf) log (((N1 - df1 + 0.5)*(df2 + 0.5))/((N2 - df2 + 0.5)*(df1 + 0.5)))"
+							+ System.lineSeparator()
+							+ "tf : the number of occurrences of a given a pattern"
+							+ System.lineSeparator()
+							+ "N1: the number of all files changed in bug-fix commits"
+							+ System.lineSeparator()
+							+ "N2: the number of all files changed in non-bug-fix commits"
+							+ System.lineSeparator()
+							+ "df1: the number of files changed in bug-fix commits for a given pattern"
+							+ System.lineSeparator()
+							+ "df2: the number of files changed in non-bug-fix commits for a given pattern"
+							+ System.lineSeparator() + "k1: 1.2 (parameter)"
+							+ System.lineSeparator() + "K: 1.2 (parameter)", 5,
+					4);
 
-					final Row dataRow = sheet.createRow(currentRow++);
-					dataRow.createCell(0).setCellValue(cp.id);
-					dataRow.createCell(1).setCellValue(
-							foundByFindBugs ? "YES" : "NO");
-					dataRow.createCell(2).setCellValue(getAuthors(cp).size());
-					dataRow.createCell(3).setCellValue(
-							getAuthors(cp, true).size());
-					dataRow.createCell(4).setCellValue(getFiles(cp).size());
-					dataRow.createCell(5).setCellValue(
-							getFiles(cp, true).size());
-					final int support = getChanges(cp).size();
-					final int bugfixSupport = getChanges(cp, true).size();
-					final int beforeTextSupport = countTextAppearances(cp);
-					dataRow.createCell(6).setCellValue(support);
-					dataRow.createCell(7).setCellValue(bugfixSupport);
-					dataRow.createCell(8).setCellValue(beforeTextSupport);
-					dataRow.createCell(9).setCellValue(
-							(float) bugfixSupport / (float) support);
-					dataRow.createCell(10).setCellValue(
-							(float) support / (float) beforeTextSupport);
-					dataRow.createCell(11).setCellValue(
-							(float) bugfixSupport / (float) beforeTextSupport);
-					dataRow.createCell(12).setCellValue(getCommits(cp, false));
-					dataRow.createCell(13).setCellValue(getCommits(cp, true));
-					dataRow.createCell(14).setCellValue(cp.firstdate);
-					dataRow.createCell(15).setCellValue(cp.lastdate);
-					dataRow.createCell(16).setCellValue(
-							getDayDifference(cp.firstdate, cp.lastdate));
-					dataRow.createCell(17).setCellValue(getOccupancy(cp));
-					dataRow.createCell(18).setCellValue(getDeltaTFIDF(cp));
-					dataRow.createCell(19).setCellValue(cp.beforeText);
-					dataRow.createCell(20).setCellValue(cp.afterText);
-					lastCell = dataRow.getCell(20);
+			int currentRow = 1;
+			final List<PATTERN_SQL> cps = dao.getFixChangePatterns();
+			Collections.sort(cps, (o1, o2) -> Integer.compare(o1.id, o2.id));
 
-					final CellStyle style = book.createCellStyle();
-					style.setWrapText(true);
-					style.setFillPattern(CellStyle.SOLID_FOREGROUND);
-					style.setFillForegroundColor(IndexedColors.WHITE.getIndex());
-					style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
-					style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
-					style.setBorderRight(XSSFCellStyle.BORDER_THIN);
-					style.setBorderTop(XSSFCellStyle.BORDER_THIN);
-					dataRow.getCell(0).setCellStyle(style);
-					dataRow.getCell(1).setCellStyle(style);
-					dataRow.getCell(2).setCellStyle(style);
-					dataRow.getCell(3).setCellStyle(style);
-					dataRow.getCell(4).setCellStyle(style);
-					dataRow.getCell(5).setCellStyle(style);
-					dataRow.getCell(6).setCellStyle(style);
-					dataRow.getCell(7).setCellStyle(style);
-					dataRow.getCell(8).setCellStyle(style);
-					dataRow.getCell(9).setCellStyle(style);
-					dataRow.getCell(10).setCellStyle(style);
-					dataRow.getCell(11).setCellStyle(style);
-					dataRow.getCell(12).setCellStyle(style);
-					dataRow.getCell(13).setCellStyle(style);
-					dataRow.getCell(14).setCellStyle(style);
-					dataRow.getCell(15).setCellStyle(style);
-					dataRow.getCell(16).setCellStyle(style);
-					dataRow.getCell(17).setCellStyle(style);
-					dataRow.getCell(18).setCellStyle(style);
-					dataRow.getCell(19).setCellStyle(style);
-					dataRow.getCell(20).setCellStyle(style);
+			for (final PATTERN_SQL cp : cps) {
 
-					int loc = Math.max(getLOC(cp.beforeText),
-							getLOC(cp.afterText));
-					dataRow.setHeight((short) (loc * dataRow.getHeight()));
+				if (cp.beforeText.isEmpty()) {
+					continue;
 				}
-				sheet.autoSizeColumn(0, true);
-				sheet.autoSizeColumn(1, true);
-				sheet.autoSizeColumn(2, true);
-				sheet.autoSizeColumn(3, true);
-				sheet.autoSizeColumn(4, true);
-				sheet.autoSizeColumn(5, true);
-				sheet.autoSizeColumn(6, true);
-				sheet.autoSizeColumn(7, true);
-				sheet.autoSizeColumn(8, true);
-				sheet.autoSizeColumn(9, true);
-				sheet.autoSizeColumn(10, true);
-				sheet.autoSizeColumn(11, true);
-				sheet.autoSizeColumn(12, true);
-				sheet.autoSizeColumn(13, true);
-				sheet.autoSizeColumn(14, true);
-				sheet.autoSizeColumn(15, true);
-				sheet.autoSizeColumn(16, true);
-				sheet.autoSizeColumn(17, true);
-				sheet.autoSizeColumn(18, true);
-				sheet.setColumnWidth(19, 20480);
-				sheet.setColumnWidth(20, 20480);
 
-				sheet.setAutoFilter(new CellRangeAddress(firstCell
-						.getRowIndex(), lastCell.getRowIndex(), firstCell
-						.getColumnIndex(), lastCell.getColumnIndex()));
-				sheet.createFreezePane(0, 1, 0, 1);
+				final boolean foundByFindBugs = foundPatternIDs.contains(cp.id);
+
+				final Row dataRow = sheet.createRow(currentRow++);
+				dataRow.createCell(0).setCellValue(cp.id);
+				dataRow.createCell(1).setCellValue(
+						foundByFindBugs ? "YES" : "NO");
+				dataRow.createCell(2).setCellValue(getAuthors(cp).size());
+				dataRow.createCell(3).setCellValue(getAuthors(cp, true).size());
+				dataRow.createCell(4).setCellValue(getFiles(cp).size());
+				dataRow.createCell(5).setCellValue(getFiles(cp, true).size());
+				final int support = getChanges(cp).size();
+				final int bugfixSupport = getChanges(cp, true).size();
+				final int beforeTextSupport = countTextAppearances(cp);
+				dataRow.createCell(6).setCellValue(support);
+				dataRow.createCell(7).setCellValue(bugfixSupport);
+				dataRow.createCell(8).setCellValue(beforeTextSupport);
+				dataRow.createCell(9).setCellValue(
+						(float) bugfixSupport / (float) support);
+				dataRow.createCell(10).setCellValue(
+						(float) support / (float) beforeTextSupport);
+				dataRow.createCell(11).setCellValue(
+						(float) bugfixSupport / (float) beforeTextSupport);
+				dataRow.createCell(12).setCellValue(getCommits(cp, false));
+				dataRow.createCell(13).setCellValue(getCommits(cp, true));
+				dataRow.createCell(14).setCellValue(cp.firstdate);
+				dataRow.createCell(15).setCellValue(cp.lastdate);
+				dataRow.createCell(16).setCellValue(
+						getDayDifference(cp.firstdate, cp.lastdate));
+				dataRow.createCell(17).setCellValue(getOccupancy(cp));
+				dataRow.createCell(18).setCellValue(getDeltaTFIDF(cp));
+				dataRow.createCell(19).setCellValue(cp.beforeText);
+				dataRow.createCell(20).setCellValue(cp.afterText);
+				dataRow.createCell(21).setCellValue(
+						yoshikihigo.fbparser.StringUtility
+								.concatinate(getAuthors(cp)));
+				dataRow.createCell(22).setCellValue(
+						yoshikihigo.fbparser.StringUtility
+								.concatinate(getFiles(cp)));
+				lastCell = dataRow.getCell(22);
+
+				final CellStyle style = book.createCellStyle();
+				style.setWrapText(true);
+				style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+				style.setFillForegroundColor(IndexedColors.WHITE.getIndex());
+				style.setBorderBottom(XSSFCellStyle.BORDER_THIN);
+				style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
+				style.setBorderRight(XSSFCellStyle.BORDER_THIN);
+				style.setBorderTop(XSSFCellStyle.BORDER_THIN);
+				dataRow.getCell(0).setCellStyle(style);
+				dataRow.getCell(1).setCellStyle(style);
+				dataRow.getCell(2).setCellStyle(style);
+				dataRow.getCell(3).setCellStyle(style);
+				dataRow.getCell(4).setCellStyle(style);
+				dataRow.getCell(5).setCellStyle(style);
+				dataRow.getCell(6).setCellStyle(style);
+				dataRow.getCell(7).setCellStyle(style);
+				dataRow.getCell(8).setCellStyle(style);
+				dataRow.getCell(9).setCellStyle(style);
+				dataRow.getCell(10).setCellStyle(style);
+				dataRow.getCell(11).setCellStyle(style);
+				dataRow.getCell(12).setCellStyle(style);
+				dataRow.getCell(13).setCellStyle(style);
+				dataRow.getCell(14).setCellStyle(style);
+				dataRow.getCell(15).setCellStyle(style);
+				dataRow.getCell(16).setCellStyle(style);
+				dataRow.getCell(17).setCellStyle(style);
+				dataRow.getCell(18).setCellStyle(style);
+				dataRow.getCell(19).setCellStyle(style);
+				dataRow.getCell(20).setCellStyle(style);
+				dataRow.getCell(21).setCellStyle(style);
+				dataRow.getCell(22).setCellStyle(style);
+
+				int loc = Math.max(getLOC(cp.beforeText), getLOC(cp.afterText));
+				dataRow.setHeight((short) (loc * dataRow.getHeight()));
 			}
+
+			sheet.autoSizeColumn(0, true);
+			sheet.autoSizeColumn(1, true);
+			sheet.autoSizeColumn(2, true);
+			sheet.autoSizeColumn(3, true);
+			sheet.autoSizeColumn(4, true);
+			sheet.autoSizeColumn(5, true);
+			sheet.autoSizeColumn(6, true);
+			sheet.autoSizeColumn(7, true);
+			sheet.autoSizeColumn(8, true);
+			sheet.autoSizeColumn(9, true);
+			sheet.autoSizeColumn(10, true);
+			sheet.autoSizeColumn(11, true);
+			sheet.autoSizeColumn(12, true);
+			sheet.autoSizeColumn(13, true);
+			sheet.autoSizeColumn(14, true);
+			sheet.autoSizeColumn(15, true);
+			sheet.autoSizeColumn(16, true);
+			sheet.autoSizeColumn(17, true);
+			sheet.autoSizeColumn(18, true);
+			sheet.setColumnWidth(19, 20480);
+			sheet.setColumnWidth(20, 20480);
+			sheet.setColumnWidth(21, 5120);
+			sheet.setColumnWidth(22, 20480);
+
+			sheet.setAutoFilter(new CellRangeAddress(firstCell.getRowIndex(),
+					lastCell.getRowIndex(), firstCell.getColumnIndex(),
+					lastCell.getColumnIndex()));
+			sheet.createFreezePane(0, 1, 0, 1);
 
 			book.write(stream);
 
@@ -391,8 +416,7 @@ public class FBChangePatternFinder {
 		return (int) (difference / 1000l / 60l / 60l / 24l);
 	}
 
-	private static int getCommits(final CHANGEPATTERN_SQL cp,
-			final boolean onlyBugfix) {
+	private static int getCommits(final PATTERN_SQL cp, final boolean onlyBugfix) {
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
 		final List<CHANGE_SQL> changesInPattern = DAO.getInstance().getChanges(
@@ -407,7 +431,7 @@ public class FBChangePatternFinder {
 		return revisions.size();
 	}
 
-	private static float getOccupancy(final CHANGEPATTERN_SQL cp) {
+	private static float getOccupancy(final PATTERN_SQL cp) {
 
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
@@ -446,7 +470,7 @@ public class FBChangePatternFinder {
 		return sum / revisions.size();
 	}
 
-	private static double getDeltaTFIDF(final CHANGEPATTERN_SQL cp) {
+	private static double getDeltaTFIDF(final PATTERN_SQL cp) {
 
 		final double tf = (double) getChanges(cp).size(); // all occurrences
 		final int n1 = DAO
@@ -460,8 +484,8 @@ public class FBChangePatternFinder {
 		final int df2 = getFiles(cp, false).size(); // the number of files
 													// including non-bug-fix
 													// changes
-		final double k1 = 1.2d;
-		final double K = 1.2d;
+		final double k1 = 1.2d; // parameter
+		final double K = 1.2d; // parameter
 
 		final double w = ((k1 + 1) * tf / (K + tf))
 				* (Math.log(((n1 - df1 + 0.5) * (df2 + 0.5))
@@ -469,14 +493,14 @@ public class FBChangePatternFinder {
 		return w;
 	}
 
-	private static List<CHANGE_SQL> getChanges(final CHANGEPATTERN_SQL cp) {
+	private static List<CHANGE_SQL> getChanges(final PATTERN_SQL cp) {
 
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
 		return DAO.getInstance().getChanges(beforeHash, afterHash);
 	}
 
-	private static List<CHANGE_SQL> getChanges(final CHANGEPATTERN_SQL cp,
+	private static List<CHANGE_SQL> getChanges(final PATTERN_SQL cp,
 			final boolean bugfix) {
 
 		final byte[] beforeHash = cp.beforeHash;
@@ -494,7 +518,7 @@ public class FBChangePatternFinder {
 		return changes;
 	}
 
-	private static SortedSet<String> getAuthors(final CHANGEPATTERN_SQL cp) {
+	private static SortedSet<String> getAuthors(final PATTERN_SQL cp) {
 
 		final SortedSet<String> authors = new TreeSet<>();
 		final byte[] beforeHash = cp.beforeHash;
@@ -508,7 +532,7 @@ public class FBChangePatternFinder {
 		return authors;
 	}
 
-	private static SortedSet<String> getAuthors(final CHANGEPATTERN_SQL cp,
+	private static SortedSet<String> getAuthors(final PATTERN_SQL cp,
 			final boolean bugfix) {
 
 		final SortedSet<String> authors = new TreeSet<>();
@@ -525,7 +549,7 @@ public class FBChangePatternFinder {
 		return authors;
 	}
 
-	private static SortedSet<String> getFiles(final CHANGEPATTERN_SQL cp) {
+	private static SortedSet<String> getFiles(final PATTERN_SQL cp) {
 
 		final SortedSet<String> files = new TreeSet<>();
 		final byte[] beforeHash = cp.beforeHash;
@@ -539,7 +563,7 @@ public class FBChangePatternFinder {
 		return files;
 	}
 
-	private static SortedSet<String> getFiles(final CHANGEPATTERN_SQL cp,
+	private static SortedSet<String> getFiles(final PATTERN_SQL cp,
 			final boolean bugfix) {
 
 		final SortedSet<String> files = new TreeSet<>();
@@ -556,7 +580,7 @@ public class FBChangePatternFinder {
 		return files;
 	}
 
-	private static int countTextAppearances(final CHANGEPATTERN_SQL cp) {
+	private static int countTextAppearances(final PATTERN_SQL cp) {
 
 		CPAConfig.initialize(new String[] { "-n" });
 		final List<yoshikihigo.cpanalyzer.data.Statement> pattern = StringUtility
