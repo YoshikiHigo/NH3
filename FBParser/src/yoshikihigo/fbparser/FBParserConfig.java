@@ -51,8 +51,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("fcp", "fixchangepattern",
-					true,
+			final Option source = new Option("fcp", "fixchangepattern", true,
 					"bug-fix change patterns");
 			source.setArgName("file");
 			source.setArgs(1);
@@ -257,20 +256,20 @@ public class FBParserConfig {
 		return this.commandLine.getOptionValue("repository");
 	}
 
-	public long getSTARTREV() {
+	public int getSTARTREV() {
 		if (!this.commandLine.hasOption("startrev")) {
 			System.err.println("option \"startrev\" is not specified.");
 			System.exit(0);
 		}
-		return Long.parseLong(this.commandLine.getOptionValue("startrev"));
+		return Integer.parseInt(this.commandLine.getOptionValue("startrev"));
 	}
 
-	public long getENDREV() {
+	public int getENDREV() {
 		if (!this.commandLine.hasOption("endrev")) {
 			System.err.println("option \"endrev\" is not specified.");
 			System.exit(0);
 		}
-		return Long.parseLong(this.commandLine.getOptionValue("endrev"));
+		return Integer.parseInt(this.commandLine.getOptionValue("endrev"));
 	}
 
 	public String getFBRESULT() {

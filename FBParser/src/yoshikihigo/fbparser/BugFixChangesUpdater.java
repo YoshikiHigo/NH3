@@ -63,13 +63,13 @@ public class BugFixChangesUpdater {
 			final FBParser parser = new FBParser(fbResult);
 			parser.perform();
 			final List<BugInstance> bugInstances = parser.getBugInstances();
-			final Map<BugInstance, WarningLocationTransition2> transitions = new HashMap<>();
+			final Map<BugInstance, LocationTransition> transitions = new HashMap<>();
 			for (final BugInstance instance : bugInstances) {
 				final SourceLine sourceline = instance.getSourceLines().get(0);
 				final String path = sourceline.sourcepath;
 				final int startLine = sourceline.start;
 				final int endLine = sourceline.end;
-				final WarningLocationTransition2 transition = new WarningLocationTransition2();
+				final LocationTransition transition = new LocationTransition();
 				transition.add((int) startrev, new Location(path, startLine,
 						endLine));
 				transitions.put(instance, transition);
@@ -93,7 +93,7 @@ public class BugFixChangesUpdater {
 					final int startline = results2.getInt(3);
 					final int endline = results2.getInt(4);
 
-					for (final WarningLocationTransition2 wlt : transitions
+					for (final LocationTransition wlt : transitions
 							.values()) {
 
 						if (!wlt.hasChanged()) {
@@ -130,7 +130,7 @@ public class BugFixChangesUpdater {
 	}
 
 	private void updateWarningLocations(
-			final Map<BugInstance, WarningLocationTransition2> transitions,
+			final Map<BugInstance, LocationTransition> transitions,
 			final int revision) {
 
 		try {
@@ -138,11 +138,11 @@ public class BugFixChangesUpdater {
 			final SVNDiffClient diffClient = SVNClientManager.newInstance()
 					.getDiffClient();
 
-			for (final Entry<BugInstance, WarningLocationTransition2> entry : transitions
+			for (final Entry<BugInstance, LocationTransition> entry : transitions
 					.entrySet()) {
 
 				final BugInstance warning = entry.getKey();
-				final WarningLocationTransition2 transition = entry.getValue();
+				final LocationTransition transition = entry.getValue();
 				if (null == transition || transition.hasChanged()) {
 					continue;
 				}

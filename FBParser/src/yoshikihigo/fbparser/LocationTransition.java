@@ -4,11 +4,11 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-public class WarningLocationTransition2 {
+public class LocationTransition {
 
 	final private SortedMap<Integer, Location> locations;
 
-	public WarningLocationTransition2() {
+	public LocationTransition() {
 		this.locations = new TreeMap<>();
 	}
 
@@ -60,7 +60,7 @@ public class WarningLocationTransition2 {
 		}
 	}
 
-	public Long[] getChangedRevisions() {
-		return this.locations.keySet().toArray(new Long[0]);
+	public Integer[] getChangedRevisions() {
+		return this.locations.keySet().toArray(new Integer[0]);
 	}
 }

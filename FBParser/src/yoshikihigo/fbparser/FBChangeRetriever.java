@@ -35,23 +35,29 @@ public class FBChangeRetriever {
 
 		final List<String> fbResults = FBParserConfig.getInstance()
 				.getFBRESULTS();
-		final String fbResult1 = fbResults.get(0);
-		final String fbResult2 = fbResults.get(1);
-		final long startrev = FBParserConfig.getInstance().getSTARTREV();
-		final long endrev = FBParserConfig.getInstance().getENDREV();
+		final String startrevFBResult = fbResults.get(0);
+		final String endrevFBResult = fbResults.get(1);
+		final int startrev = FBParserConfig.getInstance().getSTARTREV();
+		final int endrev = FBParserConfig.getInstance().getENDREV();
 		final String repository = FBParserConfig.getInstance().getREPOSITORY();
 
-		final FBParser parser1 = new FBParser(fbResult1);
-		parser1.perform();
-		final List<BugInstance> bugInstances1 = parser1.getBugInstances();
+		final FBParser startrevParser = new FBParser(startrevFBResult);
+		startrevParser.perform();
+		final List<BugInstance> startrevBugInstances = startrevParser
+				.getBugInstances();
 
-		final Map<BugInstance, WarningLocationTransition> transitions = new HashMap<>();
-		for (final BugInstance instance : bugInstances1) {
+		final Map<BugInstance, LocationTransition> transitions = new HashMap<>();
+		for (final BugInstance instance : startrevBugInstances) {
 			final SourceLine sourceline = instance.getSourceLines().get(0);
 			final String path = sourceline.sourcepath;
 			final int startLine = sourceline.start;
 			final int endLine = sourceline.end;
-			final WarningLocationTransition transition = new WarningLocationTransition();
+
+			assert null != path : "variable \"path\" must not be null.";
+			assert 0 < startLine : "variable \"startLine\" must no be 0.";
+			assert 0 < endLine : "variable \"endLine\" must no be 0.";
+
+			final LocationTransition transition = new LocationTransition();
 			transition.add(startrev, new Location(path, startLine, endLine));
 			transitions.put(instance, transition);
 		}
@@ -72,14 +78,14 @@ public class FBChangeRetriever {
 							for (final Object key : logEntry.getChangedPaths()
 									.keySet()) {
 								final String path = (String) key;
-								final long number = logEntry.getRevision();
+								final int number = (int) logEntry.getRevision();
 
-								for (final BugInstance instance : bugInstances1) {
+								for (final BugInstance instance : startrevBugInstances) {
 
-									final WarningLocationTransition transition = transitions
+									final LocationTransition transition = transitions
 											.get(instance);
-									if (null == transition
-											|| transition.hasDisappeared()) {
+									if ((null == transition)
+											|| transition.hasChanged()) {
 										continue;
 									}
 
@@ -106,13 +112,14 @@ public class FBChangeRetriever {
 													}
 												});
 
-										final List<ChangedLocation> ranges = getChangedRanges(
+										final List<ChangedLocation> locations = getChangedLocations(
 												sourceline.sourcepath,
 												text.toString());
-										final Location newRange = moveBuggedArea(
-												transition.getLastRange(),
-												ranges);
-										transition.add(number, newRange);
+										final Location changedWarningLocation = moveWarningLocation(
+												transition.getLatestLocation(),
+												locations);
+										transition.add(number,
+												changedWarningLocation);
 									}
 								}
 
@@ -124,9 +131,10 @@ public class FBChangeRetriever {
 			e.printStackTrace();
 		}
 
-		final FBParser parser2 = new FBParser(fbResult2);
-		parser2.perform();
-		final List<BugInstance> bugInstances2 = parser2.getBugInstances();
+		final FBParser endrevParser = new FBParser(endrevFBResult);
+		endrevParser.perform();
+		final List<BugInstance> endrevBugInstances = endrevParser
+				.getBugInstances();
 
 		final String trFile = FBParserConfig.getInstance()
 				.getTRANSITIONRESULT();
@@ -145,12 +153,13 @@ public class FBChangeRetriever {
 			writer.print("END-POSITION");
 			writer.println();
 
-			for (final Entry<BugInstance, WarningLocationTransition> entry : transitions
+			for (final Entry<BugInstance, LocationTransition> entry : transitions
 					.entrySet()) {
 				final BugInstance instance = entry.getKey();
-				final WarningLocationTransition transition = entry.getValue();
-				final Location firstRange = transition.getFirstRange();
-				final Location lastRange = transition.getLastRange();
+				final LocationTransition transition = entry.getValue();
+				final Location initialLocation = transition
+						.getInitialLocation();
+				final Location latestLocation = transition.getLatestLocation();
 
 				writer.print(instance.hash);
 				writer.print(",");
@@ -162,8 +171,8 @@ public class FBChangeRetriever {
 				writer.print(",");
 
 				boolean surviving = false;
-				for (final BugInstance instance2 : bugInstances2) {
-					if (instance.hash.equals(instance2.hash)) {
+				for (final BugInstance endrevBugInstance : endrevBugInstances) {
+					if (instance.hash.equals(endrevBugInstance.hash)) {
 						writer.write("surviving(hash), ");
 						surviving = true;
 						break;
@@ -171,15 +180,15 @@ public class FBChangeRetriever {
 				}
 
 				if (!surviving) {
-					if (!lastRange.hasLineInformaltion()) {
+					if (!latestLocation.hasLineInformaltion()) {
 						writer.print("removed(unknown), ");
-					} else if (lastRange instanceof Location_ADDITION) {
+					} else if (latestLocation instanceof Location_ADDITION) {
 						writer.print("removed(addition), ");
-					} else if (lastRange instanceof Location_DELETION) {
+					} else if (latestLocation instanceof Location_DELETION) {
 						writer.print("removed(deletion), ");
-					} else if (lastRange instanceof Location_REPLACEMENT) {
+					} else if (latestLocation instanceof Location_REPLACEMENT) {
 						writer.print("removed(replacement), ");
-					} else if (lastRange instanceof Location_UNKNOWN) {
+					} else if (latestLocation instanceof Location_UNKNOWN) {
 						writer.print("removed(unknown), ");
 					} else {
 						writer.print("surviving(tracking), ");
@@ -187,13 +196,13 @@ public class FBChangeRetriever {
 					}
 				}
 
-				Long[] changedRevisions = transition.getChangedRevisions();
-				writer.print(Long.toString(startrev));
+				Integer[] changedRevisions = transition.getChangedRevisions();
+				writer.print(Integer.toString(startrev));
 				writer.print(", ");
 				if (surviving) {
-					writer.print(Long.toString(endrev));
+					writer.print(Integer.toString(endrev));
 				} else {
-					writer.print(Long
+					writer.print(Integer
 							.toString(changedRevisions[changedRevisions.length - 1] - 1));
 				}
 				writer.print(", ");
@@ -201,16 +210,15 @@ public class FBChangeRetriever {
 				writer.print(instance.getSourceLines().get(0).sourcepath);
 				writer.print(", ");
 
-				writer.print(firstRange.getLineRangeText());
+				writer.print(initialLocation.getLineRangeText());
 				writer.print(", ");
 
 				if (surviving) {
-					writer.print(lastRange.getLineRangeText());
+					writer.print(latestLocation.getLineRangeText());
 				} else {
-					final Long revision = changedRevisions[changedRevisions.length - 1];// -
-																						// 1;
-					final Location range = transition.getRange(revision);
-					writer.print(range.getLineRangeText());
+					final Integer revision = changedRevisions[changedRevisions.length - 1] - 1;
+					final Location location = transition.getLocation(revision);
+					writer.print(location.getLineRangeText());
 				}
 				writer.println();
 			}
@@ -219,10 +227,10 @@ public class FBChangeRetriever {
 		}
 	}
 
-	static private List<ChangedLocation> getChangedRanges(final String path,
+	static private List<ChangedLocation> getChangedLocations(final String path,
 			final String text) {
 
-		final List<ChangedLocation> ranges = new ArrayList<>();
+		final List<ChangedLocation> changedLocations = new ArrayList<>();
 
 		try (final BufferedReader reader = new BufferedReader(new StringReader(
 				text))) {
@@ -237,26 +245,33 @@ public class FBChangeRetriever {
 				else if (line.startsWith("@@") && line.endsWith("@@")) {
 					final StringTokenizer tokenizer = new StringTokenizer(line);
 					final String prefix = tokenizer.nextToken();
-					final String preRange = tokenizer.nextToken();
-					final String postRange = tokenizer.nextToken();
+					final String beforeLocationText = tokenizer.nextToken();
+					final String afterLocationText = tokenizer.nextToken();
 					final String suffix = tokenizer.nextToken();
 
-					final int preStart = Integer.parseInt(preRange.substring(1,
-							preRange.indexOf(','))) + 3;
-					final int preEnd = preStart
-							+ Integer.parseInt(preRange.substring(preRange
-									.indexOf(',') + 1)) - 3;
-					final int postStart = Integer.parseInt(postRange.substring(
-							1, postRange.indexOf(','))) + 3;
-					final int postEnd = postStart
-							+ Integer.parseInt(postRange.substring(postRange
-									.indexOf(',') + 1)) - 3;
-					final Location before = new Location(path, preStart, preEnd);
-					final Location after = new Location(path, postStart,
-							postEnd);
-					final ChangedLocation change = new ChangedLocation(before,
-							after);
-					ranges.add(change);
+					final int beforeStartLine = Integer
+							.parseInt(beforeLocationText.substring(1,
+									beforeLocationText.indexOf(','))) + 3;
+					final int beforeEndLine = beforeStartLine
+							+ Integer
+									.parseInt(beforeLocationText
+											.substring(beforeLocationText
+													.indexOf(',') + 1)) - 3;
+					final int afterStartLine = Integer
+							.parseInt(afterLocationText.substring(1,
+									afterLocationText.indexOf(','))) + 3;
+					final int afterEndLine = afterStartLine
+							+ Integer
+									.parseInt(afterLocationText
+											.substring(afterLocationText
+													.indexOf(',') + 1)) - 3;
+					final Location beforeLocation = new Location(path,
+							beforeStartLine, beforeEndLine);
+					final Location afterLocation = new Location(path,
+							afterStartLine, afterEndLine);
+					final ChangedLocation changedLocation = new ChangedLocation(
+							beforeLocation, afterLocation);
+					changedLocations.add(changedLocation);
 				}
 			}
 		}
@@ -265,52 +280,53 @@ public class FBChangeRetriever {
 			e.printStackTrace();
 		}
 
-		return ranges;
+		return changedLocations;
 	}
 
-	static private Location moveBuggedArea(final Location buggedArea,
-			final List<ChangedLocation> changedRanges) {
+	static private Location moveWarningLocation(final Location warningLocation,
+			final List<ChangedLocation> changedLocations) {
 
-		int moved = 0;
-		for (final ChangedLocation changedRange : changedRanges) {
+		int movedLOC = 0;
+		for (final ChangedLocation changedLocation : changedLocations) {
 
-			if (changedRange.before.endLine < buggedArea.startLine) {
-				moved += (changedRange.after.endLine - changedRange.after.startLine)
-						- (changedRange.before.endLine - changedRange.before.startLine);
+			if (changedLocation.before.endLine < warningLocation.startLine) {
+				movedLOC += (changedLocation.after.endLine - changedLocation.after.startLine)
+						- (changedLocation.before.endLine - changedLocation.before.startLine);
 			}
 
-			else if (buggedArea.endLine < changedRange.before.startLine) {
+			else if (warningLocation.endLine < changedLocation.before.startLine) {
 				// do nothing
 			}
 
 			else {
-				final String newPath = buggedArea.path;
-				final int newStartLine = buggedArea.startLine + moved;
-				final int newEndLine = buggedArea.endLine + moved;
+				final String path = warningLocation.path;
+				final int movedStartLine = warningLocation.startLine + movedLOC;
+				final int movedEndLine = warningLocation.endLine + movedLOC;
 
-				final int changedBeforeLength = changedRange.before.endLine
-						- changedRange.before.startLine;
-				final int changedAfterLength = changedRange.after.endLine
-						- changedRange.after.startLine;
-				if (0 < changedBeforeLength && 0 < changedAfterLength) {
-					return new Location_REPLACEMENT(newPath, newStartLine,
-							newEndLine);
+				final int changedBeforeLength = changedLocation.before.endLine
+						- changedLocation.before.startLine;
+				final int changedAfterLength = changedLocation.after.endLine
+						- changedLocation.after.startLine;
+				if ((0 < changedBeforeLength) && (0 < changedAfterLength)) {
+					return new Location_REPLACEMENT(path, movedStartLine,
+							movedEndLine);
 				} else if (0 < changedBeforeLength) {
-					return new Location_DELETION(newPath, newStartLine,
-							newEndLine);
+					return new Location_DELETION(path, movedStartLine,
+							movedEndLine);
 				} else if (0 < changedAfterLength) {
-					return new Location_ADDITION(newPath, newStartLine,
-							newEndLine);
+					return new Location_ADDITION(path, movedStartLine,
+							movedEndLine);
 				} else {
-					return new Location_UNKNOWN(newPath, newStartLine,
-							newEndLine);
+					return new Location_UNKNOWN(path, movedStartLine,
+							movedEndLine);
 				}
 			}
 		}
 
-		final Location newBuggedRange = new Location(buggedArea.path,
-				buggedArea.startLine + moved, buggedArea.endLine + moved);
+		final Location changedWarningLocation = new Location(
+				warningLocation.path, warningLocation.startLine + movedLOC,
+				warningLocation.endLine + movedLOC);
 
-		return newBuggedRange;
+		return changedWarningLocation;
 	}
 }

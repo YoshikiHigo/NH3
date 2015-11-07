@@ -121,7 +121,9 @@ public class FBParser {
 							if (cn2.getNodeName().equals("SourceLine")) {
 								final SourceLine sourceline = getSourceLine(
 										cn2, null);
-								if (null != sourceline.sourcepath) {
+								if ((null != sourceline.sourcepath)
+										&& (0 < sourceline.start)
+										&& (0 < sourceline.end)) {
 									instance.addSourceLine(sourceline);
 								}
 							}
