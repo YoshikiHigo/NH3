@@ -207,7 +207,8 @@ public class FBChangeRetriever {
 				if (surviving) {
 					writer.print(lastRange.getLineRangeText());
 				} else {
-					final Long revision = changedRevisions[changedRevisions.length - 1] - 1;
+					final Long revision = changedRevisions[changedRevisions.length - 1];// -
+																						// 1;
 					final Location range = transition.getRange(revision);
 					writer.print(range.getLineRangeText());
 				}
