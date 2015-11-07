@@ -155,6 +155,7 @@ public class FBChangePatternFinder {
 			titleRow.createCell(22).setCellValue("FILE-LIST");
 
 			firstCell = titleRow.getCell(0);
+			lastCell = titleRow.getCell(22);
 
 			setCellComment(
 					titleRow.getCell(2),
@@ -250,7 +251,7 @@ public class FBChangePatternFinder {
 				dataRow.createCell(5).setCellValue(getFiles(cp, true).size());
 				final int support = getChanges(cp).size();
 				final int bugfixSupport = getChanges(cp, true).size();
-				final int beforeTextSupport = countTextAppearances(cp);
+				final int beforeTextSupport = 1;//countTextAppearances(cp);
 				dataRow.createCell(6).setCellValue(support);
 				dataRow.createCell(7).setCellValue(bugfixSupport);
 				dataRow.createCell(8).setCellValue(beforeTextSupport);
