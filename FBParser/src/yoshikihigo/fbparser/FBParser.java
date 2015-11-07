@@ -1,7 +1,9 @@
 package yoshikihigo.fbparser;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -9,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.zip.GZIPInputStream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -118,11 +121,15 @@ public class FBParser {
 							if (cn2.getNodeName().equals("SourceLine")) {
 								final SourceLine sourceline = getSourceLine(
 										cn2, null);
-								instance.addSourceLine(sourceline);
+								if (null != sourceline.sourcepath) {
+									instance.addSourceLine(sourceline);
+								}
 							}
 						}
 
-						this.buginstances.add(instance);
+						if (!instance.getSourceLines().isEmpty()) {
+							this.buginstances.add(instance);
+						}
 					}
 
 					else if (cn1.getNodeName().equals("FindBugsSummary")) {
@@ -163,7 +170,17 @@ public class FBParser {
 
 		Document document = null;
 		try {
-			document = documentBuilder.parse(file);
+			if (file.getName().endsWith(".xml")) {
+				document = documentBuilder.parse(new BufferedInputStream(
+						new FileInputStream(file)));
+			} else if (file.getName().endsWith(".gz")) {
+				document = documentBuilder.parse(new GZIPInputStream(
+						new BufferedInputStream(new FileInputStream(file))));
+			} else {
+				System.err
+						.println("option \"fbresults\" must be .xml or .gz file.");
+				System.exit(0);
+			}
 		} catch (final SAXException | IOException e) {
 			e.printStackTrace();
 			System.exit(0);
