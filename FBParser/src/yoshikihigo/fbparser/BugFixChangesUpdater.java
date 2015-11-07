@@ -22,7 +22,9 @@ import java.util.TreeSet;
 
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
+import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.SVNURL;
+import org.tmatesoft.svn.core.io.SVNRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNDiffClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
@@ -151,6 +153,13 @@ public class BugFixChangesUpdater {
 				final StringBuilder text = new StringBuilder();
 				final SVNURL fileURL = SVNURL.fromFile(new File(repository
 						+ File.separator + sourceline.sourcepath));
+
+				SVNNodeKind node = SVNRepositoryFactory.create(fileURL)
+						.checkPath("", revision - 1);
+				if (SVNNodeKind.NONE == node) {
+					continue;
+				}
+
 				diffClient.doDiff(fileURL, SVNRevision.create(revision - 1),
 						fileURL, SVNRevision.create(revision), SVNDepth.FILES,
 						true, new OutputStream() {
