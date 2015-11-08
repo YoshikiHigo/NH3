@@ -93,8 +93,7 @@ public class BugFixChangesUpdater {
 					final int startline = results2.getInt(3);
 					final int endline = results2.getInt(4);
 
-					for (final LocationTransition wlt : transitions
-							.values()) {
+					for (final LocationTransition wlt : transitions.values()) {
 
 						if (!wlt.hasChanged()) {
 
@@ -114,10 +113,12 @@ public class BugFixChangesUpdater {
 
 							statement3.setInt(1, 1);
 							statement3.setInt(2, id);
-							statement3.executeUpdate();
+							statement3.addBatch();
 						}
 					}
 				}
+
+				statement3.executeBatch();
 
 				this.updateWarningLocations(transitions, revision);
 			}
@@ -135,8 +136,11 @@ public class BugFixChangesUpdater {
 
 		try {
 
+			final String repository = FBParserConfig.getInstance()
+					.getREPOSITORY();
 			final SVNDiffClient diffClient = SVNClientManager.newInstance()
 					.getDiffClient();
+			final Map<String, String> diffCache = new HashMap<>();
 
 			for (final Entry<BugInstance, LocationTransition> entry : transitions
 					.entrySet()) {
@@ -147,31 +151,34 @@ public class BugFixChangesUpdater {
 					continue;
 				}
 
-				final SourceLine sourceline = warning.getSourceLines().get(0);
-				final String repository = FBParserConfig.getInstance()
-						.getREPOSITORY();
-				final StringBuilder text = new StringBuilder();
-				final SVNURL fileURL = SVNURL.fromFile(new File(repository
-						+ File.separator + sourceline.sourcepath));
+				final String path = warning.getSourceLines().get(0).sourcepath;
+				String diffText = diffCache.get(path);
+				if (null == diffText) {
+					final SVNURL fileURL = SVNURL.fromFile(new File(repository
+							+ File.separator + path));
+					final SVNNodeKind node = SVNRepositoryFactory.create(
+							fileURL).checkPath("", revision - 1);
+					if (SVNNodeKind.NONE == node) {
+						continue;
+					}
+					
+					final StringBuilder text = new StringBuilder();
+					diffClient.doDiff(fileURL,
+							SVNRevision.create(revision - 1), fileURL,
+							SVNRevision.create(revision), SVNDepth.FILES, true,
+							new OutputStream() {
 
-				SVNNodeKind node = SVNRepositoryFactory.create(fileURL)
-						.checkPath("", revision - 1);
-				if (SVNNodeKind.NONE == node) {
-					continue;
+								@Override
+								public void write(int b) throws IOException {
+									text.append((char) b);
+								}
+							});
+					diffText = text.toString();
+					diffCache.put(path, diffText);
 				}
 
-				diffClient.doDiff(fileURL, SVNRevision.create(revision - 1),
-						fileURL, SVNRevision.create(revision), SVNDepth.FILES,
-						true, new OutputStream() {
-
-							@Override
-							public void write(int b) throws IOException {
-								text.append((char) b);
-							}
-						});
-
 				final List<ChangedLocation> changedLocations = getChangedLocations(
-						sourceline.sourcepath, text.toString());
+						path, diffText);
 				final Location latestWarningLocation = transition
 						.getLatestLocation();
 				final Location movedWarningLocation = moveWarningLocation(
