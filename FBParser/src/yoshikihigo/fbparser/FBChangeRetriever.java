@@ -20,6 +20,7 @@ import org.tmatesoft.svn.core.ISVNLogEntryHandler;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNLogEntry;
+import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
 import org.tmatesoft.svn.core.io.SVNRepository;
@@ -75,10 +76,11 @@ public class FBChangeRetriever {
 						@Override
 						public void handleLogEntry(final SVNLogEntry logEntry)
 								throws SVNException {
+
+							final int number = (int) logEntry.getRevision();
 							for (final Object key : logEntry.getChangedPaths()
 									.keySet()) {
 								final String path = (String) key;
-								final int number = (int) logEntry.getRevision();
 
 								for (final BugInstance instance : startrevBugInstances) {
 
@@ -98,31 +100,52 @@ public class FBChangeRetriever {
 												.fromFile(new File(repository
 														+ File.separator
 														+ sourceline.sourcepath));
-										diffClient.doDiff(fileURL,
-												SVNRevision.create(number - 1),
-												fileURL,
-												SVNRevision.create(number),
-												SVNDepth.INFINITY, true,
-												new OutputStream() {
 
-													@Override
-													public void write(int b)
-															throws IOException {
-														text.append((char) b);
-													}
-												});
+										final SVNRepository repo = FSRepositoryFactory
+												.create(fileURL);
+										final SVNNodeKind node1 = repo
+												.checkPath("", number - 1);
+										final SVNNodeKind node2 = repo
+												.checkPath("", number);
+										if (SVNNodeKind.NONE == node1
+												|| SVNNodeKind.NONE == node2) {
+											continue;
+										}
 
-										final List<ChangedLocation> locations = getChangedLocations(
-												sourceline.sourcepath,
-												text.toString());
-										final Location changedWarningLocation = moveWarningLocation(
-												transition.getLatestLocation(),
-												locations);
-										transition.add(number,
-												changedWarningLocation);
+										try {
+											diffClient
+													.doDiff(fileURL,
+															SVNRevision
+																	.create(number - 1),
+															fileURL,
+															SVNRevision
+																	.create(number),
+															SVNDepth.INFINITY,
+															true,
+															new OutputStream() {
+
+																@Override
+																public void write(
+																		int b)
+																		throws IOException {
+																	text.append((char) b);
+																}
+															});
+
+											final List<ChangedLocation> locations = getChangedLocations(
+													sourceline.sourcepath,
+													text.toString());
+											final Location changedWarningLocation = moveWarningLocation(
+													transition
+															.getLatestLocation(),
+													locations);
+											transition.add(number,
+													changedWarningLocation);
+										} catch (final SVNException e) {
+											e.printStackTrace();
+										}
 									}
 								}
-
 							}
 						}
 					});
