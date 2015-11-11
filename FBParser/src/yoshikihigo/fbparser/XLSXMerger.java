@@ -255,9 +255,10 @@ public class XLSXMerger {
 				dataRow.createCell(0).setCellValue(cp.getIDsText());
 				dataRow.createCell(1).setCellValue(cp.getFoundByFindBugs());
 				dataRow.createCell(2).setCellValue(cp.getAuthors().size());
-				dataRow.createCell(3).setCellValue(cp.getAuthors().size());
+				dataRow.createCell(3)
+						.setCellValue(cp.getBugfixAuthors().size());
 				dataRow.createCell(4).setCellValue(cp.getFiles().size());
-				dataRow.createCell(5).setCellValue(cp.getFiles().size());
+				dataRow.createCell(5).setCellValue(cp.getBugfixFiles().size());
 				dataRow.createCell(6).setCellValue(cp.support);
 				dataRow.createCell(7).setCellValue(cp.bugfixSupport);
 				dataRow.createCell(8).setCellValue(cp.beforeTextSupport);
