@@ -11,6 +11,15 @@ public class StringUtility {
 		final int index = path.lastIndexOf(File.separatorChar);
 		return (0 < index) ? path.substring(index + 1) : path;
 	}
+	
+	static public String removeExtension(final String name){
+		final int dotIndex = name.lastIndexOf('.');
+		if(0 < dotIndex){
+			return name.substring(0, dotIndex);
+		}else{
+			return name;
+		}
+	}
 
 	static public String concatinate(final Collection<String> names) {
 		final StringBuilder text = new StringBuilder();

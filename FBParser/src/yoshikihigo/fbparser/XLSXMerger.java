@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -52,6 +53,10 @@ public class XLSXMerger {
 	private static void readXLSX(final Map<SIMPLE_PATTERN, PATTERN> patterns,
 			final String xlsxPath) {
 
+		final String period = yoshikihigo.fbparser.StringUtility
+				.removeExtension(yoshikihigo.fbparser.StringUtility
+						.getName(xlsxPath));
+
 		try (final Workbook book = new XSSFWorkbook(new FileInputStream(
 				xlsxPath))) {
 			final Sheet sheet = book.getSheetAt(0);
@@ -67,6 +72,12 @@ public class XLSXMerger {
 					pattern = new PATTERN(beforeText, afterText);
 					patterns.put(p, pattern);
 				}
+
+				final String id = period
+						+ ": "
+						+ Integer.toString((int) row.getCell(0)
+								.getNumericCellValue());
+				pattern.addID(id);
 
 				final String found = row.getCell(1).getStringCellValue();
 				pattern.addFoundByFindbugs(found);
@@ -243,7 +254,7 @@ public class XLSXMerger {
 				}
 
 				final Row dataRow = sheet.createRow(currentRow++);
-				dataRow.createCell(0).setCellValue(" --- ");
+				dataRow.createCell(0).setCellValue(cp.getIDsText());
 				dataRow.createCell(1).setCellValue(cp.getFoundByFindBugs());
 				dataRow.createCell(2).setCellValue(cp.getAuthors().size());
 				dataRow.createCell(3).setCellValue(cp.getAuthors().size());
@@ -310,15 +321,19 @@ public class XLSXMerger {
 				dataRow.getCell(21).setCellStyle(style);
 				dataRow.getCell(22).setCellStyle(style);
 
-				int loc = Math
-						.max(yoshikihigo.fbparser.StringUtility
+				final int[] locs = new int[] {
+						cp.getIDs().size(),
+						cp.getAuthors().size(),
+						cp.getFiles().size(),
+						yoshikihigo.fbparser.StringUtility
 								.getLOC(cp.beforeText),
-								yoshikihigo.fbparser.StringUtility
-										.getLOC(cp.afterText));
-				dataRow.setHeight((short) (loc * dataRow.getHeight()));
+						yoshikihigo.fbparser.StringUtility.getLOC(cp.afterText) };
+				Arrays.sort(locs);
+				dataRow.setHeight((short) (locs[locs.length - 1] * dataRow
+						.getHeight()));
 			}
 
-			sheet.autoSizeColumn(0, true);
+			sheet.setColumnWidth(0, 5120);
 			sheet.autoSizeColumn(1, true);
 			sheet.autoSizeColumn(2, true);
 			sheet.autoSizeColumn(3, true);
@@ -422,11 +437,11 @@ public class XLSXMerger {
 		@Override
 		final public boolean equals(final Object o) {
 
-			if (!(o instanceof PATTERN)) {
+			if (!(o instanceof SIMPLE_PATTERN)) {
 				return false;
 			}
 
-			final PATTERN target = (PATTERN) o;
+			final SIMPLE_PATTERN target = (SIMPLE_PATTERN) o;
 			return this.beforeText.equals(target.beforeText)
 					&& this.afterText.equals(target.afterText);
 		}
@@ -439,6 +454,7 @@ public class XLSXMerger {
 
 	static class PATTERN extends SIMPLE_PATTERN {
 
+		final List<String> ids;
 		int[] foundByFindbugs;
 		int support;
 		int bugfixSupport;
@@ -454,6 +470,7 @@ public class XLSXMerger {
 
 		PATTERN(final String beforeText, final String afterText) {
 			super(beforeText, afterText);
+			this.ids = new ArrayList<>();
 			this.foundByFindbugs = new int[2];
 			this.foundByFindbugs[0] = 0;
 			this.foundByFindbugs[1] = 0;
@@ -468,6 +485,18 @@ public class XLSXMerger {
 			this.deltaTFIDFs = new ArrayList<>();
 			this.files = new TreeSet<>();
 			this.authors = new TreeSet<>();
+		}
+
+		public void addID(final String id) {
+			this.ids.add(id);
+		}
+
+		public String getIDsText() {
+			return yoshikihigo.fbparser.StringUtility.concatinate(this.ids);
+		}
+
+		public List<String> getIDs() {
+			return new ArrayList<String>(this.ids);
 		}
 
 		public void addFoundByFindbugs(final String found) {
