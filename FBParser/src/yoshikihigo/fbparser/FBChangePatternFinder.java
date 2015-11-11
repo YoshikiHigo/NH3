@@ -152,10 +152,12 @@ public class FBChangePatternFinder {
 			titleRow.createCell(19).setCellValue("TEXT-BEFORE-CHANGE");
 			titleRow.createCell(20).setCellValue("TEXT-AFTER-CHANGE");
 			titleRow.createCell(21).setCellValue("AUTHOR-LIST");
-			titleRow.createCell(22).setCellValue("FILE-LIST");
+			titleRow.createCell(22).setCellValue("BUG-FIX-AUTHOR-LIST");
+			titleRow.createCell(23).setCellValue("FILE-LIST");
+			titleRow.createCell(24).setCellValue("BUG-FIX-FILE-LIST");
 
 			firstCell = titleRow.getCell(0);
-			lastCell = titleRow.getCell(22);
+			lastCell = titleRow.getCell(24);
 
 			setCellComment(
 					titleRow.getCell(2),
@@ -251,7 +253,7 @@ public class FBChangePatternFinder {
 				dataRow.createCell(5).setCellValue(getFiles(cp, true).size());
 				final int support = getChanges(cp).size();
 				final int bugfixSupport = getChanges(cp, true).size();
-				final int beforeTextSupport = 1;//countTextAppearances(cp);
+				final int beforeTextSupport = countTextAppearances(cp);
 				dataRow.createCell(6).setCellValue(support);
 				dataRow.createCell(7).setCellValue(bugfixSupport);
 				dataRow.createCell(8).setCellValue(beforeTextSupport);
@@ -276,8 +278,14 @@ public class FBChangePatternFinder {
 								.concatinate(getAuthors(cp)));
 				dataRow.createCell(22).setCellValue(
 						yoshikihigo.fbparser.StringUtility
+								.concatinate(getAuthors(cp, true)));
+				dataRow.createCell(23).setCellValue(
+						yoshikihigo.fbparser.StringUtility
 								.concatinate(getFiles(cp)));
-				lastCell = dataRow.getCell(22);
+				dataRow.createCell(24).setCellValue(
+						yoshikihigo.fbparser.StringUtility
+								.concatinate(getFiles(cp, true)));
+				lastCell = dataRow.getCell(24);
 
 				final CellStyle style = book.createCellStyle();
 				style.setWrapText(true);
@@ -310,6 +318,8 @@ public class FBChangePatternFinder {
 				dataRow.getCell(20).setCellStyle(style);
 				dataRow.getCell(21).setCellStyle(style);
 				dataRow.getCell(22).setCellStyle(style);
+				dataRow.getCell(23).setCellStyle(style);
+				dataRow.getCell(24).setCellStyle(style);
 
 				int loc = Math.max(getLOC(cp.beforeText), getLOC(cp.afterText));
 				dataRow.setHeight((short) (loc * dataRow.getHeight()));
@@ -337,7 +347,9 @@ public class FBChangePatternFinder {
 			sheet.setColumnWidth(19, 20480);
 			sheet.setColumnWidth(20, 20480);
 			sheet.setColumnWidth(21, 5120);
-			sheet.setColumnWidth(22, 20480);
+			sheet.setColumnWidth(22, 5120);
+			sheet.setColumnWidth(23, 20480);
+			sheet.setColumnWidth(24, 20480);
 
 			sheet.setAutoFilter(new CellRangeAddress(firstCell.getRowIndex(),
 					lastCell.getRowIndex(), firstCell.getColumnIndex(),

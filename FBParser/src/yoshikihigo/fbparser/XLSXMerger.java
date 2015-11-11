@@ -1,11 +1,9 @@
 package yoshikihigo.fbparser;
 
-import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -98,20 +96,15 @@ public class XLSXMerger {
 
 				final String authorText = row.getCell(21).getStringCellValue();
 				pattern.addAuthors(authorText);
+				final String bugfixAuthorText = row.getCell(22)
+						.getStringCellValue();
+				pattern.addBugfixAuthors(bugfixAuthorText);
 
-				final String fileText = row.getCell(22).getStringCellValue();
+				final String fileText = row.getCell(23).getStringCellValue();
 				pattern.addFiles(fileText);
-
-				// System.out.print(support + ", ");
-				// System.out.print(bugfixSupport + ", ");
-				// System.out.print(beforeTextSupport + ", ");
-				// System.out.print(commits + ", ");
-				// System.out.print(bugfixCommits + ", ");
-				// System.out.print(firstDate + ", ");
-				// System.out.print(lastDate + ", ");
-				// System.out.print(occupancy + ", ");
-				// System.out.print(deltaTFIDF + ", ");
-				// System.out.println();
+				final String bugfixFileText = row.getCell(24)
+						.getStringCellValue();
+				pattern.addBugfixFiles(bugfixFileText);
 			}
 		}
 
@@ -155,11 +148,16 @@ public class XLSXMerger {
 			titleRow.createCell(19).setCellValue("TEXT-BEFORE-CHANGE");
 			titleRow.createCell(20).setCellValue("TEXT-AFTER-CHANGE");
 			titleRow.createCell(21).setCellValue("AUTHOR-LIST");
-			titleRow.createCell(22).setCellValue("FILE-LIST");
+			titleRow.createCell(22).setCellValue("BUG-FIX-AUTHOR-LIST");
+			titleRow.createCell(23).setCellValue("FILE-LIST");
+			titleRow.createCell(24).setCellValue("BUG-FIX-FILE-LIST");
 
 			firstCell = titleRow.getCell(0);
-			lastCell = titleRow.getCell(22);
+			lastCell = titleRow.getCell(24);
 
+			setCellComment(titleRow.getCell(1), "Higo",
+					"number of periods detected or not detected by FindBugs",
+					4, 1);
 			setCellComment(
 					titleRow.getCell(2),
 					"Higo",
@@ -275,8 +273,14 @@ public class XLSXMerger {
 								.getAuthors()));
 				dataRow.createCell(22).setCellValue(
 						yoshikihigo.fbparser.StringUtility.concatinate(cp
+								.getBugfixAuthors()));
+				dataRow.createCell(23).setCellValue(
+						yoshikihigo.fbparser.StringUtility.concatinate(cp
 								.getFiles()));
-				lastCell = dataRow.getCell(22);
+				dataRow.createCell(24).setCellValue(
+						yoshikihigo.fbparser.StringUtility.concatinate(cp
+								.getBugfixFiles()));
+				lastCell = dataRow.getCell(24);
 
 				final CellStyle style = book.createCellStyle();
 				style.setWrapText(true);
@@ -309,6 +313,8 @@ public class XLSXMerger {
 				dataRow.getCell(20).setCellStyle(style);
 				dataRow.getCell(21).setCellStyle(style);
 				dataRow.getCell(22).setCellStyle(style);
+				dataRow.getCell(23).setCellStyle(style);
+				dataRow.getCell(24).setCellStyle(style);
 
 				int loc = Math
 						.max(yoshikihigo.fbparser.StringUtility
@@ -340,7 +346,9 @@ public class XLSXMerger {
 			sheet.setColumnWidth(19, 20480);
 			sheet.setColumnWidth(20, 20480);
 			sheet.setColumnWidth(21, 5120);
-			sheet.setColumnWidth(22, 20480);
+			sheet.setColumnWidth(22, 5120);
+			sheet.setColumnWidth(23, 20480);
+			sheet.setColumnWidth(24, 20480);
 
 			sheet.setAutoFilter(new CellRangeAddress(firstCell.getRowIndex(),
 					lastCell.getRowIndex(), firstCell.getColumnIndex(),
@@ -450,7 +458,9 @@ public class XLSXMerger {
 		final List<Double> occupancies;
 		final List<Double> deltaTFIDFs;
 		final private SortedSet<String> files;
+		final private SortedSet<String> bugfixFiles;
 		final private SortedSet<String> authors;
+		final private SortedSet<String> bugfixAuthors;
 
 		PATTERN(final String beforeText, final String afterText) {
 			super(beforeText, afterText);
@@ -467,7 +477,9 @@ public class XLSXMerger {
 			this.occupancies = new ArrayList<>();
 			this.deltaTFIDFs = new ArrayList<>();
 			this.files = new TreeSet<>();
+			this.bugfixFiles = new TreeSet<>();
 			this.authors = new TreeSet<>();
+			this.bugfixAuthors = new TreeSet<>();
 		}
 
 		public void addFoundByFindbugs(final String found) {
@@ -497,41 +509,39 @@ public class XLSXMerger {
 		}
 
 		public void addFiles(final String fileText) {
-			try (final BufferedReader reader = new BufferedReader(
-					new StringReader(fileText))) {
-				while (true) {
-					final String line = reader.readLine();
-					if (null == line) {
-						break;
-					}
-					this.files.add(line);
-				}
-			} catch (final IOException e) {
-				e.printStackTrace();
-			}
+			this.files.addAll(yoshikihigo.fbparser.StringUtility
+					.split(fileText));
 		}
 
 		public SortedSet<String> getFiles() {
 			return new TreeSet<String>(this.files);
 		}
 
+		public void addBugfixFiles(final String fileText) {
+			this.bugfixFiles.addAll(yoshikihigo.fbparser.StringUtility
+					.split(fileText));
+		}
+
+		public SortedSet<String> getBugfixFiles() {
+			return new TreeSet<String>(this.bugfixFiles);
+		}
+
 		public void addAuthors(final String authorText) {
-			try (final BufferedReader reader = new BufferedReader(
-					new StringReader(authorText))) {
-				while (true) {
-					final String line = reader.readLine();
-					if (null == line) {
-						break;
-					}
-					this.authors.add(line);
-				}
-			} catch (final IOException e) {
-				e.printStackTrace();
-			}
+			this.authors.addAll(yoshikihigo.fbparser.StringUtility
+					.split(authorText));
 		}
 
 		public SortedSet<String> getAuthors() {
 			return new TreeSet<String>(this.authors);
+		}
+
+		public void addBugfixAuthors(final String authorText) {
+			this.bugfixAuthors.addAll(yoshikihigo.fbparser.StringUtility
+					.split(authorText));
+		}
+
+		public SortedSet<String> getBugfixAuthors() {
+			return new TreeSet<String>(this.bugfixAuthors);
 		}
 
 		public void addDate(final String date) {
