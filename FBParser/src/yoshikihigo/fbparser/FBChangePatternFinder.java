@@ -298,31 +298,10 @@ public class FBChangePatternFinder {
 				style.setBorderLeft(XSSFCellStyle.BORDER_THIN);
 				style.setBorderRight(XSSFCellStyle.BORDER_THIN);
 				style.setBorderTop(XSSFCellStyle.BORDER_THIN);
-				dataRow.getCell(0).setCellStyle(style);
-				dataRow.getCell(1).setCellStyle(style);
-				dataRow.getCell(2).setCellStyle(style);
-				dataRow.getCell(3).setCellStyle(style);
-				dataRow.getCell(4).setCellStyle(style);
-				dataRow.getCell(5).setCellStyle(style);
-				dataRow.getCell(6).setCellStyle(style);
-				dataRow.getCell(7).setCellStyle(style);
-				dataRow.getCell(8).setCellStyle(style);
-				dataRow.getCell(9).setCellStyle(style);
-				dataRow.getCell(10).setCellStyle(style);
-				dataRow.getCell(11).setCellStyle(style);
-				dataRow.getCell(12).setCellStyle(style);
-				dataRow.getCell(13).setCellStyle(style);
-				dataRow.getCell(14).setCellStyle(style);
-				dataRow.getCell(15).setCellStyle(style);
-				dataRow.getCell(16).setCellStyle(style);
-				dataRow.getCell(17).setCellStyle(style);
-				dataRow.getCell(18).setCellStyle(style);
-				dataRow.getCell(19).setCellStyle(style);
-				dataRow.getCell(20).setCellStyle(style);
-				dataRow.getCell(21).setCellStyle(style);
-				dataRow.getCell(22).setCellStyle(style);
-				dataRow.getCell(23).setCellStyle(style);
-				dataRow.getCell(24).setCellStyle(style);
+				style.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+				for (int column = 0; column <= 24; column++) {
+					dataRow.getCell(column).setCellStyle(style);
+				}
 
 				int loc = Math.max(getLOC(cp.beforeText), getLOC(cp.afterText));
 				dataRow.setHeight((short) (loc * dataRow.getHeight()));
