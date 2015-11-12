@@ -80,8 +80,9 @@ public class XLSXMerger {
 								.getNumericCellValue());
 				pattern.addID(id);
 
-				final String found = row.getCell(1).getStringCellValue();
-				pattern.addFoundByFindbugs(found);
+				final int findbugsSupport = (int) row.getCell(1)
+						.getNumericCellValue();
+				pattern.findbugsSupport += findbugsSupport;
 
 				final int support = (int) row.getCell(6).getNumericCellValue();
 				pattern.support += support;
@@ -258,7 +259,7 @@ public class XLSXMerger {
 				final Row dataRow = sheet.createRow(currentRow++);
 				dataRow.createCell(0).setCellValue(dataRow.getRowNum());
 				dataRow.createCell(1).setCellValue(cp.getIDsText());
-				dataRow.createCell(2).setCellValue(cp.getFoundByFindBugs());
+				dataRow.createCell(2).setCellValue(cp.findbugsSupport);
 				dataRow.createCell(3).setCellValue(cp.getAuthors().size());
 				dataRow.createCell(4)
 						.setCellValue(cp.getBugfixAuthors().size());
@@ -456,7 +457,7 @@ public class XLSXMerger {
 
 		final List<String> periods;
 		final List<String> ids;
-		int[] foundByFindbugs;
+		int findbugsSupport;
 		int support;
 		int bugfixSupport;
 		private int beforeTextSupport;
@@ -476,9 +477,7 @@ public class XLSXMerger {
 			super(beforeText, afterText);
 			this.periods = new ArrayList<>();
 			this.ids = new ArrayList<>();
-			this.foundByFindbugs = new int[2];
-			this.foundByFindbugs[0] = 0;
-			this.foundByFindbugs[1] = 0;
+			this.findbugsSupport = 0;
 			this.support = 0;
 			this.bugfixSupport = 0;
 			this.beforeTextSupport = 0;
@@ -514,33 +513,7 @@ public class XLSXMerger {
 		public List<String> getIDs() {
 			return new ArrayList<String>(this.ids);
 		}
-
-		public void addFoundByFindbugs(final String found) {
-			if (found.equalsIgnoreCase("YES")) {
-				this.foundByFindbugs[0]++;
-			} else if (found.equalsIgnoreCase("NO")) {
-				this.foundByFindbugs[1]++;
-			} else {
-				assert false : "illegal parameter: " + found;
-			}
-		}
-
-		public String getFoundByFindBugs() {
-			final StringBuilder text = new StringBuilder();
-			if (0 < this.foundByFindbugs[0]) {
-				text.append("YES: ");
-				text.append(this.foundByFindbugs[0]);
-				if (0 < this.foundByFindbugs[1]) {
-					text.append(", ");
-				}
-			}
-			if (0 < this.foundByFindbugs[1]) {
-				text.append("NO: ");
-				text.append(this.foundByFindbugs[1]);
-			}
-			return text.toString();
-		}
-
+		
 		public void addFiles(final String fileText) {
 			this.files.addAll(yoshikihigo.fbparser.StringUtility
 					.split(fileText));
