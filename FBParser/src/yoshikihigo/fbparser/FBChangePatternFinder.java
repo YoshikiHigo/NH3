@@ -14,11 +14,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
@@ -71,7 +69,7 @@ public class FBChangePatternFinder {
 				.getFIXCHANGEPATTERN();
 		final DAO dao = DAO.getInstance();
 
-		final Set<Integer> foundPatternIDs = new HashSet<>();
+		final Map<Integer, AtomicInteger> foundPatternIDs = new HashMap<>();
 		try (final BufferedReader reader = new BufferedReader(
 				new InputStreamReader(new FileInputStream(trFile),
 						"JISAutoDetect"));
@@ -111,7 +109,12 @@ public class FBChangePatternFinder {
 							writer.print(cp.id);
 							writer.print(", ");
 							writer.println(getChanges(cp).size());
-							foundPatternIDs.add(cp.id);
+							AtomicInteger number = foundPatternIDs.get(cp.id);
+							if (null == number) {
+								number = new AtomicInteger(0);
+								foundPatternIDs.put(cp.id, number);
+							}
+							number.addAndGet(1);
 						}
 					}
 				}
@@ -131,7 +134,7 @@ public class FBChangePatternFinder {
 			book.setSheetName(0, "change patterns");
 			final Row titleRow = sheet.createRow(0);
 			titleRow.createCell(0).setCellValue("PATTERN-ID");
-			titleRow.createCell(1).setCellValue("FOUND-BY-FINDBUGS");
+			titleRow.createCell(1).setCellValue("FINDBUGS-SUPPORT");
 			titleRow.createCell(2).setCellValue("AUTHORS");
 			titleRow.createCell(3).setCellValue("BUG-FIX-AUTHORS");
 			titleRow.createCell(4).setCellValue("FILES");
@@ -163,54 +166,54 @@ public class FBChangePatternFinder {
 					titleRow.getCell(2),
 					"Higo",
 					"the number of authors that committed the change pattern in all commits",
-					5, 1);
+					5, 2);
 			setCellComment(
 					titleRow.getCell(3),
 					"Higo",
 					"the number of authors commited the change pattern in bug-fix commits",
-					5, 1);
+					5, 2);
 			setCellComment(
 					titleRow.getCell(4),
 					"Higo",
 					"the number of files where the change pattern appeared in all commits",
-					5, 1);
+					5, 2);
 			setCellComment(
 					titleRow.getCell(5),
 					"Higo",
 					"the number of files where the change pattern appeared in bug-fix commits",
-					5, 1);
+					5, 2);
 			setCellComment(titleRow.getCell(6), "Higo",
 					"the number of occurences of a given pattern", 4, 1);
 			setCellComment(
 					titleRow.getCell(7),
 					"Higo",
 					"the number of occurences of a given pattern in bug-fix commits",
-					4, 1);
+					4, 2);
 			setCellComment(
 					titleRow.getCell(8),
 					"Higo",
 					"the number of code fragments whose texts are "
 							+ "identical to before-text of a given pattern "
 							+ "in the commit where the pattern appears initially",
-					4, 2);
+					4, 3);
 			setCellComment(titleRow.getCell(9), "Higo",
-					"BUG-FIX-SUPPORT / SUPPORT", 4, 1);
+					"BUG-FIX-SUPPORT / SUPPORT", 4, 2);
 			setCellComment(titleRow.getCell(10), "Higo",
-					"SUPPORT / BEFORE-TEXT-SUPPORT", 4, 1);
+					"SUPPORT / BEFORE-TEXT-SUPPORT", 4, 2);
 			setCellComment(titleRow.getCell(11), "Higo",
-					"BUG-FIX-SUPPORT / BEFORE-TEXT-SUPPORT", 4, 1);
+					"BUG-FIX-SUPPORT / BEFORE-TEXT-SUPPORT", 4, 2);
 			setCellComment(titleRow.getCell(12), "Higo",
-					"the number of commits where the pattern appears", 4, 1);
+					"the number of commits where the pattern appears", 4, 2);
 			setCellComment(titleRow.getCell(13), "Higo",
 					"the number of bug-fix commits where the pattern appears",
-					4, 1);
+					4, 2);
 			setCellComment(
 					titleRow.getCell(17),
 					"Higo",
 					"average of (LOC of a given pattern changed in revision R) / "
 							+ "(total LOC changed in revision R) "
 							+ "for all the revisions where the pattern appears",
-					4, 2);
+					4, 3);
 			setCellComment(
 					titleRow.getCell(18),
 					"Higo",
@@ -229,7 +232,7 @@ public class FBChangePatternFinder {
 							+ "df2: the number of files changed in non-bug-fix commits for a given pattern"
 							+ System.lineSeparator() + "k1: 1.2 (parameter)"
 							+ System.lineSeparator() + "K: 1.2 (parameter)", 5,
-					4);
+					5);
 
 			int currentRow = 1;
 			final List<PATTERN_SQL> cps = dao.getFixChangePatterns();
@@ -241,12 +244,12 @@ public class FBChangePatternFinder {
 					continue;
 				}
 
-				final boolean foundByFindBugs = foundPatternIDs.contains(cp.id);
+				final int findBugsSupport = foundPatternIDs.containsKey(cp.id) ? foundPatternIDs
+						.get(cp.id).get() : 0;
 
 				final Row dataRow = sheet.createRow(currentRow++);
 				dataRow.createCell(0).setCellValue(cp.id);
-				dataRow.createCell(1).setCellValue(
-						foundByFindBugs ? "YES" : "NO");
+				dataRow.createCell(1).setCellValue(findBugsSupport);
 				dataRow.createCell(2).setCellValue(getAuthors(cp).size());
 				dataRow.createCell(3).setCellValue(getAuthors(cp, true).size());
 				dataRow.createCell(4).setCellValue(getFiles(cp).size());
