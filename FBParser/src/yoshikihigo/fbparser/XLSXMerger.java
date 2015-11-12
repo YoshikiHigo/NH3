@@ -143,7 +143,7 @@ public class XLSXMerger {
 			final Row titleRow = sheet.createRow(0);
 			titleRow.createCell(0).setCellValue("MERGED-PATTERN-ID");
 			titleRow.createCell(1).setCellValue("PATTERN-ID");
-			titleRow.createCell(2).setCellValue("FOUND-BY-FINDBUGS");
+			titleRow.createCell(2).setCellValue("FINDBUGS-SUPPORT");
 			titleRow.createCell(3).setCellValue("AUTHORS");
 			titleRow.createCell(4).setCellValue("BUG-FIX-AUTHORS");
 			titleRow.createCell(5).setCellValue("FILES");
