@@ -4,16 +4,16 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
-import java.util.StringTokenizer;
 import java.util.TreeSet;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -390,39 +390,20 @@ public class XLSXMerger {
 	private static int getDayDifference(final String firstdate,
 			final String lastdate) {
 
-		final Calendar calendar1 = Calendar.getInstance();
-		{
-			final StringTokenizer tokenizer1 = new StringTokenizer(firstdate,
-					" :/");
-			final String year = tokenizer1.nextToken();
-			final String month = tokenizer1.nextToken();
-			final String date = tokenizer1.nextToken();
-			final String hour = tokenizer1.nextToken();
-			final String minute = tokenizer1.nextToken();
-			final String second = tokenizer1.nextToken();
-			calendar1.set(Integer.parseInt(year), Integer.parseInt(month),
-					Integer.parseInt(date), Integer.parseInt(hour),
-					Integer.parseInt(minute), Integer.parseInt(second));
+		try {
+			final SimpleDateFormat dateFormat = new SimpleDateFormat(
+					"yyyy/MM/dd HH:mm:ss");
+			final Date date1 = dateFormat.parse(firstdate);
+			final Date date2 = dateFormat.parse(lastdate);
+			final long difference = date2.getTime() - date1.getTime();
+			return (int) (difference / 1000l / 60l / 60l / 24l);
 		}
 
-		final Calendar calendar2 = Calendar.getInstance();
-		{
-			final StringTokenizer tokenizer1 = new StringTokenizer(lastdate,
-					" :/");
-			final String year = tokenizer1.nextToken();
-			final String month = tokenizer1.nextToken();
-			final String date = tokenizer1.nextToken();
-			final String hour = tokenizer1.nextToken();
-			final String minute = tokenizer1.nextToken();
-			final String second = tokenizer1.nextToken();
-			calendar2.set(Integer.parseInt(year), Integer.parseInt(month),
-					Integer.parseInt(date), Integer.parseInt(hour),
-					Integer.parseInt(minute), Integer.parseInt(second));
+		catch (java.text.ParseException e) {
+			e.printStackTrace();
 		}
 
-		final long difference = calendar2.getTime().getTime()
-				- calendar1.getTime().getTime();
-		return (int) (difference / 1000l / 60l / 60l / 24l);
+		return 0;
 	}
 
 	static class SIMPLE_PATTERN {
@@ -513,7 +494,7 @@ public class XLSXMerger {
 		public List<String> getIDs() {
 			return new ArrayList<String>(this.ids);
 		}
-		
+
 		public void addFiles(final String fileText) {
 			this.files.addAll(yoshikihigo.fbparser.StringUtility
 					.split(fileText));
