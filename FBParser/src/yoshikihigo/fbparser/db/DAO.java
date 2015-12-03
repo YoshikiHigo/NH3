@@ -64,6 +64,31 @@ public class DAO {
 		}
 	}
 
+	public SortedSet<REVISION_SQL> getRevisions() {
+		final SortedSet<REVISION_SQL> revisions = new TreeSet<>();
+
+		try {
+
+			final Statement statement = this.connector.createStatement();
+			final ResultSet result = statement
+					.executeQuery("select distinct revision, bugfix from bugfixchanges");
+			while (result.next()) {
+				final int number = result.getInt(1);
+				final boolean bugfix = 0 < result.getInt(2);
+				final REVISION_SQL revision = new REVISION_SQL(number, bugfix);
+				revisions.add(revision);
+			}
+
+			statement.close();
+
+		} catch (final SQLException e) {
+			e.printStackTrace();
+		}
+
+		return revisions;
+
+	}
+
 	public SortedSet<REVISION_SQL> getRevisions(final byte[] beforeHash,
 			final byte[] afterHash) {
 

@@ -10,13 +10,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Map.Entry;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class BugFixRevisionsMaker {
 
@@ -33,7 +30,7 @@ public class BugFixRevisionsMaker {
 				+ "author string, " + "bugfix integer, " + "info string, "
 				+ "primary key(software, number)";
 		final String database = FBParserConfig.getInstance().getDATABASE();
-		final SortedMap<Integer, String> bugIDs = this.getBugIDs();
+		final SortedMap<String, String> bugIDs = this.getBugIDs();
 
 		try {
 			Class.forName("org.sqlite.JDBC");
@@ -65,17 +62,19 @@ public class BugFixRevisionsMaker {
 				final String date = results2.getString(3);
 				final String message = results2.getString(4);
 				final String author = results2.getString(5);
+
 				int bugfix = 0;
 				final StringBuilder urls = new StringBuilder();
-				final SortedSet<Integer> relatedIDs = this.extractIDs(message);
-				for (final Integer id : relatedIDs) {
-					if (bugIDs.containsKey(id)) {
+				for (final Entry<String, String> entry : bugIDs.entrySet()) {
+					final String id = entry.getKey();
+					if (message.contains(id)) {
 						bugfix++;
-						final String url = bugIDs.get(id);
+						final String url = entry.getValue();
 						urls.append(url);
 						urls.append(System.lineSeparator());
 					}
 				}
+
 				statement3.setString(1, software);
 				statement3.setInt(2, number);
 				statement3.setString(3, date);
@@ -93,9 +92,9 @@ public class BugFixRevisionsMaker {
 		}
 	}
 
-	private SortedMap<Integer, String> getBugIDs() {
+	private SortedMap<String, String> getBugIDs() {
 		final String bugFile = FBParserConfig.getInstance().getBUG();
-		final SortedMap<Integer, String> ids = new TreeMap<>();
+		final SortedMap<String, String> ids = new TreeMap<>();
 
 		try (final BufferedReader reader = new BufferedReader(
 				new InputStreamReader(new FileInputStream(bugFile),
@@ -109,28 +108,16 @@ public class BugFixRevisionsMaker {
 
 				final StringTokenizer tokenizer = new StringTokenizer(lineText,
 						" ,");
-				final Integer id = Integer.parseInt(tokenizer.nextToken());
+				final String id = tokenizer.nextToken();
 				final String url = tokenizer.nextToken();
 				ids.put(id, url);
 			}
+		}
 
-		} catch (final IOException e) {
+		catch (final IOException e) {
 			e.printStackTrace();
 		}
 
 		return ids;
-	}
-
-	private SortedSet<Integer> extractIDs(final String text) {
-		final SortedSet<Integer> numbers = new TreeSet<>();
-		final Matcher matcher = Pattern.compile("[0-9]{3,5}").matcher(text);
-		while (matcher.find()) {
-			final int startIndex = matcher.start();
-			final int endIndex = matcher.end();
-			final String numberText = text.substring(startIndex, endIndex);
-			final Integer number = Integer.parseInt(numberText);
-			numbers.add(number);
-		}
-		return numbers;
 	}
 }

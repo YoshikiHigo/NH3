@@ -21,7 +21,7 @@ public class BugFixChangesMaker {
 				+ "beforeHash blob, " + "afterID integer, "
 				+ "afterHash blob, " + "revision integer, " + "date string, "
 				+ "changetype integer, " + "difftype integer, "
-				+ "bugfix integer, " + "warningfix, "
+				+ "bugfix integer, " + "warningfix integer, "
 				+ "primary key(software, id)";
 		final String database = FBParserConfig.getInstance().getDATABASE();
 

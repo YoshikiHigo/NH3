@@ -1,22 +1,24 @@
 package yoshikihigo.fbparser;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
@@ -37,7 +39,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.tmatesoft.svn.core.ISVNDirEntryHandler;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
@@ -52,6 +53,7 @@ import org.tmatesoft.svn.core.wc.SVNWCClient;
 import yoshikihigo.cpanalyzer.CPAConfig;
 import yoshikihigo.cpanalyzer.LANGUAGE;
 import yoshikihigo.cpanalyzer.StringUtility;
+import yoshikihigo.cpanalyzer.data.Statement;
 import yoshikihigo.fbparser.db.DAO;
 import yoshikihigo.fbparser.db.DAO.CHANGE_SQL;
 import yoshikihigo.fbparser.db.DAO.PATTERN_SQL;
@@ -70,55 +72,58 @@ public class FBChangePatternFinder {
 		final DAO dao = DAO.getInstance();
 
 		final Map<Integer, AtomicInteger> foundPatternIDs = new HashMap<>();
-		try (final BufferedReader reader = new BufferedReader(
-				new InputStreamReader(new FileInputStream(trFile),
-						"JISAutoDetect"));
-				final PrintWriter writer = new PrintWriter(new BufferedWriter(
-						new OutputStreamWriter(new FileOutputStream(cpFile),
-								"UTF-8")))) {
+		try (final PrintWriter writer = new PrintWriter(new BufferedWriter(
+				new OutputStreamWriter(new FileOutputStream(cpFile), "UTF-8")))) {
 
-			final String trTitle = reader.readLine();
+			final List<String> lines = Files.readAllLines(Paths.get(trFile),
+					Charset.forName("UTF-8"));
+			final String trTitle = lines.get(0);
 			writer.print(trTitle);
 			writer.println(", CHANGEPATTERN-ID, CHANGEPATTERN-SUPPORT");
 
-			while (true) {
-				final String lineText = reader.readLine();
-				if (null == lineText) {
-					break;
-				}
-				final Line line = new Line(lineText);
-				if (line.status.startsWith("removed")
-						&& (0 < line.startstartline) && (0 < line.startendline)) {
-					final List<CHANGE_SQL> changes = dao.getChanges(
-							line.endrev + 1, line.path);
-					for (final CHANGE_SQL change : changes) {
-
-						if (change.endline < line.startstartline) {
-							continue;
+			lines.remove(0);
+			lines.stream().forEach(
+					line -> {
+						final Line l = new Line(line);
+						if (!l.status.startsWith("removed")) {
+							return;
+						}
+						if ((l.startstartline <= 0) || (l.startendline <= 0)) {
+							return;
 						}
 
-						if (line.startendline < change.startline) {
-							continue;
-						}
+						final List<CHANGE_SQL> changes = dao.getChanges(
+								l.endrev + 1, l.path);
+						for (final CHANGE_SQL change : changes) {
 
-						final List<PATTERN_SQL> cps = dao.getChangePatterns(
-								change.beforeHash, change.afterHash);
-						for (final PATTERN_SQL cp : cps) {
-							writer.print(lineText);
-							writer.print(", ");
-							writer.print(cp.id);
-							writer.print(", ");
-							writer.println(getChanges(cp).size());
-							AtomicInteger number = foundPatternIDs.get(cp.id);
-							if (null == number) {
-								number = new AtomicInteger(0);
-								foundPatternIDs.put(cp.id, number);
+							if (change.endline < l.startstartline) {
+								continue;
 							}
-							number.addAndGet(1);
+
+							if (l.startendline < change.startline) {
+								continue;
+							}
+
+							final List<PATTERN_SQL> cps = dao
+									.getChangePatterns(change.beforeHash,
+											change.afterHash);
+							for (final PATTERN_SQL cp : cps) {
+								writer.print(line);
+								writer.print(", ");
+								writer.print(cp.id);
+								writer.print(", ");
+								writer.println(getChanges(cp).size());
+								AtomicInteger number = foundPatternIDs
+										.get(cp.id);
+								if (null == number) {
+									number = new AtomicInteger(0);
+									foundPatternIDs.put(cp.id, number);
+								}
+								number.addAndGet(1);
+							}
 						}
-					}
-				}
-			}
+					});
+
 		} catch (final IOException e) {
 			e.printStackTrace();
 			System.exit(0);
@@ -236,13 +241,15 @@ public class FBChangePatternFinder {
 
 			int currentRow = 1;
 			final List<PATTERN_SQL> cps = dao.getFixChangePatterns();
-			Collections.sort(cps, (o1, o2) -> Integer.compare(o1.id, o2.id));
-
+			// Collections.sort(cps, (o1, o2) -> Integer.compare(o1.id, o2.id));
+			Collections.sort(cps,
+					(o1, o2) -> o1.firstdate.compareTo(o2.firstdate));
 			for (final PATTERN_SQL cp : cps) {
 
 				if (cp.beforeText.isEmpty()) {
 					continue;
 				}
+				System.out.println(cp.id);
 
 				final int findBugsSupport = foundPatternIDs.containsKey(cp.id) ? foundPatternIDs
 						.get(cp.id).get() : 0;
@@ -283,11 +290,15 @@ public class FBChangePatternFinder {
 						yoshikihigo.fbparser.StringUtility
 								.concatinate(getAuthors(cp, true)));
 				dataRow.createCell(23).setCellValue(
-						yoshikihigo.fbparser.StringUtility
-								.concatinate(getFiles(cp)));
-				dataRow.createCell(24).setCellValue(
-						yoshikihigo.fbparser.StringUtility
-								.concatinate(getFiles(cp, true)));
+						yoshikihigo.fbparser.StringUtility.shrink(
+								yoshikihigo.fbparser.StringUtility
+										.concatinate(getFiles(cp)), 10000));
+				dataRow.createCell(24)
+						.setCellValue(
+								yoshikihigo.fbparser.StringUtility.shrink(
+										yoshikihigo.fbparser.StringUtility
+												.concatinate(getFiles(cp, true)),
+										10000));
 				lastCell = dataRow.getCell(24);
 
 				final CellStyle style = book.createCellStyle();
@@ -416,14 +427,9 @@ public class FBChangePatternFinder {
 		final byte[] afterHash = cp.afterHash;
 		final List<CHANGE_SQL> changesInPattern = DAO.getInstance().getChanges(
 				beforeHash, afterHash);
-		final SortedSet<Integer> revisions = new TreeSet<>();
-		for (final CHANGE_SQL change : changesInPattern) {
-			if (!onlyBugfix || (onlyBugfix && change.bugfix)) {
-				revisions.add(change.revision);
-			}
-		}
-
-		return revisions.size();
+		return (int) changesInPattern.stream()
+				.filter(change -> !onlyBugfix || (onlyBugfix && change.bugfix))
+				.count();
 	}
 
 	private static float getOccupancy(final PATTERN_SQL cp) {
@@ -442,15 +448,14 @@ public class FBChangePatternFinder {
 			map2.put(revision, new AtomicInteger(0));
 			List<CHANGE_SQL> changesInRevision = DAO.getInstance().getChanges(
 					revision.number);
-			for (final CHANGE_SQL change : changesInRevision) {
+			changesInRevision.stream().forEach(change -> {
 				if (changesInPattern.contains(change)) {
-					AtomicInteger size = map1.get(revision);
+					final AtomicInteger size = map1.get(revision);
 					size.addAndGet(change.endline - change.startline + 1);
 				}
-
-				AtomicInteger size = map2.get(revision);
+				final AtomicInteger size = map2.get(revision);
 				size.addAndGet(change.endline - change.startline + 1);
-			}
+			});
 		}
 
 		float sum = 0;
@@ -577,9 +582,9 @@ public class FBChangePatternFinder {
 
 	private static int countTextAppearances(final PATTERN_SQL cp) {
 
-		CPAConfig.initialize(new String[] { "-n" });
-		final List<yoshikihigo.cpanalyzer.data.Statement> pattern = StringUtility
-				.splitToStatements(cp.beforeText, 1, 1);
+		CPAConfig.initialize(new String[] {});
+		final List<Statement> pattern = StringUtility.splitToStatements(
+				cp.beforeText, 1, 1);
 		int count = 0;
 
 		final byte[] beforeHash = cp.beforeHash;
@@ -587,48 +592,53 @@ public class FBChangePatternFinder {
 		final SortedSet<REVISION_SQL> revisions = DAO.getInstance()
 				.getRevisions(beforeHash, afterHash);
 		final int firstRevision = revisions.first().number - 1;
-		final List<List<yoshikihigo.cpanalyzer.data.Statement>> contents = getFileContents(firstRevision);
-		for (final List<yoshikihigo.cpanalyzer.data.Statement> content : contents) {
+		final List<List<Statement>> contents = getFileContents(firstRevision);
+		for (final List<Statement> content : contents) {
 			count += getCount(content, pattern);
 		}
 
 		return count;
 	}
 
-	private static List<List<yoshikihigo.cpanalyzer.data.Statement>> getFileContents(
-			final int revision) {
+	static final private Map<Integer, List<String>> REVISION_FILEPATH_MAP = new HashMap<>();
+	static final private Map<String, Cache> FILEPATH_CACHE_MAP = new HashMap<>();
+	static final private Map<String, SortedSet<Integer>> FILEPATH_REVISIONS_MAP = new HashMap<>();
+
+	static private int PREVIOUS_CHANGEPATTERN_REVISION = 0;
+	static private List<List<Statement>> PREVIOUS_REVISION_CONTENTS = null;
+
+	private static List<List<Statement>> getFileContents(final int revision) {
+
+		if (revision == PREVIOUS_CHANGEPATTERN_REVISION) {
+			return PREVIOUS_REVISION_CONTENTS;
+		}
 
 		try {
-
 			final String repository = FBParserConfig.getInstance()
 					.getREPOSITORY();
-
 			final SVNLogClient logClient = SVNClientManager.newInstance()
 					.getLogClient();
 			final SVNURL url = SVNURL.fromFile(new File(repository));
+
+			final List<String> paths = new ArrayList<>();
 			FSRepositoryFactory.setup();
-			final SortedSet<String> filepaths = new TreeSet<String>();
 			logClient.doList(url, SVNRevision.create(revision),
 					SVNRevision.create(revision), true, SVNDepth.INFINITY,
-					SVNDirEntry.DIRENT_ALL, new ISVNDirEntryHandler() {
-
-						@Override
-						public void handleDirEntry(final SVNDirEntry entry)
-								throws SVNException {
-
-							if (entry.getKind() == SVNNodeKind.FILE) {
-								final String path = entry.getRelativePath();
-								if (path.endsWith(".java")) {
-									filepaths.add(path);
-								}
-							}
+					SVNDirEntry.DIRENT_ALL, entry -> {
+						if (entry.getKind() != SVNNodeKind.FILE) {
+							return;
 						}
+						final String path = entry.getRelativePath();
+						if (!path.endsWith(".java")) {
+							return;
+						}
+						paths.add(path);
 					});
 
-			final List<List<yoshikihigo.cpanalyzer.data.Statement>> contents = new ArrayList<>();
 			final SVNWCClient wcClient = SVNClientManager.newInstance()
 					.getWCClient();
-			for (final String path : filepaths) {
+			final List<List<Statement>> contents = new ArrayList<>();
+			for (final String path : paths) {
 
 				final SVNURL fileurl = SVNURL.fromFile(new File(repository
 						+ System.getProperty("file.separator") + path));
@@ -642,43 +652,72 @@ public class FBChangePatternFinder {
 								text.append((char) b);
 							}
 						});
-				final List<yoshikihigo.cpanalyzer.data.Statement> statements = StringUtility
+				final List<Statement> statements = StringUtility
 						.splitToStatements(text.toString(), LANGUAGE.JAVA);
 				contents.add(statements);
 			}
 
-			return contents;
+			PREVIOUS_CHANGEPATTERN_REVISION = revision;
+			PREVIOUS_REVISION_CONTENTS = contents;
 
-		} catch (final SVNException exception) {
+			return contents;
+		}
+
+		catch (final SVNException exception) {
 			exception.printStackTrace();
 		}
 
-		return new ArrayList<List<yoshikihigo.cpanalyzer.data.Statement>>();
+		return new ArrayList<List<Statement>>();
 	}
 
-	private static int getCount(
-			final List<yoshikihigo.cpanalyzer.data.Statement> statements,
-			final List<yoshikihigo.cpanalyzer.data.Statement> pattern) {
+	private static int getCount(final List<Statement> statements,
+			final List<Statement> pattern) {
 
 		int count = 0;
-		int pIndex = 0;
 		for (int index = 0; index < statements.size(); index++) {
 
-			if (statements.get(index).toString()
-					.equals(pattern.get(pIndex).toString())) {
+			int pIndex = 0;
+			while (Arrays.equals(statements.get(index + pIndex).hash,
+					pattern.get(pIndex).hash)) {
 				pIndex++;
-				if (pIndex == pattern.size()) {
+				if (pattern.size() == pIndex) {
 					count++;
-					pIndex = 0;
+					break;
 				}
-			}
-
-			else {
-				pIndex = 0;
+				if (statements.size() == index + pIndex) {
+					break;
+				}
 			}
 		}
 
 		return count;
+	}
+
+	private static int[] getCacheRange(final SortedSet<Integer> revisions,
+			final int revision) {
+
+		if (revisions.isEmpty()) {
+			return new int[] { revision, revision };
+		}
+
+		int cacheStartRevision = revisions.first().intValue();
+		int cacheEndRevision = revisions.last().intValue() - 1;
+		for (final int r : revisions) {
+			if ((r <= revision) && (cacheStartRevision < r)) {
+				cacheStartRevision = r;
+			}
+			if ((revision <= r) && (r < cacheEndRevision)) {
+				cacheEndRevision = r - 1;
+			}
+		}
+		if (revision < cacheStartRevision) {
+			cacheStartRevision = revision;
+		}
+		if (cacheEndRevision < revision) {
+			cacheEndRevision = revision;
+		}
+
+		return new int[] { cacheStartRevision, cacheEndRevision };
 	}
 }
 
@@ -727,5 +766,55 @@ class Line {
 			this.endendline = Integer.parseInt(endpos.substring(endpos
 					.lastIndexOf('-') + 1));
 		}
+	}
+}
+
+class Cache {
+
+	final public String path;
+	final private Map<int[], List<Statement>> data;
+
+	Cache(final String path) {
+		this.path = path;
+		data = new HashMap<>();
+	}
+
+	public List<Statement> getCache(final int revision) {
+		for (final Entry<int[], List<Statement>> entry : this.data.entrySet()) {
+			final int[] range = entry.getKey();
+			if ((range[0] <= revision) && (revision <= range[1])) {
+				System.out.println("cashe hit! :" + revision + " " + this.path);
+				return entry.getValue();
+			}
+		}
+		return null;
+	}
+
+	public boolean addCache(final List<Statement> statements, final int[] range) {
+
+		final Iterator<Entry<int[], List<Statement>>> iterator = this.data
+				.entrySet().iterator();
+		while (iterator.hasNext()) {
+			final Entry<int[], List<Statement>> entry = iterator.next();
+			final int[] r = entry.getKey();
+			final List<Statement> s = entry.getValue();
+			if (range[1] < r[0] || r[1] < range[0]) {
+				continue;
+			}
+			if (s.equals(statements)) {
+				iterator.remove();
+				continue;
+			}
+			System.err
+					.println("warning: statements are different its cached one, "
+							+ range[0] + "--" + range[1] + ", " + this.path);
+			// assert false : "adding cache condition was illegal.";
+			return false;
+		}
+
+		System.out.println("adding cache: " + range[0] + "--" + range[1] + ", "
+				+ this.path);
+		this.data.put(range, statements);
+		return true;
 	}
 }

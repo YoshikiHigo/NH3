@@ -66,4 +66,8 @@ public class StringUtility {
 		}
 		return count + 1;
 	}
+	
+	static public String shrink(final String text, final int limit){
+		return limit < text.length()? text.substring(0, limit):text;
+	}
 }
