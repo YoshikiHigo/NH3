@@ -34,6 +34,9 @@ public class XLSXMerger {
 
 	public static void main(final String[] args) {
 
+		for (String arg : args) {
+			System.out.println(arg);
+		}
 		if (args.length < 2) {
 			System.err.println("two or more arguments are required.");
 			System.exit(0);
