@@ -24,11 +24,13 @@
 	<classpathentry kind="lib" path="lib/svnkit-1.8.10/lib/jsch.agentproxy.usocket-nc-0.0.7.jar"/>
 	<classpathentry kind="lib" path="lib/svnkit-1.8.10/lib/sequence-library-1.0.3.jar"/>
 	<classpathentry kind="lib" path="lib/svnkit-1.8.10/lib/sqljet-1.1.10.jar"/>
-	<classpathentry kind="lib" path="lib/svnkit-1.8.10/lib/svnkit-1.8.10.jar"/>
+	<classpathentry kind="lib" path="lib/svnkit-1.8.10/lib/svnkit-1.8.10.jar" sourcepath="lib/svnkit-1.8.10/src/svnkit-1.8.10-sources.jar"/>
 	<classpathentry kind="lib" path="lib/svnkit-1.8.10/lib/svnkit-cli-1.8.10.jar"/>
 	<classpathentry kind="lib" path="lib/svnkit-1.8.10/lib/svnkit-javahl16-1.8.10.jar"/>
 	<classpathentry kind="lib" path="lib/svnkit-1.8.10/lib/trilead-ssh2-1.0.0-build219.jar"/>
 	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.8.10.1/sqlite-jdbc-3.8.10.1.jar"/>
+	<classpathentry kind="lib" path="lib/svnkit-1.8.10/src/svnkit-1.8.10-sources.jar"/>
+	<classpathentry kind="lib" path="lib/svnkit-1.8.10/src/svnkit-cli-1.8.10-sources.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/MPAnalyzer"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

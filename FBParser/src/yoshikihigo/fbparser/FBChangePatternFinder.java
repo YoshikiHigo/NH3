@@ -608,19 +608,17 @@ public class FBChangePatternFinder {
 	static private List<List<Statement>> PREVIOUS_REVISION_CONTENTS = null;
 
 	private static List<List<Statement>> getFileContents(final int revision) {
-
 		if (revision == PREVIOUS_CHANGEPATTERN_REVISION) {
 			return PREVIOUS_REVISION_CONTENTS;
 		}
 
+		final String repository = FBParserConfig.getInstance().getREPOSITORY();
+		final List<String> paths = new ArrayList<>();
 		try {
-			final String repository = FBParserConfig.getInstance()
-					.getREPOSITORY();
+
 			final SVNLogClient logClient = SVNClientManager.newInstance()
 					.getLogClient();
 			final SVNURL url = SVNURL.fromFile(new File(repository));
-
-			final List<String> paths = new ArrayList<>();
 			FSRepositoryFactory.setup();
 			logClient.doList(url, SVNRevision.create(revision),
 					SVNRevision.create(revision), true, SVNDepth.INFINITY,
@@ -634,12 +632,14 @@ public class FBChangePatternFinder {
 						}
 						paths.add(path);
 					});
+		} catch (final SVNException | NullPointerException e) {
+		}
 
-			final SVNWCClient wcClient = SVNClientManager.newInstance()
-					.getWCClient();
-			final List<List<Statement>> contents = new ArrayList<>();
-			for (final String path : paths) {
-
+		final SVNWCClient wcClient = SVNClientManager.newInstance()
+				.getWCClient();
+		final List<List<Statement>> contents = new ArrayList<>();
+		for (final String path : paths) {
+			try {
 				final SVNURL fileurl = SVNURL.fromFile(new File(repository
 						+ System.getProperty("file.separator") + path));
 				final StringBuilder text = new StringBuilder();
@@ -655,19 +655,14 @@ public class FBChangePatternFinder {
 				final List<Statement> statements = StringUtility
 						.splitToStatements(text.toString(), LANGUAGE.JAVA);
 				contents.add(statements);
+			} catch (final SVNException | NullPointerException e) {
 			}
-
-			PREVIOUS_CHANGEPATTERN_REVISION = revision;
-			PREVIOUS_REVISION_CONTENTS = contents;
-
-			return contents;
 		}
 
-		catch (final SVNException exception) {
-			exception.printStackTrace();
-		}
+		PREVIOUS_CHANGEPATTERN_REVISION = revision;
+		PREVIOUS_REVISION_CONTENTS = contents;
 
-		return new ArrayList<List<Statement>>();
+		return contents;
 	}
 
 	private static int getCount(final List<Statement> statements,
