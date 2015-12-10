@@ -156,13 +156,20 @@ public class FBChangePatternFinder {
 			titleRow.createCell(15).setCellValue("LAST-DATE");
 			titleRow.createCell(16).setCellValue("DATE-DIFFERENCE");
 			titleRow.createCell(17).setCellValue("OCCUPANCY");
-			titleRow.createCell(18).setCellValue("Delta-TFIDF");
+			titleRow.createCell(18).setCellValue("Delta-CFPF");
 			titleRow.createCell(19).setCellValue("TEXT-BEFORE-CHANGE");
 			titleRow.createCell(20).setCellValue("TEXT-AFTER-CHANGE");
 			titleRow.createCell(21).setCellValue("AUTHOR-LIST");
 			titleRow.createCell(22).setCellValue("BUG-FIX-AUTHOR-LIST");
 			titleRow.createCell(23).setCellValue("FILE-LIST");
 			titleRow.createCell(24).setCellValue("BUG-FIX-FILE-LIST");
+
+			final int bugfixCommits = (int) DAO.getInstance().getRevisions()
+					.stream().filter(revision -> revision.bugfix).count();
+			titleRow.createCell(25).setCellValue(bugfixCommits);
+			final int nonbugfixCommits = (int) DAO.getInstance().getRevisions()
+					.stream().filter(revision -> !revision.bugfix).count();
+			titleRow.createCell(26).setCellValue(nonbugfixCommits);
 
 			firstCell = titleRow.getCell(0);
 			lastCell = titleRow.getCell(24);
@@ -222,22 +229,16 @@ public class FBChangePatternFinder {
 			setCellComment(
 					titleRow.getCell(18),
 					"Higo",
-					"delta-TFIDF was calculated with the following formula"
+					"delta-CFPF was calculated with the following formula"
 							+ System.lineSeparator()
-							+ "(k1 + 1)*tf/(K_tf) log (((N1 - df1 + 0.5)*(df2 + 0.5))/((N2 - df2 + 0.5)*(df1 + 0.5)))"
+							+ "pf*(cf1 - cf2)"
 							+ System.lineSeparator()
-							+ "tf : the number of occurrences of a given a pattern"
+							+ "pf: pattern frequency, which is calculated as support / before-text-support"
 							+ System.lineSeparator()
-							+ "N1: the number of all files changed in bug-fix commits"
+							+ "cf1: bug-fix commit frequensy, which is calculated as bug-fix commits / all bug-fix commits"
 							+ System.lineSeparator()
-							+ "N2: the number of all files changed in non-bug-fix commits"
-							+ System.lineSeparator()
-							+ "df1: the number of files changed in bug-fix commits for a given pattern"
-							+ System.lineSeparator()
-							+ "df2: the number of files changed in non-bug-fix commits for a given pattern"
-							+ System.lineSeparator() + "k1: 1.2 (parameter)"
-							+ System.lineSeparator() + "K: 1.2 (parameter)", 5,
-					5);
+							+ "cf2: non-bug-fix commit frequency, which is calculated as non-bug-fix commits / all non-bug-fix commits",
+					5, 5);
 
 			int currentRow = 1;
 			final List<PATTERN_SQL> cps = dao.getFixChangePatterns();
@@ -273,14 +274,15 @@ public class FBChangePatternFinder {
 						(float) support / (float) beforeTextSupport);
 				dataRow.createCell(11).setCellValue(
 						(float) bugfixSupport / (float) beforeTextSupport);
-				dataRow.createCell(12).setCellValue(getCommits(cp, false));
+				dataRow.createCell(12).setCellValue(getCommits(cp));
 				dataRow.createCell(13).setCellValue(getCommits(cp, true));
 				dataRow.createCell(14).setCellValue(cp.firstdate);
 				dataRow.createCell(15).setCellValue(cp.lastdate);
 				dataRow.createCell(16).setCellValue(
 						getDayDifference(cp.firstdate, cp.lastdate));
 				dataRow.createCell(17).setCellValue(getOccupancy(cp));
-				dataRow.createCell(18).setCellValue(getDeltaTFIDF(cp));
+				dataRow.createCell(18).setCellValue(
+						getDeltaCFPF(cp, beforeTextSupport));
 				dataRow.createCell(19).setCellValue(cp.beforeText);
 				dataRow.createCell(20).setCellValue(cp.afterText);
 				dataRow.createCell(21).setCellValue(
@@ -422,14 +424,21 @@ public class FBChangePatternFinder {
 		return (int) (difference / 1000l / 60l / 60l / 24l);
 	}
 
-	private static int getCommits(final PATTERN_SQL cp, final boolean onlyBugfix) {
+	private static int getCommits(final PATTERN_SQL cp) {
+		final byte[] beforeHash = cp.beforeHash;
+		final byte[] afterHash = cp.afterHash;
+		return (int) DAO.getInstance().getChanges(beforeHash, afterHash)
+				.stream().mapToInt(change -> change.revision).distinct()
+				.count();
+	}
+
+	private static int getCommits(final PATTERN_SQL cp, final boolean bugfix) {
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
 		final List<CHANGE_SQL> changesInPattern = DAO.getInstance().getChanges(
 				beforeHash, afterHash);
 		return (int) changesInPattern.stream()
-				.filter(change -> !onlyBugfix || (onlyBugfix && change.bugfix))
-				.count();
+				.filter(change -> bugfix == change.bugfix).count();
 	}
 
 	private static float getOccupancy(final PATTERN_SQL cp) {
@@ -470,27 +479,18 @@ public class FBChangePatternFinder {
 		return sum / revisions.size();
 	}
 
-	private static double getDeltaTFIDF(final PATTERN_SQL cp) {
-
-		final double tf = (double) getChanges(cp).size(); // all occurrences
-		final int n1 = DAO
-				.getInstance()
-				.count("select count(distinct filepath) from bugfixchanges where 0 < bugfix");
-		final int n2 = DAO
-				.getInstance()
-				.count("select count(distinct filepath) from bugfixchanges where 0 = bugfix");
-		final int df1 = getFiles(cp, true).size(); // the number of files
-													// including bug-fix changes
-		final int df2 = getFiles(cp, false).size(); // the number of files
-													// including non-bug-fix
-													// changes
-		final double k1 = 1.2d; // parameter
-		final double K = 1.2d; // parameter
-
-		final double w = ((k1 + 1) * tf / (K + tf))
-				* (Math.log(((n1 - df1 + 0.5) * (df2 + 0.5))
-						/ ((n2 - df2 + 0.5) * (df1 + 0.5))) / Math.log(2.0));
-		return w;
+	private static double getDeltaCFPF(final PATTERN_SQL cp,
+			final int beforeTextSupport) {
+		final double pf = (double) getChanges(cp).size()
+				/ (double) beforeTextSupport;
+		final double cf1 = (double) getCommits(cp, true)
+				/ (double) DAO.getInstance().getRevisions().stream()
+						.filter(revision -> revision.bugfix).count();
+		final double cf2 = (double) getCommits(cp, false)
+				/ (double) DAO.getInstance().getRevisions().stream()
+						.filter(revision -> !revision.bugfix).count();
+		final double pfcf = pf * (cf1 - cf2);
+		return pfcf;
 	}
 
 	private static List<CHANGE_SQL> getChanges(final PATTERN_SQL cp) {

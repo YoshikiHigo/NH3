@@ -46,23 +46,42 @@ public class XLSXMerger {
 		final String mergedXLSXPath = args[0];
 
 		final Map<SIMPLE_PATTERN, PATTERN> patterns = new HashMap<>();
+		final List<Integer> allBugfixCommits = new ArrayList<>();
+		final List<Integer> allNonbugfixCommits = new ArrayList<>();
 		for (int index = 1; index < args.length; index++) {
-			readXLSX(patterns, args[index]);
+			readXLSX(patterns, allBugfixCommits, allNonbugfixCommits,
+					args[index]);
 		}
 
-		writeXLSX(patterns, mergedXLSXPath);
+		final int allBugfixCommitNumber = allBugfixCommits.stream()
+				.mapToInt(value -> value.intValue()).sum();
+		final int allNonbugfixCommitNumber = allNonbugfixCommits.stream()
+				.mapToInt(value -> value.intValue()).sum();
+		writeXLSX(patterns, allBugfixCommitNumber, allNonbugfixCommitNumber,
+				mergedXLSXPath);
 	}
 
 	private static void readXLSX(final Map<SIMPLE_PATTERN, PATTERN> patterns,
-			final String xlsxPath) {
+			final List<Integer> allBugfixCommits,
+			final List<Integer> allNonbugfixCommits, final String xlsxPath) {
 
-		final String period = yoshikihigo.fbparser.StringUtility
-				.removeExtension(yoshikihigo.fbparser.StringUtility
-						.getName(xlsxPath));
+		final String period = StringUtility.removeExtension(StringUtility
+				.getName(xlsxPath));
 
 		try (final Workbook book = new XSSFWorkbook(new FileInputStream(
 				xlsxPath))) {
 			final Sheet sheet = book.getSheetAt(0);
+
+			{
+				final Row titleRow = sheet.getRow(0);
+				final int bugfixCommit = (int) titleRow.getCell(25)
+						.getNumericCellValue();
+				allBugfixCommits.add(bugfixCommit);
+				final int nonbugfixCommit = (int) titleRow.getCell(26)
+						.getNumericCellValue();
+				allNonbugfixCommits.add(nonbugfixCommit);
+			}
+
 			final int lastRowNumber = sheet.getLastRowNum();
 			for (int rowNumber = 1; rowNumber < lastRowNumber; rowNumber++) {
 				final Row row = sheet.getRow(rowNumber);
@@ -110,8 +129,8 @@ public class XLSXMerger {
 
 				final double occupancy = row.getCell(17).getNumericCellValue();
 				pattern.addOccupancy(period, occupancy);
-				final double deltaTFIDF = row.getCell(18).getNumericCellValue();
-				pattern.addDeltaTFIDF(period, deltaTFIDF);
+				final double deltaCFPF = row.getCell(18).getNumericCellValue();
+				pattern.addDeltaCFPF(period, deltaCFPF);
 
 				final String authorText = row.getCell(21).getStringCellValue();
 				pattern.addAuthors(authorText);
@@ -134,6 +153,7 @@ public class XLSXMerger {
 	}
 
 	private static void writeXLSX(final Map<SIMPLE_PATTERN, PATTERN> patterns,
+			final int allBugfixCommits, final int allNonbugfixCommits,
 			final String xlsxPath) {
 
 		try (final Workbook book = new XSSFWorkbook();
@@ -233,22 +253,16 @@ public class XLSXMerger {
 			setCellComment(
 					titleRow.getCell(19),
 					"Higo",
-					"delta-TFIDF was calculated with the following formula"
+					"delta-CFPF was calculated with the following formula"
 							+ System.lineSeparator()
-							+ "(k1 + 1)*tf/(K_tf) log (((N1 - df1 + 0.5)*(df2 + 0.5))/((N2 - df2 + 0.5)*(df1 + 0.5)))"
+							+ "pf*(cf1 - cf2)"
 							+ System.lineSeparator()
-							+ "tf : the number of occurrences of a given a pattern"
+							+ "pf: pattern frequency, which is calculated as support / before-text-support"
 							+ System.lineSeparator()
-							+ "N1: the number of all files changed in bug-fix commits"
+							+ "cf1: bug-fix commit frequensy, which is calculated as bug-fix commits / all bug-fix commits"
 							+ System.lineSeparator()
-							+ "N2: the number of all files changed in non-bug-fix commits"
-							+ System.lineSeparator()
-							+ "df1: the number of files changed in bug-fix commits for a given pattern"
-							+ System.lineSeparator()
-							+ "df2: the number of files changed in non-bug-fix commits for a given pattern"
-							+ System.lineSeparator() + "k1: 1.2 (parameter)"
-							+ System.lineSeparator() + "K: 1.2 (parameter)", 5,
-					4);
+							+ "cf2: non-bug-fix commit frequency, which is calculated as non-bug-fix commits / all non-bug-fix commits",
+					4, 5);
 
 			int currentRow = 1;
 			final List<PATTERN> patternlist = new ArrayList<>(patterns.values());
@@ -286,7 +300,8 @@ public class XLSXMerger {
 				dataRow.createCell(17).setCellValue(
 						getDayDifference(cp.getFirstDate(), cp.getLastDate()));
 				dataRow.createCell(18).setCellValue(cp.getMaxOccuapncy());
-				dataRow.createCell(19).setCellValue(cp.getMaxDeltaTFIDF());
+				dataRow.createCell(19).setCellValue(
+						cp.getDeltaCFPF(allBugfixCommits, allNonbugfixCommits));
 				dataRow.createCell(20).setCellValue(cp.beforeText);
 				dataRow.createCell(21).setCellValue(cp.afterText);
 				dataRow.createCell(22).setCellValue(
@@ -308,7 +323,7 @@ public class XLSXMerger {
 				setCellComment(dataRow.getCell(18), "Higo",
 						cp.getOccupanciesText(), 3, cp.getPeriods().size());
 				setCellComment(dataRow.getCell(19), "Higo",
-						cp.getDeltaTFIDFsText(), 3, cp.getPeriods().size());
+						cp.getDeltaCFPFsText(), 3, cp.getPeriods().size());
 
 				final CellStyle style = book.createCellStyle();
 				style.setWrapText(true);
@@ -323,13 +338,10 @@ public class XLSXMerger {
 					dataRow.getCell(column).setCellStyle(style);
 				}
 
-				final int[] locs = new int[] {
-						cp.getIDs().size(),
-						cp.getAuthors().size(),
-						cp.getFiles().size(),
-						yoshikihigo.fbparser.StringUtility
-								.getLOC(cp.beforeText),
-						yoshikihigo.fbparser.StringUtility.getLOC(cp.afterText) };
+				final int[] locs = new int[] { cp.getIDs().size(),
+						cp.getAuthors().size(), cp.getFiles().size(),
+						StringUtility.getLOC(cp.beforeText),
+						StringUtility.getLOC(cp.afterText) };
 				Arrays.sort(locs);
 				dataRow.setHeight((short) (locs[locs.length - 1] * dataRow
 						.getHeight()));
@@ -452,7 +464,7 @@ public class XLSXMerger {
 		private String firstDate;
 		private String lastDate;
 		final Map<String, Double> occupancies;
-		final Map<String, Double> deltaTFIDFs;
+		final Map<String, Double> deltaCFPFs;
 		final private SortedSet<String> files;
 		final private SortedSet<String> bugfixFiles;
 		final private SortedSet<String> authors;
@@ -472,7 +484,7 @@ public class XLSXMerger {
 			this.firstDate = null;
 			this.lastDate = null;
 			this.occupancies = new HashMap<>();
-			this.deltaTFIDFs = new HashMap<>();
+			this.deltaCFPFs = new HashMap<>();
 			this.files = new TreeSet<>();
 			this.bugfixFiles = new TreeSet<>();
 			this.authors = new TreeSet<>();
@@ -500,8 +512,7 @@ public class XLSXMerger {
 		}
 
 		public void addFiles(final String fileText) {
-			this.files.addAll(yoshikihigo.fbparser.StringUtility
-					.split(fileText));
+			this.files.addAll(StringUtility.split(fileText));
 		}
 
 		public SortedSet<String> getFiles() {
@@ -509,8 +520,7 @@ public class XLSXMerger {
 		}
 
 		public void addBugfixFiles(final String fileText) {
-			this.bugfixFiles.addAll(yoshikihigo.fbparser.StringUtility
-					.split(fileText));
+			this.bugfixFiles.addAll(StringUtility.split(fileText));
 		}
 
 		public SortedSet<String> getBugfixFiles() {
@@ -518,8 +528,7 @@ public class XLSXMerger {
 		}
 
 		public void addAuthors(final String authorText) {
-			this.authors.addAll(yoshikihigo.fbparser.StringUtility
-					.split(authorText));
+			this.authors.addAll(StringUtility.split(authorText));
 		}
 
 		public SortedSet<String> getAuthors() {
@@ -527,8 +536,7 @@ public class XLSXMerger {
 		}
 
 		public void addBugfixAuthors(final String authorText) {
-			this.bugfixAuthors.addAll(yoshikihigo.fbparser.StringUtility
-					.split(authorText));
+			this.bugfixAuthors.addAll(StringUtility.split(authorText));
 		}
 
 		public SortedSet<String> getBugfixAuthors() {
@@ -595,24 +603,25 @@ public class XLSXMerger {
 			return text.toString();
 		}
 
-		public void addDeltaTFIDF(final String period, final Double deltaTFIDF) {
-			this.deltaTFIDFs.put(period, deltaTFIDF);
+		public void addDeltaCFPF(final String period, final Double deltaCFPF) {
+			this.deltaCFPFs.put(period, deltaCFPF);
 		}
 
-		public Double getMaxDeltaTFIDF() {
-			double max = 0d;
-			for (final Double deltaTFIDF : this.deltaTFIDFs.values()) {
-				if (max < deltaTFIDF) {
-					max = deltaTFIDF;
-				}
-			}
-			return max;
+		public Double getDeltaCFPF(final int allBugfixCommits,
+				final int allNonbugfixCommits) {
+			final double pf = (double) this.support
+					/ (double) this.beforeTextSupport;
+			final double cf1 = (double) this.bugfixCommits
+					/ (double) allBugfixCommits;
+			final double cf2 = (double) (this.commits - this.bugfixCommits)
+					/ (double) allNonbugfixCommits;
+			final double pfcf = pf * (cf1 - cf2);
+			return pfcf;
 		}
 
-		public String getDeltaTFIDFsText() {
+		public String getDeltaCFPFsText() {
 			final StringBuilder text = new StringBuilder();
-			for (final Entry<String, Double> entry : this.deltaTFIDFs
-					.entrySet()) {
+			for (final Entry<String, Double> entry : this.deltaCFPFs.entrySet()) {
 				text.append(entry.getKey());
 				text.append(": ");
 				text.append(entry.getValue());
