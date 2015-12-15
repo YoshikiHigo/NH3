@@ -250,7 +250,7 @@ public class FBChangePatternFinder {
 				if (cp.beforeText.isEmpty()) {
 					continue;
 				}
-				System.out.println(cp.id);
+				//System.out.println(cp.id);
 
 				final int findBugsSupport = foundPatternIDs.containsKey(cp.id) ? foundPatternIDs
 						.get(cp.id).get() : 0;

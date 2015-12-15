@@ -57,8 +57,32 @@ public class XLSXMerger {
 				.mapToInt(value -> value.intValue()).sum();
 		final int allNonbugfixCommitNumber = allNonbugfixCommits.stream()
 				.mapToInt(value -> value.intValue()).sum();
+
+		final List<Integer> bugfixFileData = new ArrayList<>();
+		final List<Integer> fileDiffData = new ArrayList<>();
+		final List<Integer> dayDiffData = new ArrayList<>();
+		for (final PATTERN pattern : patterns.values()) {
+			final int bugfixFiles = pattern.bugfixFiles.size();
+			if (1 < bugfixFiles) {
+				bugfixFileData.add(bugfixFiles);
+			}
+			final int fileDiff = pattern.files.size()
+					- pattern.bugfixFiles.size();
+			if (0 < fileDiff) {
+				fileDiffData.add(fileDiff);
+			}
+			final int dayDifference = getDayDifference(pattern.getFirstDate(),
+					pattern.getLastDate());
+			if (0 < dayDifference) {
+				dayDiffData.add(dayDifference);
+			}
+		}
+		Collections.sort(bugfixFileData);
+		Collections.sort(fileDiffData);
+		Collections.sort(dayDiffData);
+
 		writeXLSX(patterns, allBugfixCommitNumber, allNonbugfixCommitNumber,
-				mergedXLSXPath);
+				bugfixFileData, fileDiffData, dayDiffData, mergedXLSXPath);
 	}
 
 	private static void readXLSX(final Map<SIMPLE_PATTERN, PATTERN> patterns,
@@ -154,7 +178,9 @@ public class XLSXMerger {
 
 	private static void writeXLSX(final Map<SIMPLE_PATTERN, PATTERN> patterns,
 			final int allBugfixCommits, final int allNonbugfixCommits,
-			final String xlsxPath) {
+			final List<Integer> bugfixFileData,
+			final List<Integer> fileDiffData,
+			final List<Integer> dayDifferenceData, final String xlsxPath) {
 
 		try (final Workbook book = new XSSFWorkbook();
 				final OutputStream stream = new FileOutputStream(xlsxPath)) {
@@ -184,16 +210,19 @@ public class XLSXMerger {
 			titleRow.createCell(16).setCellValue("LAST-DATE");
 			titleRow.createCell(17).setCellValue("DATE-DIFFERENCE");
 			titleRow.createCell(18).setCellValue("OCCUPANCY");
-			titleRow.createCell(19).setCellValue("Delta-TFIDF");
-			titleRow.createCell(20).setCellValue("TEXT-BEFORE-CHANGE");
-			titleRow.createCell(21).setCellValue("TEXT-AFTER-CHANGE");
-			titleRow.createCell(22).setCellValue("AUTHOR-LIST");
-			titleRow.createCell(23).setCellValue("BUG-FIX-AUTHOR-LIST");
-			titleRow.createCell(24).setCellValue("FILE-LIST");
-			titleRow.createCell(25).setCellValue("BUG-FIX-FILE-LIST");
+			titleRow.createCell(19).setCellValue("Delta-CFPF");
+			titleRow.createCell(20).setCellValue("RANK-of-\"G\"");
+			titleRow.createCell(21).setCellValue("RANK-of-\"F-G\"");
+			titleRow.createCell(22).setCellValue("RANK-of-\"R\"");
+			titleRow.createCell(23).setCellValue("TEXT-BEFORE-CHANGE");
+			titleRow.createCell(24).setCellValue("TEXT-AFTER-CHANGE");
+			titleRow.createCell(25).setCellValue("AUTHOR-LIST");
+			titleRow.createCell(26).setCellValue("BUG-FIX-AUTHOR-LIST");
+			titleRow.createCell(27).setCellValue("FILE-LIST");
+			titleRow.createCell(28).setCellValue("BUG-FIX-FILE-LIST");
 
 			firstCell = titleRow.getCell(0);
-			lastCell = titleRow.getCell(25);
+			lastCell = titleRow.getCell(28);
 
 			setCellComment(titleRow.getCell(2), "Higo",
 					"number of periods detected or not detected by FindBugs",
@@ -263,6 +292,13 @@ public class XLSXMerger {
 							+ System.lineSeparator()
 							+ "cf2: non-bug-fix commit frequency, which is calculated as non-bug-fix commits / all non-bug-fix commits",
 					4, 5);
+			setCellComment(titleRow.getCell(20), "Higo",
+					"Ranking of the number of bug-fix files", 3, 1);
+			setCellComment(titleRow.getCell(21), "Higo",
+					"Ranking of difference between files and bug-fix files", 4,
+					1);
+			setCellComment(titleRow.getCell(22), "Higo",
+					"Ranking of date difference", 3, 1);
 
 			int currentRow = 1;
 			final List<PATTERN> patternlist = new ArrayList<>(patterns.values());
@@ -270,7 +306,7 @@ public class XLSXMerger {
 					o1.bugfixCommits, o2.bugfixCommits));
 			for (final PATTERN cp : patternlist) {
 
-				if (cp.beforeText.isEmpty()) {
+				if (cp.beforeText.isEmpty() || cp.afterText.isEmpty()) {
 					continue;
 				}
 
@@ -294,7 +330,7 @@ public class XLSXMerger {
 						(float) cp.bugfixSupport
 								/ (float) cp.getBeforeTextSupport());
 				dataRow.createCell(13).setCellValue(cp.commits);
-				dataRow.createCell(14).setCellValue(cp.commits);
+				dataRow.createCell(14).setCellValue(cp.bugfixCommits);
 				dataRow.createCell(15).setCellValue(cp.getFirstDate());
 				dataRow.createCell(16).setCellValue(cp.getLastDate());
 				dataRow.createCell(17).setCellValue(
@@ -302,21 +338,28 @@ public class XLSXMerger {
 				dataRow.createCell(18).setCellValue(cp.getMaxOccuapncy());
 				dataRow.createCell(19).setCellValue(
 						cp.getDeltaCFPF(allBugfixCommits, allNonbugfixCommits));
-				dataRow.createCell(20).setCellValue(cp.beforeText);
-				dataRow.createCell(21).setCellValue(cp.afterText);
+
+				dataRow.createCell(20).setCellValue(
+						getRank(bugfixFileData, cp.bugfixFiles.size(), 1));
+				dataRow.createCell(21).setCellValue(
+						getRank(fileDiffData,
+								(cp.files.size() - cp.bugfixFiles.size()), 0));
 				dataRow.createCell(22).setCellValue(
-						yoshikihigo.fbparser.StringUtility.concatinate(cp
-								.getAuthors()));
-				dataRow.createCell(23).setCellValue(
-						yoshikihigo.fbparser.StringUtility.concatinate(cp
-								.getBugfixAuthors()));
-				dataRow.createCell(24).setCellValue(
-						yoshikihigo.fbparser.StringUtility.concatinate(cp
-								.getFiles()));
+						getRank(dayDifferenceData,
+								getDayDifference(cp.getFirstDate(),
+										cp.getLastDate()), 0));
+
+				dataRow.createCell(23).setCellValue(cp.beforeText);
+				dataRow.createCell(24).setCellValue(cp.afterText);
 				dataRow.createCell(25).setCellValue(
-						yoshikihigo.fbparser.StringUtility.concatinate(cp
-								.getBugfixFiles()));
-				lastCell = dataRow.getCell(25);
+						StringUtility.concatinate(cp.getAuthors()));
+				dataRow.createCell(26).setCellValue(
+						StringUtility.concatinate(cp.getBugfixAuthors()));
+				dataRow.createCell(27).setCellValue(
+						StringUtility.concatinate(cp.getFiles()));
+				dataRow.createCell(28).setCellValue(
+						StringUtility.concatinate(cp.getBugfixFiles()));
+				lastCell = dataRow.getCell(28);
 
 				setCellComment(dataRow.getCell(9), "Higo",
 						cp.getBeforeTextSupportPeriod(), 1, 1);
@@ -367,12 +410,15 @@ public class XLSXMerger {
 			sheet.autoSizeColumn(17, true);
 			sheet.autoSizeColumn(18, true);
 			sheet.autoSizeColumn(19, true);
-			sheet.setColumnWidth(20, 20480);
-			sheet.setColumnWidth(21, 5120);
-			sheet.setColumnWidth(22, 5120);
+			sheet.autoSizeColumn(20, true);
+			sheet.autoSizeColumn(21, true);
+			sheet.autoSizeColumn(22, true);
 			sheet.setColumnWidth(23, 20480);
-			sheet.setColumnWidth(24, 20480);
-			sheet.setColumnWidth(25, 20480);
+			sheet.setColumnWidth(24, 5120);
+			sheet.setColumnWidth(25, 5120);
+			sheet.setColumnWidth(26, 20480);
+			sheet.setColumnWidth(27, 20480);
+			sheet.setColumnWidth(28, 20480);
 
 			sheet.setAutoFilter(new CellRangeAddress(firstCell.getRowIndex(),
 					lastCell.getRowIndex(), firstCell.getColumnIndex(),
@@ -384,6 +430,33 @@ public class XLSXMerger {
 		} catch (final IOException e) {
 			e.printStackTrace();
 			System.exit(0);
+		}
+	}
+
+	private static String getRank(final List<Integer> data, final int value,
+			final int lowestValue) {
+
+		if (value == lowestValue) {
+			return "NONE";
+		}
+
+		int matchedIndex = 0;
+		for (int index = 0; index < data.size(); index++) {
+			if (data.get(index) == value) {
+				matchedIndex = index;
+				break;
+			}
+		}
+
+		System.out.println(matchedIndex + " : " + data.size());
+
+		final float position = (float) matchedIndex / (float) data.size();
+		if (position < 0.334) {
+			return "LOW";
+		} else if (position < 0.667) {
+			return "MIDDLE";
+		} else {
+			return "HIGH";
 		}
 	}
 
