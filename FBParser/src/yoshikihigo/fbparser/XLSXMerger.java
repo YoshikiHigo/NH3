@@ -210,7 +210,7 @@ public class XLSXMerger {
 			titleRow.createCell(16).setCellValue("LAST-DATE");
 			titleRow.createCell(17).setCellValue("DATE-DIFFERENCE");
 			titleRow.createCell(18).setCellValue("OCCUPANCY");
-			titleRow.createCell(19).setCellValue("Delta-CFPF");
+			titleRow.createCell(19).setCellValue("Delta-PFCF");
 			titleRow.createCell(20).setCellValue("RANK-of-\"G\"");
 			titleRow.createCell(21).setCellValue("RANK-of-\"F-G\"");
 			titleRow.createCell(22).setCellValue("RANK-of-\"R\"");
@@ -448,7 +448,7 @@ public class XLSXMerger {
 			}
 		}
 
-		System.out.println(matchedIndex + " : " + data.size());
+		//System.out.println(matchedIndex + " : " + data.size());
 
 		final float position = (float) matchedIndex / (float) data.size();
 		if (position < 0.334) {

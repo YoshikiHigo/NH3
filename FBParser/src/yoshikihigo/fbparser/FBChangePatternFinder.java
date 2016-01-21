@@ -156,7 +156,7 @@ public class FBChangePatternFinder {
 			titleRow.createCell(15).setCellValue("LAST-DATE");
 			titleRow.createCell(16).setCellValue("DATE-DIFFERENCE");
 			titleRow.createCell(17).setCellValue("OCCUPANCY");
-			titleRow.createCell(18).setCellValue("Delta-CFPF");
+			titleRow.createCell(18).setCellValue("Delta-PFCF");
 			titleRow.createCell(19).setCellValue("TEXT-BEFORE-CHANGE");
 			titleRow.createCell(20).setCellValue("TEXT-AFTER-CHANGE");
 			titleRow.createCell(21).setCellValue("AUTHOR-LIST");
