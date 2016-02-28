@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -29,6 +30,8 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import yoshikihigo.cpanalyzer.data.Statement;
 
 public class XLSXMerger {
 
@@ -138,7 +141,10 @@ public class XLSXMerger {
 				pattern.bugfixSupport += bugfixSupport;
 				final int beforeTextSupport = (int) row.getCell(8)
 						.getNumericCellValue();
-				pattern.setBeforeTextSupport(beforeTextSupport, period);
+				if (null == pattern.beforeTextSupportPeriod) {
+					pattern.beforeTextSupport = beforeTextSupport;
+					pattern.beforeTextSupportPeriod = period;
+				}
 
 				final int commits = (int) row.getCell(12).getNumericCellValue();
 				pattern.commits += commits;
@@ -321,14 +327,15 @@ public class XLSXMerger {
 				dataRow.createCell(6).setCellValue(cp.getBugfixFiles().size());
 				dataRow.createCell(7).setCellValue(cp.support);
 				dataRow.createCell(8).setCellValue(cp.bugfixSupport);
-				dataRow.createCell(9).setCellValue(cp.getBeforeTextSupport());
+				dataRow.createCell(9).setCellValue(cp.beforeTextSupport);
 				dataRow.createCell(10).setCellValue(
 						(float) cp.bugfixSupport / (float) cp.support);
 				dataRow.createCell(11).setCellValue(
-						(float) cp.support / (float) cp.getBeforeTextSupport());
-				dataRow.createCell(12).setCellValue(
-						(float) cp.bugfixSupport
-								/ (float) cp.getBeforeTextSupport());
+						(float) cp.support / (float) cp.beforeTextSupport);
+				dataRow.createCell(12)
+						.setCellValue(
+								(float) cp.bugfixSupport
+										/ (float) cp.beforeTextSupport);
 				dataRow.createCell(13).setCellValue(cp.commits);
 				dataRow.createCell(14).setCellValue(cp.bugfixCommits);
 				dataRow.createCell(15).setCellValue(cp.getFirstDate());
@@ -362,7 +369,7 @@ public class XLSXMerger {
 				lastCell = dataRow.getCell(28);
 
 				setCellComment(dataRow.getCell(9), "Higo",
-						cp.getBeforeTextSupportPeriod(), 1, 1);
+						cp.beforeTextSupportPeriod, 1, 1);
 				setCellComment(dataRow.getCell(18), "Higo",
 						cp.getOccupanciesText(), 3, cp.getPeriods().size());
 				setCellComment(dataRow.getCell(19), "Higo",
@@ -448,7 +455,7 @@ public class XLSXMerger {
 			}
 		}
 
-		//System.out.println(matchedIndex + " : " + data.size());
+		// System.out.println(matchedIndex + " : " + data.size());
 
 		final float position = (float) matchedIndex / (float) data.size();
 		if (position < 0.334) {
@@ -495,14 +502,18 @@ public class XLSXMerger {
 		return 0;
 	}
 
-	static class SIMPLE_PATTERN {
+	static public class SIMPLE_PATTERN {
 
 		final public String beforeText;
 		final public String afterText;
+		final public List<String> beforeTextPattern;
+		final public List<String> afterTextPattern;
 
-		SIMPLE_PATTERN(final String beforeText, final String afterText) {
+		public SIMPLE_PATTERN(final String beforeText, final String afterText) {
 			this.beforeText = beforeText;
 			this.afterText = afterText;
+			this.beforeTextPattern = StringUtility.split(beforeText);
+			this.afterTextPattern = StringUtility.split(afterText);
 		}
 
 		@Override
@@ -523,30 +534,40 @@ public class XLSXMerger {
 		}
 	}
 
-	static class PATTERN extends SIMPLE_PATTERN {
+	static public class PATTERN extends SIMPLE_PATTERN {
 
-		final List<String> periods;
-		final List<String> ids;
-		int findbugsSupport;
-		int support;
-		int bugfixSupport;
-		private int beforeTextSupport;
-		private String beforeTextSupportPeriod;
-		int commits;
-		int bugfixCommits;
+		final public List<byte[]> beforeTextHashs;
+		final public List<byte[]> afterTextHashs;
+		final public List<String> periods;
+		final public List<String> ids;
+		public int mergedID;
+		public int findbugsSupport;
+		public int support;
+		public int bugfixSupport;
+		public int beforeTextSupport;
+		public String beforeTextSupportPeriod;
+		public int commits;
+		public int bugfixCommits;
 		private String firstDate;
 		private String lastDate;
-		final Map<String, Double> occupancies;
-		final Map<String, Double> deltaCFPFs;
+		final public Map<String, Double> occupancies;
+		final public Map<String, Double> deltaCFPFs;
 		final private SortedSet<String> files;
 		final private SortedSet<String> bugfixFiles;
 		final private SortedSet<String> authors;
 		final private SortedSet<String> bugfixAuthors;
 
-		PATTERN(final String beforeText, final String afterText) {
+		public PATTERN(final String beforeText, final String afterText) {
 			super(beforeText, afterText);
+			this.beforeTextHashs = StringUtility.split(beforeText).stream()
+					.map(text -> Statement.getMD5(text))
+					.collect(Collectors.toList());
+			this.afterTextHashs = StringUtility.split(afterText).stream()
+					.map(text -> Statement.getMD5(text))
+					.collect(Collectors.toList());
 			this.periods = new ArrayList<>();
 			this.ids = new ArrayList<>();
+			this.mergedID = 0;
 			this.findbugsSupport = 0;
 			this.support = 0;
 			this.bugfixSupport = 0;
@@ -614,22 +635,6 @@ public class XLSXMerger {
 
 		public SortedSet<String> getBugfixAuthors() {
 			return new TreeSet<String>(this.bugfixAuthors);
-		}
-
-		public void setBeforeTextSupport(final int beforeTextSupport,
-				final String beforeTextSupportPeriod) {
-			if (null == this.beforeTextSupportPeriod) {
-				this.beforeTextSupport = beforeTextSupport;
-				this.beforeTextSupportPeriod = beforeTextSupportPeriod;
-			}
-		}
-
-		public int getBeforeTextSupport() {
-			return this.beforeTextSupport;
-		}
-
-		public String getBeforeTextSupportPeriod() {
-			return this.beforeTextSupportPeriod;
 		}
 
 		public void addDate(final String date) {

@@ -250,7 +250,7 @@ public class FBChangePatternFinder {
 				if (cp.beforeText.isEmpty()) {
 					continue;
 				}
-				//System.out.println(cp.id);
+				// System.out.println(cp.id);
 
 				final int findBugsSupport = foundPatternIDs.containsKey(cp.id) ? foundPatternIDs
 						.get(cp.id).get() : 0;
@@ -483,12 +483,14 @@ public class FBChangePatternFinder {
 			final int beforeTextSupport) {
 		final double pf = (double) getChanges(cp).size()
 				/ (double) beforeTextSupport;
+		final long count1 = DAO.getInstance().getRevisions().stream()
+				.filter(revision -> revision.bugfix).count();
 		final double cf1 = (double) getCommits(cp, true)
-				/ (double) DAO.getInstance().getRevisions().stream()
-						.filter(revision -> revision.bugfix).count();
+				/ (double) (0 < count1 ? count1 : 1);
+		final long count2 = DAO.getInstance().getRevisions().stream()
+				.filter(revision -> !revision.bugfix).count();
 		final double cf2 = (double) getCommits(cp, false)
-				/ (double) DAO.getInstance().getRevisions().stream()
-						.filter(revision -> !revision.bugfix).count();
+				/ (double) (0 < count2 ? count2 : 1);
 		final double pfcf = pf * (cf1 - cf2);
 		return pfcf;
 	}
