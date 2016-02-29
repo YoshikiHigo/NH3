@@ -9,8 +9,6 @@ import javax.swing.JTextArea;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 
-import yoshikihigo.fbparser.XLSXMerger.PATTERN;
-
 public class PatternWindow extends JTextArea implements Observer {
 
 	enum TYPE {
@@ -51,17 +49,17 @@ public class PatternWindow extends JTextArea implements Observer {
 			final SelectedEntities selectedEntities = (SelectedEntities) o;
 
 			if (selectedEntities.getLabel().equals(
-					SelectedEntities.SELECTED_PATTERN)) {
+					SelectedEntities.SELECTED_WARNING)) {
 
 				if (selectedEntities.isSet()) {
-					final PATTERN pattern = (PATTERN) selectedEntities.get()
+					final Warning warning = (Warning) selectedEntities.get()
 							.get(0);
 					switch (this.type) {
 					case BEFORE:
-						this.setText(pattern.beforeText);
+						this.setText(warning.pattern.beforeText);
 						break;
 					case AFTER:
-						this.setText(pattern.afterText);
+						this.setText(warning.pattern.afterText);
 						break;
 					}
 				} else {
@@ -71,8 +69,9 @@ public class PatternWindow extends JTextArea implements Observer {
 			}
 
 			else if (selectedEntities.getLabel().equals(
-					SelectedEntities.SELECTED_PATTERN)) {
+					SelectedEntities.SELECTED_PATH)) {
 				this.setText("");
+				this.repaint();
 			}
 		}
 	}

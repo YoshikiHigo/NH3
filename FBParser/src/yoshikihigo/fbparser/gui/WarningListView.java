@@ -1,7 +1,8 @@
 package yoshikihigo.fbparser.gui;
 
 import java.awt.Color;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
@@ -15,8 +16,6 @@ import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableRowSorter;
-
-import yoshikihigo.fbparser.XLSXMerger.PATTERN;
 
 public class WarningListView extends JTable implements Observer {
 
@@ -36,21 +35,14 @@ public class WarningListView extends JTable implements Observer {
 						.convertRowIndexToModel(i);
 				final WarningListViewModel model = (WarningListViewModel) WarningListView.this
 						.getModel();
-				final int[] location = model.getLocation(modelIndex);
-				final PATTERN pattern = model.getPATTERN(modelIndex);
+				final Warning warning = model.getWarning(modelIndex);
 				if (WarningListView.this.getSelectionModel().isSelectedIndex(i)) {
-					SelectedEntities.<Integer> getInstance(
-							SelectedEntities.SELECTED_LOCATION).add(
-							location[0], WarningListView.this);
-					SelectedEntities.<PATTERN> getInstance(
-							SelectedEntities.SELECTED_PATTERN).add(pattern,
+					SelectedEntities.<Warning> getInstance(
+							SelectedEntities.SELECTED_WARNING).add(warning,
 							WarningListView.this);
 				} else {
-					SelectedEntities.<Integer> getInstance(
-							SelectedEntities.SELECTED_LOCATION).remove(
-							location[0], WarningListView.this);
-					SelectedEntities.<PATTERN> getInstance(
-							SelectedEntities.SELECTED_PATTERN).remove(pattern,
+					SelectedEntities.<Warning> getInstance(
+							SelectedEntities.SELECTED_WARNING).remove(warning,
 							WarningListView.this);
 				}
 			}
@@ -58,14 +50,14 @@ public class WarningListView extends JTable implements Observer {
 	}
 
 	final private SelectionHandler selectionHandler;
-	final private Map<String, Map<int[], PATTERN>> files;
+	final private Map<String, List<Warning>> allWarnings;
 	final public JScrollPane scrollPane;
 
-	public WarningListView(final Map<String, Map<int[], PATTERN>> files) {
+	public WarningListView(final Map<String, List<Warning>> allWarnings) {
 
 		super();
 
-		this.files = files;
+		this.allWarnings = allWarnings;
 		this.scrollPane = new JScrollPane();
 		this.scrollPane.setViewportView(this);
 		this.scrollPane
@@ -78,7 +70,7 @@ public class WarningListView extends JTable implements Observer {
 
 		this.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-		this.setWarnings(new HashMap<int[], PATTERN>());
+		this.setWarnings(new ArrayList<Warning>());
 		// this.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 
 		this.selectionHandler = new SelectionHandler();
@@ -86,7 +78,7 @@ public class WarningListView extends JTable implements Observer {
 				.addListSelectionListener(this.selectionHandler);
 	}
 
-	public void setWarnings(final Map<int[], PATTERN> warnings) {
+	public void setWarnings(final List<Warning> warnings) {
 
 		this.getSelectionModel().removeListSelectionListener(
 				this.selectionHandler);
@@ -120,10 +112,10 @@ public class WarningListView extends JTable implements Observer {
 
 				if (selectedEntities.isSet()) {
 					final String path = (String) selectedEntities.get().get(0);
-					final Map<int[], PATTERN> warnings = this.files.get(path);
+					final List<Warning> warnings = this.allWarnings.get(path);
 					this.setWarnings(warnings);
 				} else {
-					this.setWarnings(new HashMap<int[], PATTERN>());
+					this.setWarnings(new ArrayList<Warning>());
 				}
 
 				this.repaint();

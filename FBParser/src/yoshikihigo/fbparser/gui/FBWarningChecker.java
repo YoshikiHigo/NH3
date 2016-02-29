@@ -62,7 +62,7 @@ public class FBWarningChecker extends JFrame {
 			files2.put(path, statements);
 		}
 
-		final Map<String, Map<int[], PATTERN>> warnings = new HashMap<>();
+		final Map<String, List<Warning>> allWarnings = new HashMap<>();
 		for (final Entry<String, List<Statement>> file : files2.entrySet()) {
 			final String path = file.getKey();
 			final List<Statement> statements = file.getValue();
@@ -74,28 +74,16 @@ public class FBWarningChecker extends JFrame {
 
 				final List<int[]> matchedCodes = findMatchedCode(statements,
 						pattern.beforeTextHashs);
-				Map<int[], PATTERN> warning = warnings.get(path);
-				if (null == warning) {
-					warning = new HashMap<>();
-					warnings.put(path, warning);
+				List<Warning> warnings = allWarnings.get(path);
+				if (null == warnings) {
+					warnings = new ArrayList<>();
+					allWarnings.put(path, warnings);
 				}
 				for (final int[] code : matchedCodes) {
-					warning.put(code, pattern);
+					final Warning warning = new Warning(code[0], code[1],
+							pattern);
+					warnings.add(warning);
 				}
-			}
-		}
-
-		for (final Entry<String, Map<int[], PATTERN>> entry : warnings
-				.entrySet()) {
-			final String path = entry.getKey();
-			System.out.println("----------");
-			System.out.println(path);
-			final Map<int[], PATTERN> ws = entry.getValue();
-			for (final Entry<int[], PATTERN> e : ws.entrySet()) {
-				final int[] range = e.getKey();
-				final PATTERN pattern = e.getValue();
-				System.out.println(range[0] + " --- " + range[1]);
-				System.out.println(pattern.beforeText);
 			}
 		}
 
@@ -107,7 +95,7 @@ public class FBWarningChecker extends JFrame {
 		CPAConfig.initialize(args);
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				new FBWarningChecker(files, warnings);
+				new FBWarningChecker(files, allWarnings);
 			}
 		});
 	}
@@ -229,10 +217,10 @@ public class FBWarningChecker extends JFrame {
 	}
 
 	final private Map<String, String> files;
-	final private Map<String, Map<int[], PATTERN>> warnings;
+	final private Map<String, List<Warning>> warnings;
 
 	public FBWarningChecker(final Map<String, String> files,
-			final Map<String, Map<int[], PATTERN>> warnings) {
+			final Map<String, List<Warning>> warnings) {
 
 		super("FBWarningChecker");
 
@@ -277,32 +265,16 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
 				.addObserver(afterText);
 
-		SelectedEntities.<String> getInstance(
-				SelectedEntities.SELECTED_LOCATION).addObserver(filelist);
-		SelectedEntities.<String> getInstance(
-				SelectedEntities.SELECTED_LOCATION).addObserver(sourcecode);
-		SelectedEntities.<String> getInstance(
-				SelectedEntities.SELECTED_LOCATION).addObserver(warninglist);
-		SelectedEntities.<String> getInstance(
-				SelectedEntities.SELECTED_LOCATION).addObserver(beforeText);
-		SelectedEntities.<String> getInstance(
-				SelectedEntities.SELECTED_LOCATION).addObserver(afterText);
-
-		SelectedEntities
-				.<String> getInstance(SelectedEntities.SELECTED_PATTERN)
-				.addObserver(filelist);
-		SelectedEntities
-				.<String> getInstance(SelectedEntities.SELECTED_PATTERN)
-				.addObserver(sourcecode);
-		SelectedEntities
-				.<String> getInstance(SelectedEntities.SELECTED_PATTERN)
-				.addObserver(warninglist);
-		SelectedEntities
-				.<String> getInstance(SelectedEntities.SELECTED_PATTERN)
-				.addObserver(beforeText);
-		SelectedEntities
-				.<String> getInstance(SelectedEntities.SELECTED_PATTERN)
-				.addObserver(afterText);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.SELECTED_WARNING).addObserver(filelist);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.SELECTED_WARNING).addObserver(sourcecode);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.SELECTED_WARNING).addObserver(warninglist);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.SELECTED_WARNING).addObserver(beforeText);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.SELECTED_WARNING).addObserver(afterText);
 
 		this.setVisible(true);
 	}

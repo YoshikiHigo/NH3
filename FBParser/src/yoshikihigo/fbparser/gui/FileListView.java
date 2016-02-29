@@ -3,6 +3,7 @@ package yoshikihigo.fbparser.gui;
 import java.awt.Color;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
+import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
@@ -17,13 +18,11 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableRowSorter;
 
-import yoshikihigo.fbparser.XLSXMerger.PATTERN;
-
 public class FileListView extends JTable implements Observer {
 
 	final public JScrollPane scrollPane;
 
-	public FileListView(final Map<String, Map<int[], PATTERN>> warnings) {
+	public FileListView(final Map<String, List<Warning>> allWarnings) {
 
 		super();
 
@@ -41,7 +40,7 @@ public class FileListView extends JTable implements Observer {
 
 		this.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 
-		final FileListViewModel model = new FileListViewModel(warnings);
+		final FileListViewModel model = new FileListViewModel(allWarnings);
 		this.setModel(model);
 		final RowSorter<FileListViewModel> sorter = new TableRowSorter<>(model);
 		this.setRowSorter(sorter);
@@ -74,21 +73,15 @@ public class FileListView extends JTable implements Observer {
 								SelectedEntities.<String> getInstance(
 										SelectedEntities.SELECTED_PATH).add(
 										path, FileListView.this);
-								SelectedEntities.<Integer> getInstance(
-										SelectedEntities.SELECTED_LOCATION)
-										.clear(FileListView.this);
-								SelectedEntities.<PATTERN> getInstance(
-										SelectedEntities.SELECTED_PATTERN)
+								SelectedEntities.<Warning> getInstance(
+										SelectedEntities.SELECTED_WARNING)
 										.clear(FileListView.this);
 							} else {
 								SelectedEntities.<String> getInstance(
 										SelectedEntities.SELECTED_PATH).remove(
 										path, FileListView.this);
-								SelectedEntities.<Integer> getInstance(
-										SelectedEntities.SELECTED_LOCATION)
-										.clear(FileListView.this);
-								SelectedEntities.<PATTERN> getInstance(
-										SelectedEntities.SELECTED_PATTERN)
+								SelectedEntities.<Warning> getInstance(
+										SelectedEntities.SELECTED_WARNING)
 										.clear(FileListView.this);
 							}
 						}

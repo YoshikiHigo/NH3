@@ -2,12 +2,8 @@ package yoshikihigo.fbparser.gui;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.swing.table.AbstractTableModel;
-
-import yoshikihigo.fbparser.XLSXMerger.PATTERN;
 
 public class WarningListViewModel extends AbstractTableModel {
 
@@ -16,21 +12,16 @@ public class WarningListViewModel extends AbstractTableModel {
 
 	static final String[] TITLES = new String[] { "LOCATION", "Pattern ID" };
 
-	final private List<int[]> locations;
-	final private List<PATTERN> patterns;
+	final private List<Warning> warnings;
 
-	public WarningListViewModel(final Map<int[], PATTERN> warnings) {
-		this.locations = new ArrayList<>();
-		this.patterns = new ArrayList<>();
-		for (final Entry<int[], PATTERN> entry : warnings.entrySet()) {
-			this.locations.add(entry.getKey());
-			this.patterns.add(entry.getValue());
-		}
+	public WarningListViewModel(final List<Warning> warnings) {
+		this.warnings = new ArrayList<>();
+		this.warnings.addAll(warnings);
 	}
 
 	@Override
 	public int getRowCount() {
-		return this.locations.size();
+		return this.warnings.size();
 	}
 
 	@Override
@@ -39,17 +30,16 @@ public class WarningListViewModel extends AbstractTableModel {
 	}
 
 	public Object getValueAt(final int row, final int col) {
+		final Warning warning = this.warnings.get(row);
 		switch (col) {
 		case COL_LOCATION:
-			final int[] location = this.locations.get(row);
-			if (location[0] == location[1]) {
-				return Integer.toString(location[0]);
+			if (warning.fromLine == warning.toLine) {
+				return Integer.toString(warning.fromLine);
 			} else {
-				return location[0] + "--" + location[1];
+				return warning.fromLine + "--" + warning.toLine;
 			}
 		case COL_PATTERNID:
-			final PATTERN pattern = this.patterns.get(row);
-			return pattern.mergedID;
+			return warning.pattern.mergedID;
 		default:
 			return null;
 		}
@@ -72,11 +62,7 @@ public class WarningListViewModel extends AbstractTableModel {
 		return TITLES[col];
 	}
 
-	public int[] getLocation(final int row){
-		return this.locations.get(row);
-	}
-	
-	public PATTERN getPATTERN(final int row) {
-		return this.patterns.get(row);
+	public Warning getWarning(final int row) {
+		return this.warnings.get(row);
 	}
 }

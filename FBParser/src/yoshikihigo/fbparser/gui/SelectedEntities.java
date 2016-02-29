@@ -13,8 +13,7 @@ import java.util.Set;
 public final class SelectedEntities<T> extends Observable {
 
 	public static final String SELECTED_PATH = "SELECTED_PATH";
-	public static final String SELECTED_LOCATION = "SELECTED_LOCATION";
-	public static final String SELECTED_PATTERN = "SELECTED_PATTERN";
+	public static final String SELECTED_WARNING = "SELECTED_WARNING";
 
 	private static final Map<String, SelectedEntities<?>> INSTANCES = new HashMap<>();
 

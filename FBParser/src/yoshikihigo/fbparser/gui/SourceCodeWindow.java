@@ -3,8 +3,8 @@ package yoshikihigo.fbparser.gui;
 import java.awt.Color;
 import java.awt.Insets;
 import java.awt.Rectangle;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -17,8 +17,6 @@ import javax.swing.text.DefaultHighlighter.DefaultHighlightPainter;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
 
-import yoshikihigo.fbparser.XLSXMerger.PATTERN;
-
 public class SourceCodeWindow extends JTextArea implements Observer {
 
 	private static final int TAB_SIZE = 4;
@@ -28,10 +26,10 @@ public class SourceCodeWindow extends JTextArea implements Observer {
 	final private JScrollPane scrollPane;
 
 	final private Map<String, String> contents;
-	final private Map<String, Map<int[], PATTERN>> warnings;
+	final private Map<String, List<Warning>> warnings;
 
 	public SourceCodeWindow(final Map<String, String> contents,
-			final Map<String, Map<int[], PATTERN>> warnings) {
+			final Map<String, List<Warning>> warnings) {
 
 		super();
 
@@ -58,7 +56,7 @@ public class SourceCodeWindow extends JTextArea implements Observer {
 				"SOURCE CODE"));
 	}
 
-	private void addHighlight(final Map<int[], PATTERN> warnings) {
+	private void addHighlight(final List<Warning> warnings) {
 
 		final DefaultHighlightPainter densePainter = new DefaultHighlightPainter(
 				new Color(0, 0, 200, 50));
@@ -71,13 +69,13 @@ public class SourceCodeWindow extends JTextArea implements Observer {
 
 		try {
 
-			for (final Entry<int[], PATTERN> warning : warnings.entrySet()) {
+			for (final Warning warning : warnings) {
 
 				int fromOffset = 0;
 				int toOffset = 0;
 
-				final int fromLine = warning.getKey()[0];
-				final int toLine = warning.getKey()[1] + 1;
+				final int fromLine = warning.fromLine;
+				final int toLine = warning.toLine;
 
 				if (0 < fromLine) {
 					fromOffset = super.getLineStartOffset(fromLine - 1);
@@ -88,7 +86,7 @@ public class SourceCodeWindow extends JTextArea implements Observer {
 				}
 
 				if (0 < toLine) {
-					toOffset = super.getLineStartOffset(toLine - 1);
+					toOffset = super.getLineEndOffset(toLine - 1);
 				} else if (0 == toLine) {
 					toOffset = 0;
 				} else {
@@ -96,10 +94,10 @@ public class SourceCodeWindow extends JTextArea implements Observer {
 				}
 
 				this.getHighlighter().addHighlight(fromOffset, toOffset,
-						densePainter);
+						middlePainter);
 			}
 
-		} catch (BadLocationException e) {
+		} catch (final BadLocationException e) {
 			System.err.println(e.getMessage());
 		}
 	}
@@ -118,7 +116,6 @@ public class SourceCodeWindow extends JTextArea implements Observer {
 					SelectedEntities.SELECTED_PATH)) {
 
 				this.setText("");
-				this.setUI(null);
 
 				if (selectedEntities.isSet()) {
 					this.setUI(this.sourceCodeUI);
@@ -127,20 +124,20 @@ public class SourceCodeWindow extends JTextArea implements Observer {
 					this.setText(text);
 					this.setCaretPosition(0);
 
-					final Map<int[], PATTERN> warning = this.warnings.get(path);
-					this.addHighlight(warning);
+					final List<Warning> warnings = this.warnings.get(path);
+					this.addHighlight(warnings);
 				}
 
 				this.repaint();
 			}
 
 			else if (selectedEntities.getLabel().equals(
-					SelectedEntities.SELECTED_LOCATION)) {
+					SelectedEntities.SELECTED_WARNING)) {
 
 				if (selectedEntities.isSet()) {
-					final Integer location = (Integer) selectedEntities.get()
+					final Warning warning = (Warning) selectedEntities.get()
 							.get(0);
-					this.displayAt(location);
+					this.displayAt(warning.fromLine);
 				}
 			}
 		}

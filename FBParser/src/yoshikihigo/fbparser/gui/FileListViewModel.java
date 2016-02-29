@@ -7,8 +7,6 @@ import java.util.Map.Entry;
 
 import javax.swing.table.AbstractTableModel;
 
-import yoshikihigo.fbparser.XLSXMerger.PATTERN;
-
 public class FileListViewModel extends AbstractTableModel {
 
 	static final int COL_PATH = 0;
@@ -17,16 +15,16 @@ public class FileListViewModel extends AbstractTableModel {
 	static final String[] TITLES = new String[] { "PATH", "WARNINGS" };
 
 	final private List<String> paths;
-	final private List<Map<int[], PATTERN>> warnings;
+	final private List<List<Warning>> allWarnings;
 
-	public FileListViewModel(final Map<String, Map<int[], PATTERN>> files) {
+	public FileListViewModel(final Map<String, List<Warning>> allWarnings) {
 		this.paths = new ArrayList<>();
-		this.warnings = new ArrayList<>();
-		for (final Entry<String, Map<int[], PATTERN>> file : files.entrySet()) {
-			final String path = file.getKey();
-			final Map<int[], PATTERN> warning = file.getValue();
+		this.allWarnings = new ArrayList<>();
+		for (final Entry<String, List<Warning>> entry : allWarnings.entrySet()) {
+			final String path = entry.getKey();
+			final List<Warning> warnings = entry.getValue();
 			this.paths.add(path);
-			this.warnings.add(warning);
+			this.allWarnings.add(warnings);
 		}
 	}
 
@@ -45,7 +43,7 @@ public class FileListViewModel extends AbstractTableModel {
 		case COL_PATH:
 			return this.paths.get(row);
 		case COL_WARNINGS:
-			return this.warnings.get(row).size();
+			return this.allWarnings.get(row).size();
 		default:
 			return null;
 		}
@@ -72,7 +70,7 @@ public class FileListViewModel extends AbstractTableModel {
 		return this.paths.get(row);
 	}
 
-	public Map<int[], PATTERN> getWarnings(final int row) {
-		return this.warnings.get(row);
+	public List<Warning> getWarnings(final int row) {
+		return this.allWarnings.get(row);
 	}
 }
