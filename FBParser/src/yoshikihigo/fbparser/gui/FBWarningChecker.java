@@ -7,6 +7,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,26 +47,42 @@ import yoshikihigo.fbparser.XLSXMerger.PATTERN;
 public class FBWarningChecker extends JFrame {
 
 	static public void main(final String[] args) {
+
 		FBParserConfig.initialize(args);
 
-		final String xlsx = args[0];
-		final String repository = args[1];
-		final int revision = Integer.parseInt(args[2]);
+		final String xlsx = FBParserConfig.getInstance().getFIXCHANGEPATTERN();
 
-		final List<PATTERN> patterns = readXLSX(xlsx);
-		final Map<String, String> files = retrieveRevision(repository, revision);
-		final Map<String, List<Statement>> files2 = new HashMap<>();
+		final Map<String, String> files = new HashMap<>();
+		if (FBParserConfig.getInstance().hasREPOSITORY()
+				&& FBParserConfig.getInstance().hasREVISION()) {
+
+			final String repository = FBParserConfig.getInstance()
+					.getREPOSITORY();
+			final int revision = FBParserConfig.getInstance().getREVISION();
+			files.putAll(retrieveRevision(repository, revision));
+		}
+
+		else if (FBParserConfig.getInstance().hasSOURCE()) {
+
+			final String directory = FBParserConfig.getInstance().getSOURCE();
+			files.putAll(retrieveFiles(directory));
+		}
+
+		final Map<String, List<Statement>> allStatements = new HashMap<>();
 		CPAConfig.initialize(new String[] {});
 		for (final Entry<String, String> entry : files.entrySet()) {
 			final String path = entry.getKey();
 			final String contents = entry.getValue();
 			final List<Statement> statements = yoshikihigo.cpanalyzer.StringUtility
 					.splitToStatements(contents, LANGUAGE.JAVA);
-			files2.put(path, statements);
+			allStatements.put(path, statements);
 		}
 
+		final List<PATTERN> patterns = readXLSX(xlsx);
+
 		final Map<String, List<Warning>> allWarnings = new HashMap<>();
-		for (final Entry<String, List<Statement>> file : files2.entrySet()) {
+		for (final Entry<String, List<Statement>> file : allStatements
+				.entrySet()) {
 			final String path = file.getKey();
 			final List<Statement> statements = file.getValue();
 			for (final PATTERN pattern : patterns) {
@@ -214,6 +233,45 @@ public class FBWarningChecker extends JFrame {
 		}
 
 		return files;
+	}
+
+	static Map<String, String> retrieveFiles(final String directory) {
+
+		final List<String> paths = retrievePaths(new File(directory));
+		final Map<String, String> files = new HashMap<>();
+
+		for (final String path : paths) {
+			try {
+				final List<String> lines = Files.readAllLines(Paths.get(path),
+						StandardCharsets.ISO_8859_1);
+				final String text = String.join(System.lineSeparator(), lines);
+				files.put(path, text);
+
+			} catch (final IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return files;
+	}
+
+	static List<String> retrievePaths(final File directory) {
+
+		final List<String> paths = new ArrayList<>();
+
+		if (directory.isFile()) {
+			if (directory.getName().endsWith(".java")) {
+				paths.add(directory.getAbsolutePath());
+			}
+		}
+
+		else if (directory.isDirectory()) {
+			for (final File child : directory.listFiles()) {
+				paths.addAll(retrievePaths(child));
+			}
+		}
+
+		return paths;
 	}
 
 	final private Map<String, String> files;

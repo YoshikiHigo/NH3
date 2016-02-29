@@ -159,6 +159,15 @@ public class FBParserConfig {
 		}
 
 		{
+			final Option revision = new Option("r", "revision", true,
+					"targete revision");
+			revision.setArgName("number");
+			revision.setArgs(1);
+			revision.setRequired(false);
+			options.addOption(revision);
+		}
+
+		{
 			final Option verbose = new Option("v", "verbose", false,
 					"verbose output for progressing");
 			verbose.setRequired(false);
@@ -200,6 +209,10 @@ public class FBParserConfig {
 		this.commandLine = commandLine;
 	}
 
+	public boolean hasSOURCE() {
+		return this.commandLine.hasOption("src");
+	}
+
 	public String getSOURCE() {
 		if (!this.commandLine.hasOption("src")) {
 			System.err.println("option \"src\" is not specified.");
@@ -224,6 +237,10 @@ public class FBParserConfig {
 		return this.commandLine.getOptionValue("cp");
 	}
 
+	public boolean hasFIXCHANGEPATTERN() {
+		return this.commandLine.hasOption("fcp");
+	}
+
 	public String getFIXCHANGEPATTERN() {
 		if (!this.commandLine.hasOption("fcp")) {
 			System.err.println("option \"fcp\" is not specified.");
@@ -246,6 +263,10 @@ public class FBParserConfig {
 			System.exit(0);
 		}
 		return this.commandLine.getOptionValue("bug");
+	}
+
+	public boolean hasREPOSITORY() {
+		return this.commandLine.hasOption("repository");
 	}
 
 	public String getREPOSITORY() {
@@ -342,6 +363,18 @@ public class FBParserConfig {
 
 	public boolean hasMETRICSRESULTXLSX() {
 		return this.commandLine.hasOption("metricsresultxlsx");
+	}
+
+	public boolean hasREVISION() {
+		return this.commandLine.hasOption("r");
+	}
+
+	public int getREVISION() {
+		if (!this.commandLine.hasOption("r")) {
+			System.err.println("option \"r\" is not specified.");
+			System.exit(0);
+		}
+		return Integer.parseInt(this.commandLine.getOptionValue("r"));
 	}
 
 	public boolean isVERBOSE() {

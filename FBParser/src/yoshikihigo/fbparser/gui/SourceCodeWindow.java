@@ -19,7 +19,7 @@ import javax.swing.text.Element;
 
 public class SourceCodeWindow extends JTextArea implements Observer {
 
-	private static final int TAB_SIZE = 4;
+	private static final int TAB_SIZE = 2;
 
 	final private SourceCodeUI sourceCodeUI;
 
