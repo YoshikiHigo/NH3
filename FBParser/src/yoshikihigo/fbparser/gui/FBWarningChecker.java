@@ -167,6 +167,12 @@ public class FBWarningChecker extends JFrame {
 						.getNumericCellValue();
 				pattern.beforeTextSupport = (int) row.getCell(9)
 						.getNumericCellValue();
+				pattern.bugfixCommits = (int) row.getCell(14)
+						.getNumericCellValue();
+				pattern.addDate(row.getCell(15).getStringCellValue());
+				pattern.addDate(row.getCell(16).getStringCellValue());
+				pattern.addBugfixAuthors(row.getCell(26).getStringCellValue());
+				pattern.addBugfixFiles(row.getCell(28).getStringCellValue());
 				patterns.add(pattern);
 			}
 		}
