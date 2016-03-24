@@ -247,7 +247,7 @@ public class FBChangePatternFinder {
 					(o1, o2) -> o1.firstdate.compareTo(o2.firstdate));
 			for (final PATTERN_SQL cp : cps) {
 
-				if (cp.beforeText.isEmpty()) {
+				if (cp.beforeNText.isEmpty()) {
 					continue;
 				}
 				// System.out.println(cp.id);
@@ -283,8 +283,8 @@ public class FBChangePatternFinder {
 				dataRow.createCell(17).setCellValue(getOccupancy(cp));
 				dataRow.createCell(18).setCellValue(
 						getDeltaCFPF(cp, beforeTextSupport));
-				dataRow.createCell(19).setCellValue(cp.beforeText);
-				dataRow.createCell(20).setCellValue(cp.afterText);
+				dataRow.createCell(19).setCellValue(cp.beforeNText);
+				dataRow.createCell(20).setCellValue(cp.afterNText);
 				dataRow.createCell(21).setCellValue(
 						yoshikihigo.fbparser.StringUtility
 								.concatinate(getAuthors(cp)));
@@ -316,7 +316,7 @@ public class FBChangePatternFinder {
 					dataRow.getCell(column).setCellStyle(style);
 				}
 
-				int loc = Math.max(getLOC(cp.beforeText), getLOC(cp.afterText));
+				int loc = Math.max(getLOC(cp.beforeNText), getLOC(cp.afterNText));
 				dataRow.setHeight((short) (loc * dataRow.getHeight()));
 			}
 
@@ -586,7 +586,7 @@ public class FBChangePatternFinder {
 
 		CPAConfig.initialize(new String[] {});
 		final List<Statement> pattern = StringUtility.splitToStatements(
-				cp.beforeText, 1, 1);
+				cp.beforeNText, 1, 1);
 		int count = 0;
 
 		final byte[] beforeHash = cp.beforeHash;

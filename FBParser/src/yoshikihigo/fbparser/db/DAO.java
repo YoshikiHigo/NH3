@@ -251,8 +251,8 @@ public class DAO {
 
 			final String sqlText = "select id, confidence, "
 					+ "firstdate, lastdate, "
-					+ "(select text from Codes where hash = beforeHash), "
-					+ "(select text from Codes where hash = afterHash) "
+					+ "(select nText from codes where hash = beforeHash), "
+					+ "(select nText from codes where hash = afterHash) "
 					+ "from patterns where beforeHash = ? and afterHash = ?";
 			final PreparedStatement statement = this.connector
 					.prepareStatement(sqlText);
@@ -264,12 +264,12 @@ public class DAO {
 				final int changepatternID = result.getInt(1);
 				final String firstdate = result.getString(2);
 				final String lastdate = result.getString(3);
-				final String beforeText = result.getString(4);
-				final String afterText = result.getString(5);
+				final String beforeNText = result.getString(4);
+				final String afterNText = result.getString(5);
 
 				final PATTERN_SQL changepattern = new PATTERN_SQL(
 						changepatternID, firstdate, lastdate, beforeHash,
-						afterHash, beforeText, afterText);
+						afterHash, beforeNText, afterNText);
 				changepatterns.add(changepattern);
 			}
 
@@ -292,8 +292,8 @@ public class DAO {
 			final String sql = "select id, "
 					+ "firstdate, lastdate, "
 					+ "beforeHash, afterHash, "
-					+ "(select C1.text from codes C1 where C1.hash = beforeHash), "
-					+ "(select C2.text from codes C2 where C2.hash = afterHash) "
+					+ "(select C1.nText from codes C1 where C1.hash = beforeHash), "
+					+ "(select C2.nText from codes C2 where C2.hash = afterHash) "
 					+ "from bugfixpatterns where 0 < bugfix order by support desc";
 			final ResultSet result2 = statement.executeQuery(sql);
 			while (result2.next()) {
@@ -302,12 +302,12 @@ public class DAO {
 				final String lastdate = result2.getString(3);
 				final byte[] beforeHash = result2.getBytes(4);
 				final byte[] afterHash = result2.getBytes(5);
-				final String beforeText = result2.getString(6);
-				final String afterText = result2.getString(7);
+				final String beforeNText = result2.getString(6);
+				final String afterNText = result2.getString(7);
 
 				final PATTERN_SQL changepattern = new PATTERN_SQL(
 						changepatternID, firstdate, lastdate, beforeHash,
-						afterHash, beforeText, afterText);
+						afterHash, beforeNText, afterNText);
 				changepatterns.add(changepattern);
 			}
 			statement.close();
@@ -344,13 +344,13 @@ public class DAO {
 		try {
 
 			final Statement statement1 = this.connector.createStatement();
-			final String sql = "select text, hash, count(hash) from codes group by hash order by count(hash) desc";
+			final String sql = "select nText, hash, count(hash) from codes group by hash order by count(hash) desc";
 			final ResultSet result1 = statement1.executeQuery(sql);
 			while (result1.next()) {
-				final String text = result1.getString(1);
+				final String nText = result1.getString(1);
 				final byte[] hash = result1.getBytes(2);
 				final int support = result1.getInt(3);
-				final CODE_SQL code = new CODE_SQL(support, hash, text);
+				final CODE_SQL code = new CODE_SQL(support, hash, nText);
 				codes.add(code);
 			}
 			statement1.close();
@@ -505,20 +505,20 @@ public class DAO {
 		final public String lastdate;
 		final public byte[] beforeHash;
 		final public byte[] afterHash;
-		final public String beforeText;
-		final public String afterText;
+		final public String beforeNText;
+		final public String afterNText;
 
 		public PATTERN_SQL(final int id, final String firstdate,
 				final String lastdate, final byte[] beforeHash,
-				final byte[] afterHash, final String beforeText,
-				final String afterText) {
+				final byte[] afterHash, final String beforeNText,
+				final String afterNText) {
 			this.id = id;
 			this.firstdate = firstdate;
 			this.lastdate = lastdate;
 			this.beforeHash = beforeHash;
 			this.afterHash = afterHash;
-			this.beforeText = beforeText;
-			this.afterText = afterText;
+			this.beforeNText = beforeNText;
+			this.afterNText = afterNText;
 		}
 	}
 
@@ -526,12 +526,12 @@ public class DAO {
 
 		final public int support;
 		final public byte[] hash;
-		final public String text;
+		final public String nText;
 
-		public CODE_SQL(final int support, final byte[] hash, final String text) {
+		public CODE_SQL(final int support, final byte[] hash, final String nText) {
 			this.support = support;
 			this.hash = hash;
-			this.text = text;
+			this.nText = nText;
 		}
 	}
 }
