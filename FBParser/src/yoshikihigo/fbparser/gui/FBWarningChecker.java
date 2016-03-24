@@ -311,7 +311,7 @@ public class FBWarningChecker extends JFrame {
 		final WarningListView warninglist = new WarningListView(warnings);
 		rightPane.add(warninglist.scrollPane, JSplitPane.TOP);
 
-		final PatternWindow patternWindow = new PatternWindow();
+		final PastChangesView patternWindow = new PastChangesView();
 		rightPane.add(patternWindow, JSplitPane.BOTTOM);
 
 		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)

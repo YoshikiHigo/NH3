@@ -14,9 +14,9 @@ import javax.swing.border.TitledBorder;
 
 import yoshikihigo.fbparser.db.DAO;
 
-public class PatternWindow extends JTabbedPane implements Observer {
+public class PastChangesView extends JTabbedPane implements Observer {
 
-	public PatternWindow() {
+	public PastChangesView() {
 		this.setBorder(new TitledBorder(new LineBorder(Color.black),
 				"PAST CHANGES"));
 	}
@@ -41,9 +41,9 @@ public class PatternWindow extends JTabbedPane implements Observer {
 							beforeNText, afterNText);
 
 					for (final String[] rText : rTexts) {
-						final PatternPanel before = new PatternPanel(
+						final ChangeInstanceView before = new ChangeInstanceView(
 								"BEFORE TEXT", rText[0]);
-						final PatternPanel after = new PatternPanel(
+						final ChangeInstanceView after = new ChangeInstanceView(
 								"AFTER TEXT", rText[1]);
 
 						final JSplitPane panel = new JSplitPane(
@@ -69,11 +69,11 @@ public class PatternWindow extends JTabbedPane implements Observer {
 		}
 	}
 
-	class PatternPanel extends JTextArea {
+	class ChangeInstanceView extends JTextArea {
 
 		final JScrollPane scrollPane;
 
-		public PatternPanel(final String title, final String code) {
+		public ChangeInstanceView(final String title, final String code) {
 			this.scrollPane = new JScrollPane();
 			this.scrollPane.setViewportView(this);
 			this.scrollPane
