@@ -1,7 +1,7 @@
 package yoshikihigo.fbparser.gui;
 
-import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.awt.Toolkit;
 import java.io.File;
 import java.io.FileInputStream;
@@ -295,21 +295,24 @@ public class FBWarningChecker extends JFrame {
 		this.setSize(new Dimension(d.width - 10, d.height - 60));
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+		this.getContentPane().setLayout(new GridLayout(1, 2));
+		final JSplitPane leftPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+		this.getContentPane().add(leftPane);
+		final JSplitPane rightPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+		this.getContentPane().add(rightPane);
+
 		final FileListView filelist = new FileListView(warnings);
-		this.getContentPane().add(filelist.scrollPane, BorderLayout.WEST);
+		leftPane.add(filelist.scrollPane, JSplitPane.TOP);
 
 		final SourceCodeWindow sourcecode = new SourceCodeWindow(files,
 				warnings);
-		this.getContentPane().add(sourcecode.getScrollPane(),
-				BorderLayout.CENTER);
+		leftPane.add(sourcecode.getScrollPane(), JSplitPane.BOTTOM);
 
 		final WarningListView warninglist = new WarningListView(warnings);
+		rightPane.add(warninglist.scrollPane, JSplitPane.TOP);
 
 		final PatternWindow patternWindow = new PatternWindow();
-		final JSplitPane rightPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-		rightPane.add(warninglist.scrollPane, JSplitPane.TOP);
 		rightPane.add(patternWindow, JSplitPane.BOTTOM);
-		this.getContentPane().add(rightPane, BorderLayout.EAST);
 
 		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
 				.addObserver(filelist);

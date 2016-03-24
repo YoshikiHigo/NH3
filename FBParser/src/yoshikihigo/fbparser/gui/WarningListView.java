@@ -90,12 +90,20 @@ public class WarningListView extends JTable implements Observer {
 				model);
 		this.setRowSorter(sorter);
 
+		this.getColumnModel().getColumn(0).setMinWidth(100);
+		this.getColumnModel().getColumn(0).setMaxWidth(100);
 		this.getColumnModel().getColumn(1).setMinWidth(50);
 		this.getColumnModel().getColumn(1).setMaxWidth(50);
+		this.getColumnModel().getColumn(2).setMinWidth(80);
+		this.getColumnModel().getColumn(2).setMaxWidth(80);
 		this.getColumnModel().getColumn(3).setMinWidth(55);
 		this.getColumnModel().getColumn(3).setMaxWidth(55);
+		this.getColumnModel().getColumn(4).setMinWidth(80);
+		this.getColumnModel().getColumn(4).setMaxWidth(80);
+		this.getColumnModel().getColumn(5).setMinWidth(80);
+		this.getColumnModel().getColumn(5).setMaxWidth(80);
 		this.getColumnModel().getColumn(6).setMinWidth(95);
-		
+
 		this.getSelectionModel()
 				.addListSelectionListener(this.selectionHandler);
 	}

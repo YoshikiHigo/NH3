@@ -17,6 +17,8 @@ import yoshikihigo.fbparser.db.DAO;
 public class PatternWindow extends JTabbedPane implements Observer {
 
 	public PatternWindow() {
+		this.setBorder(new TitledBorder(new LineBorder(Color.black),
+				"PAST CHANGES"));
 	}
 
 	@Override
@@ -50,7 +52,7 @@ public class PatternWindow extends JTabbedPane implements Observer {
 						panel.add(after.scrollPane, JSplitPane.BOTTOM);
 						this.addTab(Integer.toString(this.getTabCount() + 1),
 								panel);
-						panel.setDividerLocation((this.getHeight() - 50) / 2);
+						panel.setDividerLocation((this.getHeight() - 60) / 2);
 					}
 
 				} else {
