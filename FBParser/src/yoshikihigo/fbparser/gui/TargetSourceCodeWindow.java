@@ -17,18 +17,18 @@ import javax.swing.text.DefaultHighlighter.DefaultHighlightPainter;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
 
-public class SourceCodeWindow extends JTextArea implements Observer {
+public class TargetSourceCodeWindow extends JTextArea implements Observer {
 
 	private static final int TAB_SIZE = 2;
 
-	final private SourceCodeUI sourceCodeUI;
+	final private TargetSourceCodeUI sourceCodeUI;
 
 	final private JScrollPane scrollPane;
 
 	final private Map<String, String> contents;
 	final private Map<String, List<Warning>> warnings;
 
-	public SourceCodeWindow(final Map<String, String> contents,
+	public TargetSourceCodeWindow(final Map<String, String> contents,
 			final Map<String, List<Warning>> warnings) {
 
 		super();
@@ -36,7 +36,7 @@ public class SourceCodeWindow extends JTextArea implements Observer {
 		Insets margin = new Insets(5, 50, 5, 5);
 		this.setMargin(margin);
 
-		this.sourceCodeUI = new SourceCodeUI(this, margin);
+		this.sourceCodeUI = new TargetSourceCodeUI(this, margin);
 
 		this.contents = contents;
 		this.warnings = warnings;

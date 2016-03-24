@@ -304,7 +304,7 @@ public class FBWarningChecker extends JFrame {
 		final FileListView filelist = new FileListView(warnings);
 		leftPane.add(filelist.scrollPane, JSplitPane.TOP);
 
-		final SourceCodeWindow sourcecode = new SourceCodeWindow(files,
+		final TargetSourceCodeWindow sourcecode = new TargetSourceCodeWindow(files,
 				warnings);
 		leftPane.add(sourcecode.getScrollPane(), JSplitPane.BOTTOM);
 

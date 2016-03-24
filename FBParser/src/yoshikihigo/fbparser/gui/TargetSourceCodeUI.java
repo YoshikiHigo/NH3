@@ -14,7 +14,7 @@ import javax.swing.text.Element;
 import javax.swing.text.PlainView;
 import javax.swing.text.View;
 
-class SourceCodeUI extends BasicTextAreaUI {
+class TargetSourceCodeUI extends BasicTextAreaUI {
 
 	class SourceCodePlainView extends PlainView {
 
@@ -108,7 +108,7 @@ class SourceCodeUI extends BasicTextAreaUI {
 	final private JTextArea textArea;
 	final Insets margin;
 
-	SourceCodeUI(final JTextArea textArea, final Insets margin) {
+	TargetSourceCodeUI(final JTextArea textArea, final Insets margin) {
 
 		super();
 		this.textArea = textArea;

@@ -96,11 +96,11 @@ public class FBChangePatternFinder {
 								l.endrev + 1, l.path);
 						for (final CHANGE_SQL change : changes) {
 
-							if (change.endline < l.startstartline) {
+							if (change.beforeEndLine < l.startstartline) {
 								continue;
 							}
 
-							if (l.startendline < change.startline) {
+							if (l.startendline < change.beforeStartLine) {
 								continue;
 							}
 
@@ -460,10 +460,10 @@ public class FBChangePatternFinder {
 			changesInRevision.stream().forEach(change -> {
 				if (changesInPattern.contains(change)) {
 					final AtomicInteger size = map1.get(revision);
-					size.addAndGet(change.endline - change.startline + 1);
+					size.addAndGet(change.beforeEndLine - change.beforeStartLine + 1);
 				}
 				final AtomicInteger size = map2.get(revision);
-				size.addAndGet(change.endline - change.startline + 1);
+				size.addAndGet(change.beforeEndLine - change.beforeStartLine + 1);
 			});
 		}
 
