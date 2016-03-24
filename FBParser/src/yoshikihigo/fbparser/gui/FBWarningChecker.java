@@ -305,14 +305,7 @@ public class FBWarningChecker extends JFrame {
 
 		final WarningListView warninglist = new WarningListView(warnings);
 
-		final PatternWindow beforeText = new PatternWindow(
-				PatternWindow.TYPE.BEFORE);
-		final PatternWindow afterText = new PatternWindow(
-				PatternWindow.TYPE.AFTER);
-		final JSplitPane patternWindow = new JSplitPane(
-				JSplitPane.VERTICAL_SPLIT);
-		patternWindow.add(beforeText.scrollPane, JSplitPane.TOP);
-		patternWindow.add(afterText.scrollPane, JSplitPane.BOTTOM);
+		final PatternWindow patternWindow = new PatternWindow();
 		final JSplitPane rightPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
 		rightPane.add(warninglist.scrollPane, JSplitPane.TOP);
 		rightPane.add(patternWindow, JSplitPane.BOTTOM);
@@ -325,9 +318,7 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
 				.addObserver(warninglist);
 		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
-				.addObserver(beforeText);
-		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
-				.addObserver(afterText);
+				.addObserver(patternWindow);
 
 		SelectedEntities.<Warning> getInstance(
 				SelectedEntities.SELECTED_WARNING).addObserver(filelist);
@@ -336,9 +327,7 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities.<Warning> getInstance(
 				SelectedEntities.SELECTED_WARNING).addObserver(warninglist);
 		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.SELECTED_WARNING).addObserver(beforeText);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.SELECTED_WARNING).addObserver(afterText);
+				SelectedEntities.SELECTED_WARNING).addObserver(patternWindow);
 
 		this.setVisible(true);
 	}

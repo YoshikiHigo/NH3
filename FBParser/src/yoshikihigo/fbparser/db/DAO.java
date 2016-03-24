@@ -319,6 +319,39 @@ public class DAO {
 		return changepatterns;
 	}
 
+	public List<String[]> getRTexts(final String beforeNText,
+			final String afterNText) {
+
+		final List<String[]> rTexts = new ArrayList<>();
+
+		try {
+
+			final String sqlText = "select C2.rText, C3.rText from changes C1 "
+					+ "inner join codes C2 on C1.beforeID = C2.id "
+					+ "inner join codes C3 on C1.afterID = C3.id "
+					+ "where C2.nText = ? and C3.nText = ?";
+			final PreparedStatement statement = this.connector
+					.prepareStatement(sqlText);
+			statement.setString(1, beforeNText);
+			statement.setString(2, afterNText);
+			final ResultSet result = statement.executeQuery();
+
+			while (result.next()) {
+				final String[] rText = new String[2];
+				rText[0] = result.getString(1);
+				rText[1] = result.getString(2);
+				rTexts.add(rText);
+			}
+
+			statement.close();
+
+		} catch (final SQLException e) {
+			e.printStackTrace();
+		}
+
+		return rTexts;
+	}
+
 	public int count(final String sql) {
 
 		int count = 0;

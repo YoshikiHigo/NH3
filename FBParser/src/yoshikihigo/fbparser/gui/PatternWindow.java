@@ -1,44 +1,22 @@
 package yoshikihigo.fbparser.gui;
 
 import java.awt.Color;
+import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 
-public class PatternWindow extends JTextArea implements Observer {
+import yoshikihigo.fbparser.db.DAO;
 
-	enum TYPE {
-		BEFORE, AFTER;
-	}
+public class PatternWindow extends JTabbedPane implements Observer {
 
-	final TYPE type;
-	final JScrollPane scrollPane;
-
-	public PatternWindow(final TYPE type) {
-		this.type = type;
-
-		this.scrollPane = new JScrollPane();
-		this.scrollPane.setViewportView(this);
-
-		this.scrollPane
-				.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-		this.scrollPane
-				.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-
-		switch (type) {
-		case BEFORE:
-			this.scrollPane.setBorder(new TitledBorder(new LineBorder(
-					Color.black), "BEFORE TEXT"));
-			break;
-		case AFTER:
-			this.scrollPane.setBorder(new TitledBorder(new LineBorder(
-					Color.black), "AFTER TEXT"));
-			break;
-		}
+	public PatternWindow() {
 	}
 
 	@Override
@@ -54,25 +32,55 @@ public class PatternWindow extends JTextArea implements Observer {
 				if (selectedEntities.isSet()) {
 					final Warning warning = (Warning) selectedEntities.get()
 							.get(0);
-					switch (this.type) {
-					case BEFORE:
-						this.setText(warning.pattern.beforeText);
-						break;
-					case AFTER:
-						this.setText(warning.pattern.afterText);
-						break;
+					final String beforeNText = warning.pattern.beforeText;
+					final String afterNText = warning.pattern.afterText;
+
+					final List<String[]> rTexts = DAO.getInstance().getRTexts(
+							beforeNText, afterNText);
+
+					for (final String[] rText : rTexts) {
+						final PatternPanel before = new PatternPanel(
+								"BEFORE TEXT", rText[0]);
+						final PatternPanel after = new PatternPanel(
+								"AFTER TEXT", rText[1]);
+
+						final JSplitPane panel = new JSplitPane(
+								JSplitPane.VERTICAL_SPLIT);
+						panel.add(before.scrollPane, JSplitPane.TOP);
+						panel.add(after.scrollPane, JSplitPane.BOTTOM);
+						this.addTab(Integer.toString(this.getTabCount() + 1),
+								panel);
+						panel.setDividerLocation((this.getHeight() - 50) / 2);
 					}
+
 				} else {
-					this.setText("");
+					this.removeAll();
 				}
 				this.repaint();
 			}
 
 			else if (selectedEntities.getLabel().equals(
 					SelectedEntities.SELECTED_PATH)) {
-				this.setText("");
+				this.removeAll();
 				this.repaint();
 			}
+		}
+	}
+
+	class PatternPanel extends JTextArea {
+
+		final JScrollPane scrollPane;
+
+		public PatternPanel(final String title, final String code) {
+			this.scrollPane = new JScrollPane();
+			this.scrollPane.setViewportView(this);
+			this.scrollPane
+					.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+			this.scrollPane
+					.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+			this.scrollPane.setBorder(new TitledBorder(new LineBorder(
+					Color.black), title));
+			this.setText(code);
 		}
 	}
 }
