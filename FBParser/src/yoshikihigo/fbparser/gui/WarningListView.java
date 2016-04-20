@@ -1,6 +1,7 @@
 package yoshikihigo.fbparser.gui;
 
 import java.awt.Color;
+import java.awt.Cursor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,9 @@ public class WarningListView extends JTable implements Observer {
 				return;
 			}
 
+			WarningListView.this.setCursor(Cursor
+					.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
 			final int firstIndex = e.getFirstIndex();
 			final int lastIndex = e.getLastIndex();
 			for (int i = firstIndex; i <= lastIndex; i++) {
@@ -46,6 +50,9 @@ public class WarningListView extends JTable implements Observer {
 							WarningListView.this);
 				}
 			}
+
+			WarningListView.this.setCursor(Cursor
+					.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		}
 	}
 

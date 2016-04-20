@@ -2,7 +2,6 @@ package yoshikihigo.fbparser.gui;
 
 import java.awt.Color;
 import java.awt.Insets;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
@@ -26,6 +25,7 @@ import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
 
 import yoshikihigo.fbparser.FBParserConfig;
+import yoshikihigo.fbparser.StringUtility;
 import yoshikihigo.fbparser.db.DAO;
 import yoshikihigo.fbparser.db.DAO.CHANGE_SQL;
 
@@ -101,21 +101,13 @@ public class PastChangesView extends JTabbedPane implements Observer {
 	private String getText(final String path, final int revision) {
 
 		final String repository = FBParserConfig.getInstance().getREPOSITORY();
-		SVNURL fileurl;
-		try {
-			fileurl = SVNURL.fromFile(new File(repository
-					+ System.getProperty("file.separator") + path));
-		} catch (final SVNException e) {
-			e.printStackTrace();
-			return "";
-		}
-
+		final SVNURL url = StringUtility.getSVNURL(repository, path);
 		FSRepositoryFactory.setup();
 		SVNWCClient wcClient = SVNClientManager.newInstance().getWCClient();
 
 		final StringBuilder text = new StringBuilder();
 		try {
-			wcClient.doGetFileContents(fileurl, SVNRevision.create(revision),
+			wcClient.doGetFileContents(url, SVNRevision.create(revision),
 					SVNRevision.create(revision), false, new OutputStream() {
 						@Override
 						public void write(int b) throws IOException {

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,12 +37,14 @@ import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
+import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 import org.tmatesoft.svn.core.wc.SVNWCClient;
 
 import yoshikihigo.cpanalyzer.CPAConfig;
 import yoshikihigo.cpanalyzer.LANGUAGE;
 import yoshikihigo.cpanalyzer.data.Statement;
 import yoshikihigo.fbparser.FBParserConfig;
+import yoshikihigo.fbparser.StringUtility;
 import yoshikihigo.fbparser.XLSXMerger.PATTERN;
 
 public class FBWarningChecker extends JFrame {
@@ -59,7 +62,8 @@ public class FBWarningChecker extends JFrame {
 			final String repository = FBParserConfig.getInstance()
 					.getREPOSITORY();
 			final int revision = FBParserConfig.getInstance().getREVISION();
-			files.putAll(retrieveRevision(repository, revision));
+			// files.putAll(retrieveRevision(repository, revision));
+			files.putAll(retrieveRevision2(repository, revision));
 		}
 
 		else if (FBParserConfig.getInstance().hasSOURCE()) {
@@ -191,7 +195,7 @@ public class FBWarningChecker extends JFrame {
 		final Map<String, String> files = new HashMap<>();
 
 		try {
-			final SVNURL url = SVNURL.fromFile(new File(repository));
+			final SVNURL repourl = StringUtility.getSVNURL(repository, "");
 			FSRepositoryFactory.setup();
 			final SVNLogClient logClient = SVNClientManager.newInstance()
 					.getLogClient();
@@ -200,9 +204,9 @@ public class FBWarningChecker extends JFrame {
 
 			final List<String> paths = new ArrayList<>();
 
-			logClient.doList(url, SVNRevision.create(revision),
+			logClient.doList(repourl, SVNRevision.create(revision),
 					SVNRevision.create(revision), true, SVNDepth.INFINITY,
-					SVNDirEntry.DIRENT_ALL, new ISVNDirEntryHandler() {
+					SVNDirEntry.DIRENT_KIND, new ISVNDirEntryHandler() {
 
 						@Override
 						public void handleDirEntry(final SVNDirEntry entry)
@@ -218,9 +222,8 @@ public class FBWarningChecker extends JFrame {
 					});
 
 			for (final String path : paths) {
-
-				final SVNURL fileurl = SVNURL.fromFile(new File(repository
-						+ System.getProperty("file.separator") + path));
+				final SVNURL fileurl = StringUtility
+						.getSVNURL(repository, path);
 				final StringBuilder text = new StringBuilder();
 				wcClient.doGetFileContents(fileurl,
 						SVNRevision.create(revision),
@@ -241,6 +244,37 @@ public class FBWarningChecker extends JFrame {
 		return files;
 	}
 
+	static Map<String, String> retrieveRevision2(final String repository,
+			final int revision) {
+
+		Path tmpDir = null;
+		try {
+			tmpDir = Files.createTempDirectory("FBWarningChecker");
+			tmpDir.toFile().deleteOnExit();
+		} catch (final IOException e) {
+			e.printStackTrace();
+			System.exit(0);
+		}
+
+		try {
+			System.out.print("retrieving the specified revision ...");
+			final SVNURL url = StringUtility.getSVNURL(repository, "");
+			FSRepositoryFactory.setup();
+			final SVNUpdateClient client = SVNClientManager.newInstance()
+					.getUpdateClient();
+			client.doExport(url, tmpDir.toFile(), SVNRevision.create(revision),
+					SVNRevision.create(revision), System.lineSeparator(), true,
+					SVNDepth.INFINITY);
+			System.out.println(" done.");
+
+		} catch (final SVNException e) {
+			e.printStackTrace();
+			System.exit(0);
+		}
+
+		return retrieveFiles(tmpDir.toFile().getAbsolutePath());
+	}
+
 	static Map<String, String> retrieveFiles(final String directory) {
 
 		final List<String> paths = retrievePaths(new File(directory));
@@ -251,7 +285,7 @@ public class FBWarningChecker extends JFrame {
 				final List<String> lines = Files.readAllLines(Paths.get(path),
 						StandardCharsets.ISO_8859_1);
 				final String text = String.join(System.lineSeparator(), lines);
-				files.put(path, text);
+				files.put(path.substring(directory.length() + 1), text);
 
 			} catch (final IOException e) {
 				e.printStackTrace();
@@ -304,8 +338,8 @@ public class FBWarningChecker extends JFrame {
 		final FileListView filelist = new FileListView(warnings);
 		leftPane.add(filelist.scrollPane, JSplitPane.TOP);
 
-		final TargetSourceCodeWindow sourcecode = new TargetSourceCodeWindow(files,
-				warnings);
+		final TargetSourceCodeWindow sourcecode = new TargetSourceCodeWindow(
+				files, warnings);
 		leftPane.add(sourcecode.getScrollPane(), JSplitPane.BOTTOM);
 
 		final WarningListView warninglist = new WarningListView(warnings);
