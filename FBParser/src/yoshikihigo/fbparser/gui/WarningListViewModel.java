@@ -14,10 +14,10 @@ public class WarningListViewModel extends AbstractTableModel {
 	static final int COL_COMMITS = 4;
 	static final int COL_AUTHORS = 5;
 	static final int COL_LASTDATE = 6;
-	/*static final int COL_PATTERNID = 7;*/
+	/* static final int COL_PATTERNID = 7; */
 
 	static final String[] TITLES = new String[] { "LOCATION", "SIZE",
-			"INCIDENTS", "FILES", "COMMITS", "AUTHORS", "LASTDATE"/*,"Pattern ID"*/ };
+			"INCIDENTS", "FILES", "COMMITS", "AUTHORS", "LASTDATE"/* ,"Pattern ID" */};
 
 	final private List<Warning> warnings;
 
@@ -40,14 +40,10 @@ public class WarningListViewModel extends AbstractTableModel {
 		final Warning warning = this.warnings.get(row);
 		switch (col) {
 		case COL_LOCATION: {
-			if (warning.fromLine == warning.toLine) {
-				return Integer.toString(warning.fromLine);
-			} else {
-				return warning.fromLine + "--" + warning.toLine;
-			}
+			return warning;
 		}
 		case COL_SIZE: {
-			return Integer.toString(warning.toLine - warning.fromLine + 1);
+			return warning.toLine - warning.fromLine + 1;
 		}
 		case COL_INCIDENTS: {
 			return warning.pattern.bugfixSupport;
@@ -64,9 +60,9 @@ public class WarningListViewModel extends AbstractTableModel {
 		case COL_LASTDATE: {
 			return warning.pattern.getLastDate();
 		}
-		/*case COL_PATTERNID:{
-			return warning.pattern.mergedID;
-		}*/
+		/*
+		 * case COL_PATTERNID:{ return warning.pattern.mergedID; }
+		 */
 		default:
 			return null;
 		}
@@ -76,7 +72,8 @@ public class WarningListViewModel extends AbstractTableModel {
 	public Class<?> getColumnClass(final int col) {
 		switch (col) {
 		case COL_LOCATION:
-			return String.class;
+			return Warning.class;
+		case COL_SIZE:
 		case COL_INCIDENTS:
 		case COL_FILES:
 		case COL_COMMITS:
@@ -84,8 +81,9 @@ public class WarningListViewModel extends AbstractTableModel {
 			return Integer.class;
 		case COL_LASTDATE:
 			return String.class;
-		/*case COL_PATTERNID:
-			return Integer.class;*/
+			/*
+			 * case COL_PATTERNID: return Integer.class;
+			 */
 		default:
 			return Object.class;
 		}

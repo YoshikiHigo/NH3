@@ -78,8 +78,7 @@ public class StringUtility {
 		SVNURL fileurl = null;
 		try {
 			if (repository.startsWith("http://")) {
-				fileurl = SVNURL.parseURIEncoded(repository
-						+ System.getProperty("file.separator") + path);
+				fileurl = SVNURL.parseURIEncoded(repository + "/" + path);
 			} else if (repository.startsWith("/")) {
 				fileurl = SVNURL.fromFile(new File(repository
 						+ System.getProperty("file.separator") + path));
