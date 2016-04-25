@@ -7,16 +7,17 @@ import javax.swing.table.AbstractTableModel;
 
 public class WarningListViewModel extends AbstractTableModel {
 
-	static final int COL_LOCATION = 0;
-	static final int COL_SIZE = 1;
-	static final int COL_INCIDENTS = 2;
-	static final int COL_FILES = 3;
-	static final int COL_COMMITS = 4;
-	static final int COL_AUTHORS = 5;
-	static final int COL_LASTDATE = 6;
+	static final int COL_ID = 0;
+	static final int COL_LOCATION = 1;
+	static final int COL_SIZE = 2;
+	static final int COL_INCIDENTS = 3;
+	static final int COL_FILES = 4;
+	static final int COL_COMMITS = 5;
+	static final int COL_AUTHORS = 6;
+	static final int COL_LASTDATE = 7;
 	/* static final int COL_PATTERNID = 7; */
 
-	static final String[] TITLES = new String[] { "LOCATION", "SIZE",
+	static final String[] TITLES = new String[] { "ID", "LOCATION", "SIZE",
 			"INCIDENTS", "FILES", "COMMITS", "AUTHORS", "LASTDATE"/* ,"Pattern ID" */};
 
 	final private List<Warning> warnings;
@@ -39,6 +40,9 @@ public class WarningListViewModel extends AbstractTableModel {
 	public Object getValueAt(final int row, final int col) {
 		final Warning warning = this.warnings.get(row);
 		switch (col) {
+		case COL_ID: {
+			return row;
+		}
 		case COL_LOCATION: {
 			return warning;
 		}
@@ -71,6 +75,8 @@ public class WarningListViewModel extends AbstractTableModel {
 	@Override
 	public Class<?> getColumnClass(final int col) {
 		switch (col) {
+		case COL_ID:
+			return Integer.class;
 		case COL_LOCATION:
 			return Warning.class;
 		case COL_SIZE:

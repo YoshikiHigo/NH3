@@ -9,10 +9,11 @@ import javax.swing.table.AbstractTableModel;
 
 public class FileListViewModel extends AbstractTableModel {
 
-	static final int COL_PATH = 0;
-	static final int COL_WARNINGS = 1;
+	static final int COL_ID = 0;
+	static final int COL_PATH = 1;
+	static final int COL_WARNINGS = 2;
 
-	static final String[] TITLES = new String[] { "PATH", "WARNINGS" };
+	static final String[] TITLES = new String[] { "ID", "PATH", "WARNINGS" };
 
 	final private List<String> paths;
 	final private List<List<Warning>> allWarnings;
@@ -40,6 +41,8 @@ public class FileListViewModel extends AbstractTableModel {
 
 	public Object getValueAt(final int row, final int col) {
 		switch (col) {
+		case COL_ID:
+			return row;
 		case COL_PATH:
 			return this.paths.get(row);
 		case COL_WARNINGS:
@@ -52,6 +55,8 @@ public class FileListViewModel extends AbstractTableModel {
 	@Override
 	public Class<?> getColumnClass(final int col) {
 		switch (col) {
+		case COL_ID:
+			return Integer.class;
 		case COL_PATH:
 			return String.class;
 		case COL_WARNINGS:

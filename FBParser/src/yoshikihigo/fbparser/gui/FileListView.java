@@ -45,9 +45,11 @@ public class FileListView extends JTable implements Observer {
 		final RowSorter<FileListViewModel> sorter = new TableRowSorter<>(model);
 		this.setRowSorter(sorter);
 
-		this.getColumnModel().getColumn(0).setMinWidth(300);
-		this.getColumnModel().getColumn(1).setMinWidth(70);
-		this.getColumnModel().getColumn(1).setMaxWidth(70);
+		this.getColumnModel().getColumn(0).setMinWidth(50);
+		this.getColumnModel().getColumn(0).setMaxWidth(50);
+		this.getColumnModel().getColumn(1).setMinWidth(300);
+		this.getColumnModel().getColumn(2).setMinWidth(70);
+		this.getColumnModel().getColumn(2).setMaxWidth(70);
 
 		this.getSelectionModel().addListSelectionListener(
 				new ListSelectionListener() {
