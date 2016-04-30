@@ -1,6 +1,8 @@
 package yoshikihigo.fbparser.gui;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Insets;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -8,6 +10,8 @@ import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
@@ -34,6 +38,18 @@ public class PastChangesView extends JTabbedPane implements Observer {
 	public PastChangesView() {
 		this.setBorder(new TitledBorder(new LineBorder(Color.black),
 				"PAST CHANGES"));
+
+		this.addChangeListener(e -> {
+			this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+			final PastChange pastChange = (PastChange) this
+					.getSelectedComponent();
+			if (null != pastChange) {
+				pastChange.loadCode(this.getHeight());
+			}
+
+			this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+		});
 	}
 
 	@Override
@@ -56,32 +72,9 @@ public class PastChangesView extends JTabbedPane implements Observer {
 							.getChanges(beforeNText, afterNText);
 
 					for (final CHANGE_SQL change : changes) {
-
-						final String beforeText = this.getText(change.filepath,
-								change.revision - 1);
-						final String afterText = this.getText(change.filepath,
-								change.revision);
-
-						final ChangeInstanceView beforeView = new ChangeInstanceView(
-								"BEFORE TEXT", beforeText);
-						final ChangeInstanceView afterView = new ChangeInstanceView(
-								"AFTER TEXT", afterText);
-
-						final JSplitPane panel = new JSplitPane(
-								JSplitPane.VERTICAL_SPLIT);
-						panel.add(beforeView.scrollPane, JSplitPane.TOP);
-						panel.add(afterView.scrollPane, JSplitPane.BOTTOM);
+						final PastChange pastChange = new PastChange(change);
 						this.addTab(Integer.toString(this.getTabCount() + 1),
-								panel);
-						panel.setDividerLocation((this.getHeight() - 60) / 2);
-
-						beforeView.addHighlight(change.beforeStartLine,
-								change.beforeEndLine);
-						afterView.addHighlight(change.afterStartLine,
-								change.afterEndLine);
-
-						beforeView.displayAt(change.beforeEndLine);
-						afterView.displayAt(change.afterEndLine);
+								pastChange);
 					}
 
 				} else {
@@ -96,6 +89,52 @@ public class PastChangesView extends JTabbedPane implements Observer {
 				this.repaint();
 			}
 		}
+	}
+}
+
+class PastChange extends JPanel {
+
+	final private CHANGE_SQL change;
+	private JSplitPane srcPane;
+
+	PastChange(final CHANGE_SQL change) {
+		super(new BorderLayout());
+		this.change = change;
+		final JLabel changeLabel = new JLabel("Revision: " + change.revision
+				+ ", Author: " + change.author + ", Path: " + change.filepath);
+		this.add(changeLabel, BorderLayout.NORTH);
+		this.srcPane = null;
+	}
+
+	void loadCode(final int height) {
+
+		if (null != this.srcPane) {
+			return;
+		}
+
+		final String beforeText = this.getText(this.change.filepath,
+				this.change.revision - 1);
+		final String afterText = this.getText(this.change.filepath,
+				this.change.revision);
+
+		final ChangeInstanceView beforeView = new ChangeInstanceView(
+				"BEFORE TEXT", beforeText);
+		final ChangeInstanceView afterView = new ChangeInstanceView(
+				"AFTER TEXT", afterText);
+
+		this.srcPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+		this.srcPane.add(beforeView.scrollPane, JSplitPane.TOP);
+		this.srcPane.add(afterView.scrollPane, JSplitPane.BOTTOM);
+		this.add(this.srcPane, BorderLayout.CENTER);
+		this.srcPane.setDividerLocation((height - 100) / 2);
+
+		beforeView.addHighlight(this.change.beforeStartLine,
+				this.change.beforeEndLine);
+		afterView.addHighlight(this.change.afterStartLine,
+				this.change.afterEndLine);
+
+		beforeView.displayAt(this.change.beforeEndLine);
+		afterView.displayAt(this.change.afterEndLine);
 	}
 
 	private String getText(final String path, final int revision) {
