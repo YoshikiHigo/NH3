@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JFrame;
 import javax.swing.JSplitPane;
@@ -85,6 +86,7 @@ public class FBWarningChecker extends JFrame {
 		final List<PATTERN> patterns = readXLSX(xlsx);
 
 		final Map<String, List<Warning>> allWarnings = new HashMap<>();
+		final Map<PATTERN, AtomicInteger> matchedNumbers = new HashMap<>();
 		for (final Entry<String, List<Statement>> file : allStatements
 				.entrySet()) {
 			final String path = file.getKey();
@@ -97,6 +99,10 @@ public class FBWarningChecker extends JFrame {
 
 				final List<int[]> matchedCodes = findMatchedCode(statements,
 						pattern.beforeTextHashs);
+				if (matchedCodes.isEmpty()) {
+					continue;
+				}
+
 				List<Warning> warnings = allWarnings.get(path);
 				if (null == warnings) {
 					warnings = new ArrayList<>();
@@ -107,6 +113,13 @@ public class FBWarningChecker extends JFrame {
 							pattern);
 					warnings.add(warning);
 				}
+
+				AtomicInteger number = matchedNumbers.get(pattern);
+				if (null == number) {
+					number = new AtomicInteger(0);
+					matchedNumbers.put(pattern, number);
+				}
+				number.addAndGet(matchedCodes.size());
 			}
 		}
 
@@ -118,7 +131,7 @@ public class FBWarningChecker extends JFrame {
 		CPAConfig.initialize(args);
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				new FBWarningChecker(files, allWarnings);
+				new FBWarningChecker(files, allWarnings, matchedNumbers);
 			}
 		});
 	}
@@ -316,14 +329,17 @@ public class FBWarningChecker extends JFrame {
 
 	final private Map<String, String> files;
 	final private Map<String, List<Warning>> warnings;
+	final private Map<PATTERN, AtomicInteger> numbers;
 
 	public FBWarningChecker(final Map<String, String> files,
-			final Map<String, List<Warning>> warnings) {
+			final Map<String, List<Warning>> warnings,
+			final Map<PATTERN, AtomicInteger> numbers) {
 
 		super("FBWarningChecker");
 
 		this.files = files;
 		this.warnings = warnings;
+		this.numbers = numbers;
 
 		final Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setSize(new Dimension(d.width - 10, d.height - 60));
@@ -342,7 +358,8 @@ public class FBWarningChecker extends JFrame {
 				files, warnings);
 		leftPane.add(sourcecode.getScrollPane(), JSplitPane.BOTTOM);
 
-		final WarningListView warninglist = new WarningListView(warnings);
+		final WarningListView warninglist = new WarningListView(warnings,
+				numbers);
 		rightPane.add(warninglist.scrollPane, JSplitPane.TOP);
 
 		final PastChangesView patternWindow = new PastChangesView();

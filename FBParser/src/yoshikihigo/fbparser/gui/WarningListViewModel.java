@@ -2,29 +2,38 @@ package yoshikihigo.fbparser.gui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.table.AbstractTableModel;
+
+import yoshikihigo.fbparser.XLSXMerger.PATTERN;
 
 public class WarningListViewModel extends AbstractTableModel {
 
 	static final int COL_ID = 0;
 	static final int COL_LOCATION = 1;
 	static final int COL_SIZE = 2;
-	static final int COL_INCIDENTS = 3;
+	static final int COL_PASTCHANGES = 3;
 	static final int COL_FILES = 4;
 	static final int COL_COMMITS = 5;
 	static final int COL_AUTHORS = 6;
 	static final int COL_LASTDATE = 7;
-	/* static final int COL_PATTERNID = 7; */
+	static final int COL_PATTERNID = 8;
+	static final int COL_MATCHEDCODE = 9;
 
-	static final String[] TITLES = new String[] { "ID", "LOCATION", "SIZE",
-			"INCIDENTS", "FILES", "COMMITS", "AUTHORS", "LASTDATE"/* ,"Pattern ID" */};
+	static final String[] TITLES = new String[] { "ID", "PLACE", "SIZE",
+			"SUPPORT", "FILES", "COMMITS", "AUTHORS", "LASTDATE",
+			"Pattern ID", "MATCHED" };
 
 	final private List<Warning> warnings;
+	final private Map<PATTERN, AtomicInteger> matchedNumbers;
 
-	public WarningListViewModel(final List<Warning> warnings) {
+	public WarningListViewModel(final List<Warning> warnings,
+			final Map<PATTERN, AtomicInteger> matchedNumbers) {
 		this.warnings = new ArrayList<>();
 		this.warnings.addAll(warnings);
+		this.matchedNumbers = matchedNumbers;
 	}
 
 	@Override
@@ -49,7 +58,7 @@ public class WarningListViewModel extends AbstractTableModel {
 		case COL_SIZE: {
 			return warning.toLine - warning.fromLine + 1;
 		}
-		case COL_INCIDENTS: {
+		case COL_PASTCHANGES: {
 			return warning.pattern.bugfixSupport;
 		}
 		case COL_FILES: {
@@ -64,9 +73,13 @@ public class WarningListViewModel extends AbstractTableModel {
 		case COL_LASTDATE: {
 			return warning.pattern.getLastDate();
 		}
-		/*
-		 * case COL_PATTERNID:{ return warning.pattern.mergedID; }
-		 */
+		case COL_PATTERNID: {
+			return warning.pattern.mergedID;
+		}
+		case COL_MATCHEDCODE: {
+			return this.matchedNumbers.get(warning.pattern).get();
+		}
+
 		default:
 			return null;
 		}
@@ -80,16 +93,16 @@ public class WarningListViewModel extends AbstractTableModel {
 		case COL_LOCATION:
 			return Warning.class;
 		case COL_SIZE:
-		case COL_INCIDENTS:
+		case COL_PASTCHANGES:
 		case COL_FILES:
 		case COL_COMMITS:
 		case COL_AUTHORS:
 			return Integer.class;
 		case COL_LASTDATE:
 			return String.class;
-			/*
-			 * case COL_PATTERNID: return Integer.class;
-			 */
+		case COL_PATTERNID:
+		case COL_MATCHEDCODE:
+			return Integer.class;
 		default:
 			return Object.class;
 		}
