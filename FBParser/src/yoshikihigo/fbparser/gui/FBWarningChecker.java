@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import javax.swing.JFrame;
 import javax.swing.JSplitPane;
@@ -204,10 +206,10 @@ public class FBWarningChecker extends JFrame {
 		return patterns;
 	}
 
-	static Map<String, String> retrieveRevision(final String repository,
+	static SortedMap<String, String> retrieveRevision(final String repository,
 			final int revision) {
 
-		final Map<String, String> files = new HashMap<>();
+		final SortedMap<String, String> files = new TreeMap<>();
 
 		try {
 			final SVNURL repourl = StringUtility.getSVNURL(repository, "");
@@ -259,7 +261,7 @@ public class FBWarningChecker extends JFrame {
 		return files;
 	}
 
-	static Map<String, String> retrieveRevision2(final String repository,
+	static SortedMap<String, String> retrieveRevision2(final String repository,
 			final int revision) {
 
 		Path tmpDir = null;
@@ -290,10 +292,10 @@ public class FBWarningChecker extends JFrame {
 		return retrieveFiles(tmpDir.toFile().getAbsolutePath());
 	}
 
-	static Map<String, String> retrieveFiles(final String directory) {
+	static SortedMap<String, String> retrieveFiles(final String directory) {
 
 		final List<String> paths = retrievePaths(new File(directory));
-		final Map<String, String> files = new HashMap<>();
+		final SortedMap<String, String> files = new TreeMap<>();
 
 		for (final String path : paths) {
 			try {

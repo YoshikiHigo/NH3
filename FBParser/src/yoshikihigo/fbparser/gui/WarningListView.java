@@ -78,7 +78,7 @@ public class WarningListView extends JTable implements Observer {
 				.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 
 		this.scrollPane.setBorder(new TitledBorder(new LineBorder(Color.black),
-				"WARNING List"));
+				"WARNING LIST"));
 
 		this.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
