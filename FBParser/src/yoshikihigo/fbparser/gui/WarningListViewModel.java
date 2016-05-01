@@ -3,7 +3,6 @@ package yoshikihigo.fbparser.gui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.table.AbstractTableModel;
 
@@ -23,17 +22,17 @@ public class WarningListViewModel extends AbstractTableModel {
 	static final int COL_MATCHEDCODE = 9;
 
 	static final String[] TITLES = new String[] { "ID", "PLACE", "SIZE",
-			"SUPPORT", "FILES", "COMMITS", "AUTHORS", "LASTDATE",
-			"Pattern ID", "MATCHED" };
+			"SUPPORT", "FILES", "COMMITS", "AUTHORS", "LASTDATE", "Pattern ID",
+			"MATCHED" };
 
 	final private List<Warning> warnings;
-	final private Map<PATTERN, AtomicInteger> matchedNumbers;
+	final private Map<PATTERN, List<Warning>> pWarnings;
 
 	public WarningListViewModel(final List<Warning> warnings,
-			final Map<PATTERN, AtomicInteger> matchedNumbers) {
+			final Map<PATTERN, List<Warning>> pWarnings) {
 		this.warnings = new ArrayList<>();
 		this.warnings.addAll(warnings);
-		this.matchedNumbers = matchedNumbers;
+		this.pWarnings = pWarnings;
 	}
 
 	@Override
@@ -77,7 +76,7 @@ public class WarningListViewModel extends AbstractTableModel {
 			return warning.pattern.mergedID;
 		}
 		case COL_MATCHEDCODE: {
-			return this.matchedNumbers.get(warning.pattern).get();
+			return this.pWarnings.get(warning.pattern).size();
 		}
 
 		default:

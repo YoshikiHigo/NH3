@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -60,17 +59,17 @@ public class WarningListView extends JTable implements Observer {
 	}
 
 	final private SelectionHandler selectionHandler;
-	final private Map<String, List<Warning>> allWarnings;
-	final private Map<PATTERN, AtomicInteger> matchedNumbers;
+	final private Map<String, List<Warning>> fWarnings;
+	final private Map<PATTERN, List<Warning>> pWarnings;
 	final public JScrollPane scrollPane;
 
-	public WarningListView(final Map<String, List<Warning>> allWarnings,
-			final Map<PATTERN, AtomicInteger> matchedNumbers) {
+	public WarningListView(final Map<String, List<Warning>> fWarnings,
+			final Map<PATTERN, List<Warning>> pWarnings) {
 
 		super();
 
-		this.allWarnings = allWarnings;
-		this.matchedNumbers = matchedNumbers;
+		this.fWarnings = fWarnings;
+		this.pWarnings = pWarnings;
 		this.scrollPane = new JScrollPane();
 		this.scrollPane.setViewportView(this);
 		this.scrollPane
@@ -98,7 +97,7 @@ public class WarningListView extends JTable implements Observer {
 		this.getSelectionModel().clearSelection();
 
 		final WarningListViewModel model = new WarningListViewModel(warnings,
-				this.matchedNumbers);
+				this.pWarnings);
 		this.setModel(model);
 		final RowSorter<WarningListViewModel> sorter = new TableRowSorter<>(
 				model);
@@ -144,7 +143,7 @@ public class WarningListView extends JTable implements Observer {
 
 				if (selectedEntities.isSet()) {
 					final String path = (String) selectedEntities.get().get(0);
-					final List<Warning> warnings = this.allWarnings.get(path);
+					final List<Warning> warnings = this.fWarnings.get(path);
 					this.setWarnings(warnings);
 				} else {
 					this.setWarnings(new ArrayList<Warning>());
