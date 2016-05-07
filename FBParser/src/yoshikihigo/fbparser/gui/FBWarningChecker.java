@@ -13,7 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -57,7 +57,7 @@ public class FBWarningChecker extends JFrame {
 
 		final String xlsx = FBParserConfig.getInstance().getFIXCHANGEPATTERN();
 
-		final Map<String, String> files = new HashMap<>();
+		final SortedMap<String, String> files = new TreeMap<>();
 		if (FBParserConfig.getInstance().hasREPOSITORY()
 				&& FBParserConfig.getInstance().hasREVISION()) {
 
@@ -74,7 +74,7 @@ public class FBWarningChecker extends JFrame {
 			files.putAll(retrieveFiles(directory));
 		}
 
-		final Map<String, List<Statement>> allStatements = new HashMap<>();
+		final SortedMap<String, List<Statement>> allStatements = new TreeMap<>();
 		CPAConfig.initialize(new String[] {});
 		for (final Entry<String, String> entry : files.entrySet()) {
 			final String path = entry.getKey();
@@ -86,8 +86,8 @@ public class FBWarningChecker extends JFrame {
 
 		final List<PATTERN> patterns = readXLSX(xlsx);
 
-		final Map<String, List<Warning>> fWarnings = new HashMap<>();
-		final Map<PATTERN, List<Warning>> pWarnings = new HashMap<>();
+		final SortedMap<String, List<Warning>> fWarnings = new TreeMap<>();
+		final SortedMap<PATTERN, List<Warning>> pWarnings = new TreeMap<>();
 		for (final Entry<String, List<Statement>> file : allStatements
 				.entrySet()) {
 			final String path = file.getKey();
@@ -327,6 +327,8 @@ public class FBWarningChecker extends JFrame {
 				paths.addAll(retrievePaths(child));
 			}
 		}
+
+		Collections.sort(paths);
 
 		return paths;
 	}

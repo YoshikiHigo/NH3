@@ -3,6 +3,7 @@ package yoshikihigo.fbparser.gui;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Observable;
@@ -104,25 +105,15 @@ public class WarningListView extends JTable implements Observer {
 		this.setRowSorter(sorter);
 
 		this.getColumnModel().getColumn(0).setMinWidth(40);
-		this.getColumnModel().getColumn(0).setMaxWidth(40);
 		this.getColumnModel().getColumn(1).setMinWidth(70);
-		this.getColumnModel().getColumn(1).setMaxWidth(90);
 		this.getColumnModel().getColumn(2).setMinWidth(50);
-		this.getColumnModel().getColumn(2).setMaxWidth(50);
 		this.getColumnModel().getColumn(3).setMinWidth(70);
-		this.getColumnModel().getColumn(3).setMaxWidth(70);
 		this.getColumnModel().getColumn(4).setMinWidth(55);
-		this.getColumnModel().getColumn(4).setMaxWidth(55);
 		this.getColumnModel().getColumn(5).setMinWidth(70);
-		this.getColumnModel().getColumn(5).setMaxWidth(70);
 		this.getColumnModel().getColumn(6).setMinWidth(70);
-		this.getColumnModel().getColumn(6).setMaxWidth(70);
 		this.getColumnModel().getColumn(7).setMinWidth(80);
-		this.getColumnModel().getColumn(7).setMaxWidth(140);
 		this.getColumnModel().getColumn(8).setMinWidth(70);
-		this.getColumnModel().getColumn(8).setMaxWidth(70);
 		this.getColumnModel().getColumn(9).setMinWidth(70);
-		this.getColumnModel().getColumn(9).setMaxWidth(70);
 
 		this.getSelectionModel()
 				.addListSelectionListener(this.selectionHandler);
@@ -144,6 +135,7 @@ public class WarningListView extends JTable implements Observer {
 				if (selectedEntities.isSet()) {
 					final String path = (String) selectedEntities.get().get(0);
 					final List<Warning> warnings = this.fWarnings.get(path);
+					Collections.sort(warnings);
 					this.setWarnings(warnings);
 				} else {
 					this.setWarnings(new ArrayList<Warning>());
