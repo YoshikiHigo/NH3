@@ -62,6 +62,8 @@ public class PastChangesView extends JTabbedPane implements Observer {
 			if (selectedEntities.getLabel().equals(
 					SelectedEntities.SELECTED_WARNING)) {
 
+				this.removeAll();
+
 				if (selectedEntities.isSet()) {
 					final Warning warning = (Warning) selectedEntities.get()
 							.get(0);
@@ -76,10 +78,8 @@ public class PastChangesView extends JTabbedPane implements Observer {
 						this.addTab(Integer.toString(this.getTabCount() + 1),
 								pastChange);
 					}
-
-				} else {
-					this.removeAll();
 				}
+
 				this.repaint();
 			}
 
