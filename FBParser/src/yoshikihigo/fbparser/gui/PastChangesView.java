@@ -4,12 +4,15 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -100,10 +103,45 @@ class PastChange extends JPanel {
 	PastChange(final CHANGE_SQL change) {
 		super(new BorderLayout());
 		this.change = change;
-		final JLabel changeLabel = new JLabel("Revision: " + change.revision
+
+		final JLabel label1 = new JLabel("Revision: " + change.revision
 				+ ", Author: " + change.author + ", Path: " + change.filepath);
-		this.add(changeLabel, BorderLayout.NORTH);
+		final JLabel label2 = new JLabel("Commit log: " + change.message);
+		final JPanel labelPanel = new JPanel(new BorderLayout());
+		labelPanel.add(label1, BorderLayout.NORTH);
+		labelPanel.add(label2, BorderLayout.CENTER);
+		this.add(labelPanel, BorderLayout.NORTH);
+
 		this.srcPane = null;
+
+		labelPanel.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(final MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					final JFrame frame = new JFrame("Commit Information");
+					frame.setSize(500, 600);
+					final JTextArea text = new JTextArea();
+					text.append("Revision: ");
+					text.append(Integer.toString(change.revision));
+					text.append(System.lineSeparator());
+					text.append(System.lineSeparator());
+					text.append("Author: ");
+					text.append(change.author);
+					text.append(System.lineSeparator());
+					text.append(System.lineSeparator());
+					text.append("File: ");
+					text.append(change.filepath);
+					text.append(System.lineSeparator());
+					text.append(System.lineSeparator());
+					text.append("Log: ");
+					text.append(change.message);
+					text.setEditable(false);
+					text.setLineWrap(true);
+					frame.getContentPane().add(text);
+					frame.setVisible(true);
+				}
+			}
+		});
 	}
 
 	void loadCode(final int height) {
