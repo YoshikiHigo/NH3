@@ -125,7 +125,8 @@ public class DAO {
 			final String text = "select id, revision, filepath, " + "(select start from codes where id = beforeID), "
 					+ "(select end from codes where id = beforeID), " + "(select start from codes where id = afterID),"
 					+ "(select end from codes where id = afterID), "
-					+ "(select author from revisions where number = revision), " + "bugfix "
+					+ "(select author from revisions where number = revision), "
+					+ "(select message from revisions where number = revision), " + "bugfix "
 					+ "from bugfixchanges where beforeHash = ? and afterHash = ?";
 			final PreparedStatement statement = this.connector.prepareStatement(text);
 			statement.setBytes(1, beforeHash);
@@ -141,9 +142,10 @@ public class DAO {
 				final int afterStartLine = results.getInt(6);
 				final int afterEndLine = results.getInt(7);
 				final String author = results.getString(8);
-				final int bugfix = results.getInt(9);
+				final String message = results.getString(9);
+				final int bugfix = results.getInt(10);
 				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash, afterHash, revision, filepath, startline,
-						endline, afterStartLine, afterEndLine, author, 0 < bugfix);
+						endline, afterStartLine, afterEndLine, author, message, 0 < bugfix);
 				changes.add(change);
 			}
 
@@ -163,9 +165,10 @@ public class DAO {
 		try {
 
 			final String sqlText = "select C1.id, C1.revision, C1.filepath, "
-					+ "C1.beforeHash, C1.afterHash, C2.start, C2.end, C3.start, C3.end, " + "R.author from changes C1 "
-					+ "inner join codes C2 on C1.beforeID = C2.id " + "inner join codes C3 on C1.afterID = C3.id "
-					+ "inner join revisions R on C1.revision = R.number " + "where C2.nText = ? and C3.nText = ?";
+					+ "C1.beforeHash, C1.afterHash, C2.start, C2.end, C3.start, C3.end, "
+					+ "R.author, R.message from changes C1 " + "inner join codes C2 on C1.beforeID = C2.id "
+					+ "inner join codes C3 on C1.afterID = C3.id " + "inner join revisions R on C1.revision = R.number "
+					+ "where C2.nText = ? and C3.nText = ?";
 			final PreparedStatement statement = this.connector.prepareStatement(sqlText);
 			statement.setString(1, beforeNText);
 			statement.setString(2, afterNText);
@@ -182,8 +185,9 @@ public class DAO {
 				final int afterStartLine = results.getInt(8);
 				final int afterEndLine = results.getInt(9);
 				final String author = results.getString(10);
+				final String message = results.getString(11);
 				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash, afterHash, revision, filepath, startline,
-						endline, afterStartLine, afterEndLine, author, true);
+						endline, afterStartLine, afterEndLine, author, message, true);
 				changes.add(change);
 			}
 
@@ -201,7 +205,8 @@ public class DAO {
 		final String text = "select id, beforeHash, afterHash, filepath, "
 				+ "(select start from codes where id = beforeID), " + "(select end from codes where id = beforeID), "
 				+ "(select start from codes where id = afterID), " + "(select end from codes where id = afterID), "
-				+ "(select author from revisions where number = revision), " + "bugfix "
+				+ "(select author from revisions where number = revision), "
+				+ "(select message from revisions where number = revision), " + "bugfix "
 				+ "from bugfixchanges where revision = " + revision;
 
 		final List<CHANGE_SQL> changes = new ArrayList<>();
@@ -220,9 +225,10 @@ public class DAO {
 				final int afterStartLine = results.getInt(7);
 				final int afterEndLine = results.getInt(8);
 				final String author = results.getString(9);
-				final int bugfix = results.getInt(10);
+				final String message = results.getString(10);
+				final int bugfix = results.getInt(11);
 				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash, afterHash, (int) revision, filepath,
-						startline, endline, afterStartLine, afterEndLine, author, 0 < bugfix);
+						startline, endline, afterStartLine, afterEndLine, author, message, 0 < bugfix);
 				changes.add(change);
 			}
 
@@ -241,7 +247,8 @@ public class DAO {
 		final String text = "select id, beforeHash, afterHash, filepath, "
 				+ "(select start from codes where id = beforeID), " + "(select end from codes where id = beforeID), "
 				+ "(select start from codes where id = afterID), " + "(select end from codes where id = afterID), "
-				+ "(select author from revisions where number = revision), " + "bugfix "
+				+ "(select author from revisions where number = revision), "
+				+ "(select message from revisions where number = revision), " + "bugfix "
 				+ "from bugfixchanges where revision = " + revision + " and filepath = \'" + path + "\'";
 
 		final List<CHANGE_SQL> changes = new ArrayList<>();
@@ -260,9 +267,10 @@ public class DAO {
 				final int afterStartLine = results.getInt(7);
 				final int afterEndLine = results.getInt(8);
 				final String author = results.getString(9);
-				final int bugfix = results.getInt(10);
+				final String message = results.getString(10);
+				final int bugfix = results.getInt(11);
 				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash, afterHash, (int) revision, filepath,
-						startline, endline, afterStartLine, afterEndLine, author, 0 < bugfix);
+						startline, endline, afterStartLine, afterEndLine, author, message, 0 < bugfix);
 				changes.add(change);
 			}
 
@@ -496,11 +504,12 @@ public class DAO {
 		final public int afterStartLine;
 		final public int afterEndLine;
 		final public String author;
+		final public String message;
 		final public boolean bugfix;
 
 		public CHANGE_SQL(final int id, final byte[] beforeHash, final byte[] afterHash, final int revision,
 				final String filepath, final int startline, final int endline, final int afterStartLine,
-				final int afterEndLine, final String author, final boolean bugfix) {
+				final int afterEndLine, final String author, final String message, final boolean bugfix) {
 			this.id = id;
 			this.beforeHash = beforeHash;
 			this.afterHash = afterHash;
@@ -511,6 +520,7 @@ public class DAO {
 			this.afterEndLine = afterEndLine;
 			this.beforeEndLine = endline;
 			this.author = author;
+			this.message = message;
 			this.bugfix = bugfix;
 		}
 

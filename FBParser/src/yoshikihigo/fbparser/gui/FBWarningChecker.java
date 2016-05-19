@@ -13,10 +13,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import javax.swing.JFrame;
 import javax.swing.JSplitPane;
@@ -55,7 +57,7 @@ public class FBWarningChecker extends JFrame {
 
 		final String xlsx = FBParserConfig.getInstance().getFIXCHANGEPATTERN();
 
-		final Map<String, String> files = new HashMap<>();
+		final SortedMap<String, String> files = new TreeMap<>();
 		if (FBParserConfig.getInstance().hasREPOSITORY()
 				&& FBParserConfig.getInstance().hasREVISION()) {
 
@@ -72,7 +74,7 @@ public class FBWarningChecker extends JFrame {
 			files.putAll(retrieveFiles(directory));
 		}
 
-		final Map<String, List<Statement>> allStatements = new HashMap<>();
+		final SortedMap<String, List<Statement>> allStatements = new TreeMap<>();
 		CPAConfig.initialize(new String[] {});
 		for (final Entry<String, String> entry : files.entrySet()) {
 			final String path = entry.getKey();
@@ -84,7 +86,8 @@ public class FBWarningChecker extends JFrame {
 
 		final List<PATTERN> patterns = readXLSX(xlsx);
 
-		final Map<String, List<Warning>> allWarnings = new HashMap<>();
+		final SortedMap<String, List<Warning>> fWarnings = new TreeMap<>();
+		final SortedMap<PATTERN, List<Warning>> pWarnings = new TreeMap<>();
 		for (final Entry<String, List<Statement>> file : allStatements
 				.entrySet()) {
 			final String path = file.getKey();
@@ -97,16 +100,30 @@ public class FBWarningChecker extends JFrame {
 
 				final List<int[]> matchedCodes = findMatchedCode(statements,
 						pattern.beforeTextHashs);
-				List<Warning> warnings = allWarnings.get(path);
-				if (null == warnings) {
-					warnings = new ArrayList<>();
-					allWarnings.put(path, warnings);
+				if (matchedCodes.isEmpty()) {
+					continue;
 				}
+
+				final List<Warning> warnings = new ArrayList<>();
 				for (final int[] code : matchedCodes) {
 					final Warning warning = new Warning(code[0], code[1],
 							pattern);
 					warnings.add(warning);
 				}
+
+				List<Warning> w1 = fWarnings.get(path);
+				if (null == w1) {
+					w1 = new ArrayList<>();
+					fWarnings.put(path, w1);
+				}
+				w1.addAll(warnings);
+
+				List<Warning> w2 = pWarnings.get(pattern);
+				if (null == w2) {
+					w2 = new ArrayList<>();
+					pWarnings.put(pattern, w2);
+				}
+				w2.addAll(warnings);
 			}
 		}
 
@@ -118,7 +135,7 @@ public class FBWarningChecker extends JFrame {
 		CPAConfig.initialize(args);
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				new FBWarningChecker(files, allWarnings);
+				new FBWarningChecker(files, fWarnings, pWarnings);
 			}
 		});
 	}
@@ -189,10 +206,10 @@ public class FBWarningChecker extends JFrame {
 		return patterns;
 	}
 
-	static Map<String, String> retrieveRevision(final String repository,
+	static SortedMap<String, String> retrieveRevision(final String repository,
 			final int revision) {
 
-		final Map<String, String> files = new HashMap<>();
+		final SortedMap<String, String> files = new TreeMap<>();
 
 		try {
 			final SVNURL repourl = StringUtility.getSVNURL(repository, "");
@@ -244,7 +261,7 @@ public class FBWarningChecker extends JFrame {
 		return files;
 	}
 
-	static Map<String, String> retrieveRevision2(final String repository,
+	static SortedMap<String, String> retrieveRevision2(final String repository,
 			final int revision) {
 
 		Path tmpDir = null;
@@ -275,10 +292,10 @@ public class FBWarningChecker extends JFrame {
 		return retrieveFiles(tmpDir.toFile().getAbsolutePath());
 	}
 
-	static Map<String, String> retrieveFiles(final String directory) {
+	static SortedMap<String, String> retrieveFiles(final String directory) {
 
 		final List<String> paths = retrievePaths(new File(directory));
-		final Map<String, String> files = new HashMap<>();
+		final SortedMap<String, String> files = new TreeMap<>();
 
 		for (final String path : paths) {
 			try {
@@ -311,19 +328,24 @@ public class FBWarningChecker extends JFrame {
 			}
 		}
 
+		Collections.sort(paths);
+
 		return paths;
 	}
 
 	final private Map<String, String> files;
-	final private Map<String, List<Warning>> warnings;
+	final private Map<String, List<Warning>> fWarnings;
+	final private Map<PATTERN, List<Warning>> pWarnings;
 
 	public FBWarningChecker(final Map<String, String> files,
-			final Map<String, List<Warning>> warnings) {
+			final Map<String, List<Warning>> fWarnings,
+			final Map<PATTERN, List<Warning>> pWarnings) {
 
 		super("FBWarningChecker");
 
 		this.files = files;
-		this.warnings = warnings;
+		this.fWarnings = fWarnings;
+		this.pWarnings = pWarnings;
 
 		final Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setSize(new Dimension(d.width - 10, d.height - 60));
@@ -335,14 +357,15 @@ public class FBWarningChecker extends JFrame {
 		final JSplitPane rightPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
 		this.getContentPane().add(rightPane);
 
-		final FileListView filelist = new FileListView(warnings);
+		final FileListView filelist = new FileListView(fWarnings);
 		leftPane.add(filelist.scrollPane, JSplitPane.TOP);
 
 		final TargetSourceCodeWindow sourcecode = new TargetSourceCodeWindow(
-				files, warnings);
+				files, fWarnings);
 		leftPane.add(sourcecode.getScrollPane(), JSplitPane.BOTTOM);
 
-		final WarningListView warninglist = new WarningListView(warnings);
+		final WarningListView warninglist = new WarningListView(fWarnings,
+				pWarnings);
 		rightPane.add(warninglist.scrollPane, JSplitPane.TOP);
 
 		final PastChangesView patternWindow = new PastChangesView();

@@ -3,6 +3,7 @@ package yoshikihigo.fbparser.gui;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Observable;
@@ -17,6 +18,8 @@ import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableRowSorter;
+
+import yoshikihigo.fbparser.XLSXMerger.PATTERN;
 
 public class WarningListView extends JTable implements Observer {
 
@@ -57,23 +60,26 @@ public class WarningListView extends JTable implements Observer {
 	}
 
 	final private SelectionHandler selectionHandler;
-	final private Map<String, List<Warning>> allWarnings;
+	final private Map<String, List<Warning>> fWarnings;
+	final private Map<PATTERN, List<Warning>> pWarnings;
 	final public JScrollPane scrollPane;
 
-	public WarningListView(final Map<String, List<Warning>> allWarnings) {
+	public WarningListView(final Map<String, List<Warning>> fWarnings,
+			final Map<PATTERN, List<Warning>> pWarnings) {
 
 		super();
 
-		this.allWarnings = allWarnings;
+		this.fWarnings = fWarnings;
+		this.pWarnings = pWarnings;
 		this.scrollPane = new JScrollPane();
 		this.scrollPane.setViewportView(this);
 		this.scrollPane
 				.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		this.scrollPane
-				.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+				.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 
 		this.scrollPane.setBorder(new TitledBorder(new LineBorder(Color.black),
-				"WARNING List"));
+				"WARNING LIST"));
 
 		this.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
@@ -91,27 +97,23 @@ public class WarningListView extends JTable implements Observer {
 				this.selectionHandler);
 		this.getSelectionModel().clearSelection();
 
-		final WarningListViewModel model = new WarningListViewModel(warnings);
+		final WarningListViewModel model = new WarningListViewModel(warnings,
+				this.pWarnings);
 		this.setModel(model);
 		final RowSorter<WarningListViewModel> sorter = new TableRowSorter<>(
 				model);
 		this.setRowSorter(sorter);
 
-		this.getColumnModel().getColumn(0).setMinWidth(50);
-		this.getColumnModel().getColumn(0).setMaxWidth(50);
-		this.getColumnModel().getColumn(1).setMinWidth(100);
-		this.getColumnModel().getColumn(1).setMaxWidth(100);
+		this.getColumnModel().getColumn(0).setMinWidth(40);
+		this.getColumnModel().getColumn(1).setMinWidth(70);
 		this.getColumnModel().getColumn(2).setMinWidth(50);
-		this.getColumnModel().getColumn(2).setMaxWidth(50);
-		this.getColumnModel().getColumn(3).setMinWidth(80);
-		this.getColumnModel().getColumn(3).setMaxWidth(80);
+		this.getColumnModel().getColumn(3).setMinWidth(70);
 		this.getColumnModel().getColumn(4).setMinWidth(55);
-		this.getColumnModel().getColumn(4).setMaxWidth(55);
-		this.getColumnModel().getColumn(5).setMinWidth(80);
-		this.getColumnModel().getColumn(5).setMaxWidth(80);
-		this.getColumnModel().getColumn(6).setMinWidth(80);
-		this.getColumnModel().getColumn(6).setMaxWidth(80);
-		this.getColumnModel().getColumn(7).setMinWidth(95);
+		this.getColumnModel().getColumn(5).setMinWidth(70);
+		this.getColumnModel().getColumn(6).setMinWidth(70);
+		this.getColumnModel().getColumn(7).setMinWidth(80);
+		this.getColumnModel().getColumn(8).setMinWidth(70);
+		this.getColumnModel().getColumn(9).setMinWidth(70);
 
 		this.getSelectionModel()
 				.addListSelectionListener(this.selectionHandler);
@@ -132,7 +134,8 @@ public class WarningListView extends JTable implements Observer {
 
 				if (selectedEntities.isSet()) {
 					final String path = (String) selectedEntities.get().get(0);
-					final List<Warning> warnings = this.allWarnings.get(path);
+					final List<Warning> warnings = this.fWarnings.get(path);
+					Collections.sort(warnings);
 					this.setWarnings(warnings);
 				} else {
 					this.setWarnings(new ArrayList<Warning>());

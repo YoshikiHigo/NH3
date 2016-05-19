@@ -447,7 +447,8 @@ public class XLSXMerger {
 		}
 	}
 
-	static public class PATTERN extends SIMPLE_PATTERN {
+	static public class PATTERN extends SIMPLE_PATTERN implements
+			Comparable<PATTERN> {
 
 		final public List<byte[]> beforeTextHashs;
 		final public List<byte[]> afterTextHashs;
@@ -611,6 +612,11 @@ public class XLSXMerger {
 				text.append(System.lineSeparator());
 			}
 			return text.toString();
+		}
+
+		@Override
+		public int compareTo(final PATTERN target) {
+			return Integer.compare(this.mergedID, target.mergedID);
 		}
 	}
 }
