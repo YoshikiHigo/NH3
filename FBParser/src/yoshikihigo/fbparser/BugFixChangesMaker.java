@@ -32,6 +32,8 @@ public class BugFixChangesMaker {
 
 			final Statement statement1 = connector.createStatement();
 			statement1
+			.executeUpdate("drop index if exists index_revision_bugfixchanges");
+			statement1
 					.executeUpdate("drop index if exists index_beforeHash_bugfixchanges");
 			statement1
 					.executeUpdate("drop index if exists index_afterHash_bugfixchanges");
@@ -44,6 +46,8 @@ public class BugFixChangesMaker {
 			statement1.executeUpdate("drop table if exists bugfixchanges");
 			statement1.executeUpdate("create table bugfixchanges ("
 					+ BUGFIXCHANGES_SCHEMA + ")");
+			statement1
+			.executeUpdate("create index index_revision_bugfixchanges on bugfixchanges(revision)");
 			statement1
 					.executeUpdate("create index index_beforeHash_bugfixchanges on bugfixchanges(beforeHash)");
 			statement1
