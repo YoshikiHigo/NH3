@@ -1,13 +1,18 @@
 package yoshikihigo.fbparser.gui;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.Set;
 
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -17,6 +22,9 @@ import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 
 import yoshikihigo.fbparser.XLSXMerger.PATTERN;
@@ -62,6 +70,7 @@ public class WarningListView extends JTable implements Observer {
 	final private SelectionHandler selectionHandler;
 	final private Map<String, List<Warning>> fWarnings;
 	final private Map<PATTERN, List<Warning>> pWarnings;
+	final private Set<Integer> trivialWarnings;
 	final public JScrollPane scrollPane;
 
 	public WarningListView(final Map<String, List<Warning>> fWarnings,
@@ -71,6 +80,7 @@ public class WarningListView extends JTable implements Observer {
 
 		this.fWarnings = fWarnings;
 		this.pWarnings = pWarnings;
+		this.trivialWarnings = new HashSet<>();
 		this.scrollPane = new JScrollPane();
 		this.scrollPane.setViewportView(this);
 		this.scrollPane
@@ -89,6 +99,33 @@ public class WarningListView extends JTable implements Observer {
 		this.selectionHandler = new SelectionHandler();
 		this.getSelectionModel()
 				.addListSelectionListener(this.selectionHandler);
+
+		this.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(final MouseEvent e) {
+				if ((e.getModifiers() & MouseEvent.BUTTON3_MASK) != 0) {
+					if (2 == e.getClickCount()) {
+						for (final int index : WarningListView.this
+								.getSelectedRows()) {
+							final int modelIndex = WarningListView.this
+									.convertRowIndexToModel(index);
+							final WarningListViewModel model = (WarningListViewModel) WarningListView.this
+									.getModel();
+							final Warning warning = model.warnings
+									.get(modelIndex);
+							final int id = warning.pattern.mergedID;
+							if (WarningListView.this.trivialWarnings
+									.contains(id)) {
+								WarningListView.this.trivialWarnings.remove(id);
+							} else {
+								WarningListView.this.trivialWarnings.add(id);
+							}
+						}
+						WarningListView.this.repaint();
+					}
+				}
+			}
+		});
 	}
 
 	public void setWarnings(final List<Warning> warnings) {
@@ -103,6 +140,14 @@ public class WarningListView extends JTable implements Observer {
 		final RowSorter<WarningListViewModel> sorter = new TableRowSorter<>(
 				model);
 		this.setRowSorter(sorter);
+
+		final WRenderer renderer = new WRenderer();
+		final TableColumnModel columnModel = this.getColumnModel();
+		final TableColumn[] column = new TableColumn[model.getColumnCount()];
+		for (int i = 0; i < column.length; i++) {
+			column[i] = columnModel.getColumn(i);
+			column[i].setCellRenderer(renderer);
+		}
 
 		this.getColumnModel().getColumn(0).setMinWidth(40);
 		this.getColumnModel().getColumn(1).setMinWidth(70);
@@ -155,4 +200,44 @@ public class WarningListView extends JTable implements Observer {
 	// this.getModel();
 	// return model.getPath(modelRow);
 	// }
+
+	public class WRenderer extends DefaultTableCellRenderer {
+
+		WRenderer() {
+			super();
+		}
+
+		@Override
+		public Component getTableCellRendererComponent(JTable table,
+				Object value, boolean isSelected, boolean hasFocus, int row,
+				int column) {
+
+			super.getTableCellRendererComponent(table, value, isSelected,
+					hasFocus, row, column);
+
+			final int modelIndex = WarningListView.this
+					.convertRowIndexToModel(row);
+			final WarningListViewModel model = (WarningListViewModel) WarningListView.this
+					.getModel();
+			final Warning warning = model.warnings.get(modelIndex);
+			final int id = warning.pattern.mergedID;
+			if (!isSelected) {
+				if (WarningListView.this.trivialWarnings.contains(id)) {
+					this.setBackground(Color.LIGHT_GRAY);
+				} else {
+					this.setBackground(table.getBackground());
+				}
+			}
+
+			else {
+				if (WarningListView.this.trivialWarnings.contains(id)) {
+					this.setBackground(Color.GRAY);
+				} else {
+					this.setBackground(table.getSelectionBackground());
+				}
+			}
+
+			return this;
+		}
+	}
 }

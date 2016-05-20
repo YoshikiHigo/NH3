@@ -57,10 +57,12 @@ public class FBChangePatternFinderWithoutFindBugs {
 	public static void main(final String[] args) {
 
 		FBParserConfig.initialize(args);
-		final String fcpFile = FBParserConfig.getInstance().getFIXCHANGEPATTERN();
+		final String fcpFile = FBParserConfig.getInstance()
+				.getFIXCHANGEPATTERN();
 		final DAO dao = DAO.getInstance();
 
-		try (final Workbook book = new XSSFWorkbook(); final OutputStream stream = new FileOutputStream(fcpFile)) {
+		try (final Workbook book = new XSSFWorkbook();
+				final OutputStream stream = new FileOutputStream(fcpFile)) {
 
 			Cell firstCell = null;
 			Cell lastCell = null;
@@ -98,43 +100,74 @@ public class FBChangePatternFinderWithoutFindBugs {
 			titleRow.createCell(27).setCellValue("FILE-LIST");
 			titleRow.createCell(28).setCellValue("BUG-FIX-FILE-LIST");
 
-			final int bugfixCommits = (int) DAO.getInstance().getRevisions().stream()
-					.filter(revision -> revision.bugfix).count();
+			final int bugfixCommits = (int) DAO.getInstance().getRevisions()
+					.stream().filter(revision -> revision.bugfix).count();
 			titleRow.createCell(29).setCellValue(bugfixCommits);
-			final int nonbugfixCommits = (int) DAO.getInstance().getRevisions().stream()
-					.filter(revision -> !revision.bugfix).count();
+			final int nonbugfixCommits = (int) DAO.getInstance().getRevisions()
+					.stream().filter(revision -> !revision.bugfix).count();
 			titleRow.createCell(30).setCellValue(nonbugfixCommits);
 
 			firstCell = titleRow.getCell(0);
 			lastCell = titleRow.getCell(28);
 
-			setCellComment(titleRow.getCell(3), "Higo",
-					"the number of authors that committed the change pattern in all commits", 5, 2);
-			setCellComment(titleRow.getCell(4), "Higo",
-					"the number of authors commited the change pattern in bug-fix commits", 5, 2);
-			setCellComment(titleRow.getCell(5), "Higo",
-					"the number of files where the change pattern appeared in all commits", 5, 2);
-			setCellComment(titleRow.getCell(6), "Higo",
-					"the number of files where the change pattern appeared in bug-fix commits", 5, 2);
-			setCellComment(titleRow.getCell(7), "Higo", "the number of occurences of a given pattern", 4, 1);
-			setCellComment(titleRow.getCell(8), "Higo",
-					"the number of occurences of a given pattern in bug-fix commits", 4, 2);
-			setCellComment(titleRow.getCell(9), "Higo",
-					"the number of code fragments whose texts are " + "identical to before-text of a given pattern "
+			setCellComment(
+					titleRow.getCell(3),
+					"Higo",
+					"the number of authors that committed the change pattern in all commits",
+					5, 2);
+			setCellComment(
+					titleRow.getCell(4),
+					"Higo",
+					"the number of authors commited the change pattern in bug-fix commits",
+					5, 2);
+			setCellComment(
+					titleRow.getCell(5),
+					"Higo",
+					"the number of files where the change pattern appeared in all commits",
+					5, 2);
+			setCellComment(
+					titleRow.getCell(6),
+					"Higo",
+					"the number of files where the change pattern appeared in bug-fix commits",
+					5, 2);
+			setCellComment(titleRow.getCell(7), "Higo",
+					"the number of occurences of a given pattern", 4, 1);
+			setCellComment(
+					titleRow.getCell(8),
+					"Higo",
+					"the number of occurences of a given pattern in bug-fix commits",
+					4, 2);
+			setCellComment(
+					titleRow.getCell(9),
+					"Higo",
+					"the number of code fragments whose texts are "
+							+ "identical to before-text of a given pattern "
 							+ "in the commit where the pattern appears initially",
 					4, 3);
-			setCellComment(titleRow.getCell(10), "Higo", "BUG-FIX-SUPPORT / SUPPORT", 4, 2);
-			setCellComment(titleRow.getCell(11), "Higo", "SUPPORT / BEFORE-TEXT-SUPPORT", 4, 2);
-			setCellComment(titleRow.getCell(12), "Higo", "BUG-FIX-SUPPORT / BEFORE-TEXT-SUPPORT", 4, 2);
-			setCellComment(titleRow.getCell(13), "Higo", "the number of commits where the pattern appears", 4, 2);
-			setCellComment(titleRow.getCell(14), "Higo", "the number of bug-fix commits where the pattern appears", 4,
-					2);
-			setCellComment(titleRow.getCell(18), "Higo",
+			setCellComment(titleRow.getCell(10), "Higo",
+					"BUG-FIX-SUPPORT / SUPPORT", 4, 2);
+			setCellComment(titleRow.getCell(11), "Higo",
+					"SUPPORT / BEFORE-TEXT-SUPPORT", 4, 2);
+			setCellComment(titleRow.getCell(12), "Higo",
+					"BUG-FIX-SUPPORT / BEFORE-TEXT-SUPPORT", 4, 2);
+			setCellComment(titleRow.getCell(13), "Higo",
+					"the number of commits where the pattern appears", 4, 2);
+			setCellComment(titleRow.getCell(14), "Higo",
+					"the number of bug-fix commits where the pattern appears",
+					4, 2);
+			setCellComment(
+					titleRow.getCell(18),
+					"Higo",
 					"average of (LOC of a given pattern changed in revision R) / "
-							+ "(total LOC changed in revision R) " + "for all the revisions where the pattern appears",
+							+ "(total LOC changed in revision R) "
+							+ "for all the revisions where the pattern appears",
 					4, 3);
-			setCellComment(titleRow.getCell(19), "Higo",
-					"delta-CFPF was calculated with the following formula" + System.lineSeparator() + "pf*(cf1 - cf2)"
+			setCellComment(
+					titleRow.getCell(19),
+					"Higo",
+					"delta-CFPF was calculated with the following formula"
+							+ System.lineSeparator()
+							+ "pf*(cf1 - cf2)"
 							+ System.lineSeparator()
 							+ "pf: pattern frequency, which is calculated as support / before-text-support"
 							+ System.lineSeparator()
@@ -146,16 +179,26 @@ public class FBChangePatternFinderWithoutFindBugs {
 			int currentRow = 1;
 			final List<PATTERN_SQL> cps = dao.getFixChangePatterns();
 			// Collections.sort(cps, (o1, o2) -> Integer.compare(o1.id, o2.id));
-			Collections.sort(cps, (o1, o2) -> o1.firstdate.compareTo(o2.firstdate));
+			Collections.sort(cps,
+					(o1, o2) -> o1.firstdate.compareTo(o2.firstdate));
 			for (final PATTERN_SQL cp : cps) {
 
 				if (cp.beforeNText.isEmpty()) {
 					continue;
 				}
 
-				if ((cp.confidence < 1.0f) || (cp.support < 2)) {
+				if (cp.afterNText.isEmpty()) {
 					continue;
 				}
+
+				if (cp.confidence < 0.5f) {
+					continue;
+				}
+
+				if (cp.support < 2) {
+					continue;
+				}
+
 				System.out.println(currentRow + " : " + cp.lastdate);
 
 				final int findBugsSupport = 0;
@@ -174,30 +217,46 @@ public class FBChangePatternFinderWithoutFindBugs {
 				dataRow.createCell(7).setCellValue(support);
 				dataRow.createCell(8).setCellValue(bugfixSupport);
 				dataRow.createCell(9).setCellValue(beforeTextSupport);
-				dataRow.createCell(10).setCellValue((float) bugfixSupport / (float) support);
-				dataRow.createCell(11).setCellValue((float) support / (float) beforeTextSupport);
-				dataRow.createCell(12).setCellValue((float) bugfixSupport / (float) beforeTextSupport);
+				dataRow.createCell(10).setCellValue(
+						(float) bugfixSupport / (float) support);
+				dataRow.createCell(11).setCellValue(
+						(float) support / (float) beforeTextSupport);
+				dataRow.createCell(12).setCellValue(
+						(float) bugfixSupport / (float) beforeTextSupport);
 				dataRow.createCell(13).setCellValue(getCommits(cp));
 				dataRow.createCell(14).setCellValue(getCommits(cp, true));
 				dataRow.createCell(15).setCellValue(cp.firstdate);
 				dataRow.createCell(16).setCellValue(cp.lastdate);
-				dataRow.createCell(17).setCellValue(getDayDifference(cp.firstdate, cp.lastdate));
+				dataRow.createCell(17).setCellValue(
+						getDayDifference(cp.firstdate, cp.lastdate));
 				dataRow.createCell(18).setCellValue(getOccupancy(cp));
-				dataRow.createCell(19).setCellValue(getDeltaCFPF(cp, beforeTextSupport));
+				dataRow.createCell(19).setCellValue(
+						getDeltaCFPF(cp, beforeTextSupport));
 				dataRow.createCell(20).setCellValue("no data");
 				dataRow.createCell(21).setCellValue("no date");
 				dataRow.createCell(22).setCellValue("no date");
 				dataRow.createCell(23).setCellValue(
-						cp.beforeNText.length() > 32767 ? cp.beforeNText.substring(0, 32767) : cp.beforeNText);
+						cp.beforeNText.length() > 32767 ? cp.beforeNText
+								.substring(0, 32767) : cp.beforeNText);
 				dataRow.createCell(24).setCellValue(
-						cp.afterNText.length() > 32767 ? cp.afterNText.substring(0, 32767) : cp.afterNText);
-				dataRow.createCell(25).setCellValue(yoshikihigo.fbparser.StringUtility.concatinate(getAuthors(cp)));
-				dataRow.createCell(26)
-						.setCellValue(yoshikihigo.fbparser.StringUtility.concatinate(getAuthors(cp, true)));
-				dataRow.createCell(27).setCellValue(yoshikihigo.fbparser.StringUtility
-						.shrink(yoshikihigo.fbparser.StringUtility.concatinate(getFiles(cp)), 10000));
-				dataRow.createCell(28).setCellValue(yoshikihigo.fbparser.StringUtility
-						.shrink(yoshikihigo.fbparser.StringUtility.concatinate(getFiles(cp, true)), 10000));
+						cp.afterNText.length() > 32767 ? cp.afterNText
+								.substring(0, 32767) : cp.afterNText);
+				dataRow.createCell(25).setCellValue(
+						yoshikihigo.fbparser.StringUtility
+								.concatinate(getAuthors(cp)));
+				dataRow.createCell(26).setCellValue(
+						yoshikihigo.fbparser.StringUtility
+								.concatinate(getAuthors(cp, true)));
+				dataRow.createCell(27).setCellValue(
+						yoshikihigo.fbparser.StringUtility.shrink(
+								yoshikihigo.fbparser.StringUtility
+										.concatinate(getFiles(cp)), 10000));
+				dataRow.createCell(28)
+						.setCellValue(
+								yoshikihigo.fbparser.StringUtility.shrink(
+										yoshikihigo.fbparser.StringUtility
+												.concatinate(getFiles(cp, true)),
+										10000));
 				lastCell = dataRow.getCell(28);
 
 				final CellStyle style = book.createCellStyle();
@@ -213,7 +272,8 @@ public class FBChangePatternFinderWithoutFindBugs {
 					dataRow.getCell(column).setCellStyle(style);
 				}
 
-				int loc = Math.max(getLOC(cp.beforeNText), getLOC(cp.afterNText));
+				int loc = Math.max(getLOC(cp.beforeNText),
+						getLOC(cp.afterNText));
 				dataRow.setHeight((short) (loc * dataRow.getHeight()));
 			}
 
@@ -247,8 +307,9 @@ public class FBChangePatternFinderWithoutFindBugs {
 			sheet.setColumnWidth(27, 20480);
 			sheet.setColumnWidth(28, 20480);
 
-			sheet.setAutoFilter(new CellRangeAddress(firstCell.getRowIndex(), lastCell.getRowIndex(),
-					firstCell.getColumnIndex(), lastCell.getColumnIndex()));
+			sheet.setAutoFilter(new CellRangeAddress(firstCell.getRowIndex(),
+					lastCell.getRowIndex(), firstCell.getColumnIndex(),
+					lastCell.getColumnIndex()));
 			sheet.createFreezePane(0, 1, 0, 1);
 
 			book.write(stream);
@@ -259,15 +320,16 @@ public class FBChangePatternFinderWithoutFindBugs {
 		}
 	}
 
-	private static void setCellComment(final Cell cell, final String author, final String text, final int width,
-			final int height) {
+	private static void setCellComment(final Cell cell, final String author,
+			final String text, final int width, final int height) {
 
 		final Sheet sheet = cell.getSheet();
 		final Workbook workbook = sheet.getWorkbook();
 		final CreationHelper helper = workbook.getCreationHelper();
 
 		final Drawing drawing = sheet.createDrawingPatriarch();
-		final ClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, (short) 4, 2, (short) (4 + width), (2 + height));
+		final ClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, (short) 4,
+				2, (short) (4 + width), (2 + height));
 		final Comment comment = drawing.createCellComment(anchor);
 		comment.setAuthor(author);
 		comment.setString(helper.createRichTextString(text));
@@ -285,92 +347,114 @@ public class FBChangePatternFinderWithoutFindBugs {
 		return count + 1;
 	}
 
-	private static int getDayDifference(final String firstdate, final String lastdate) {
+	private static int getDayDifference(final String firstdate,
+			final String lastdate) {
 
 		final Calendar calendar1 = Calendar.getInstance();
 		{
-			final StringTokenizer tokenizer1 = new StringTokenizer(firstdate, " :/");
+			final StringTokenizer tokenizer1 = new StringTokenizer(firstdate,
+					" :/");
 			final String year = tokenizer1.nextToken();
 			final String month = tokenizer1.nextToken();
 			final String date = tokenizer1.nextToken();
 			final String hour = tokenizer1.nextToken();
 			final String minute = tokenizer1.nextToken();
 			final String second = tokenizer1.nextToken();
-			calendar1.set(Integer.parseInt(year), Integer.parseInt(month), Integer.parseInt(date),
-					Integer.parseInt(hour), Integer.parseInt(minute), Integer.parseInt(second));
+			calendar1.set(Integer.parseInt(year), Integer.parseInt(month),
+					Integer.parseInt(date), Integer.parseInt(hour),
+					Integer.parseInt(minute), Integer.parseInt(second));
 		}
 
 		final Calendar calendar2 = Calendar.getInstance();
 		{
-			final StringTokenizer tokenizer1 = new StringTokenizer(lastdate, " :/");
+			final StringTokenizer tokenizer1 = new StringTokenizer(lastdate,
+					" :/");
 			final String year = tokenizer1.nextToken();
 			final String month = tokenizer1.nextToken();
 			final String date = tokenizer1.nextToken();
 			final String hour = tokenizer1.nextToken();
 			final String minute = tokenizer1.nextToken();
 			final String second = tokenizer1.nextToken();
-			calendar2.set(Integer.parseInt(year), Integer.parseInt(month), Integer.parseInt(date),
-					Integer.parseInt(hour), Integer.parseInt(minute), Integer.parseInt(second));
+			calendar2.set(Integer.parseInt(year), Integer.parseInt(month),
+					Integer.parseInt(date), Integer.parseInt(hour),
+					Integer.parseInt(minute), Integer.parseInt(second));
 		}
 
-		final long difference = calendar2.getTime().getTime() - calendar1.getTime().getTime();
+		final long difference = calendar2.getTime().getTime()
+				- calendar1.getTime().getTime();
 		return (int) (difference / 1000l / 60l / 60l / 24l);
 	}
 
 	private static int getCommits(final PATTERN_SQL cp) {
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
-		return (int) DAO.getInstance().getChanges(beforeHash, afterHash).stream().mapToInt(change -> change.revision)
-				.distinct().count();
+		return (int) DAO.getInstance().getChanges(beforeHash, afterHash)
+				.stream().mapToInt(change -> change.revision).distinct()
+				.count();
 	}
 
 	private static int getCommits(final PATTERN_SQL cp, final boolean bugfix) {
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
-		final List<CHANGE_SQL> changesInPattern = DAO.getInstance().getChanges(beforeHash, afterHash);
-		return (int) changesInPattern.stream().filter(change -> bugfix == change.bugfix).count();
+		final List<CHANGE_SQL> changesInPattern = DAO.getInstance().getChanges(
+				beforeHash, afterHash);
+		return (int) changesInPattern.stream()
+				.filter(change -> bugfix == change.bugfix).count();
 	}
 
 	private static float getOccupancy(final PATTERN_SQL cp) {
 
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
-		final List<CHANGE_SQL> changesInPattern = DAO.getInstance().getChanges(beforeHash, afterHash);
+		final List<CHANGE_SQL> changesInPattern = DAO.getInstance().getChanges(
+				beforeHash, afterHash);
 		final Map<REVISION_SQL, AtomicInteger> map1 = new HashMap<>();
 		final Map<REVISION_SQL, AtomicInteger> map2 = new HashMap<>();
 
-		final SortedSet<REVISION_SQL> revisions = DAO.getInstance().getRevisions(beforeHash, afterHash);
+		final SortedSet<REVISION_SQL> revisions = DAO.getInstance()
+				.getRevisions(beforeHash, afterHash);
 		for (final REVISION_SQL revision : revisions) {
 			map1.put(revision, new AtomicInteger(0));
 			map2.put(revision, new AtomicInteger(0));
-			List<CHANGE_SQL> changesInRevision = DAO.getInstance().getChanges(revision.number);
-			changesInRevision.stream().forEach(change -> {
-				if (changesInPattern.contains(change)) {
-					final AtomicInteger size = map1.get(revision);
-					size.addAndGet(change.beforeEndLine - change.beforeStartLine + 1);
-				}
-				final AtomicInteger size = map2.get(revision);
-				size.addAndGet(change.beforeEndLine - change.beforeStartLine + 1);
-			});
+			List<CHANGE_SQL> changesInRevision = DAO.getInstance().getChanges(
+					revision.number);
+			changesInRevision.stream().forEach(
+					change -> {
+						if (changesInPattern.contains(change)) {
+							final AtomicInteger size = map1.get(revision);
+							size.addAndGet(change.beforeEndLine
+									- change.beforeStartLine + 1);
+						}
+						final AtomicInteger size = map2.get(revision);
+						size.addAndGet(change.beforeEndLine
+								- change.beforeStartLine + 1);
+					});
 		}
 
 		float sum = 0;
 		for (final REVISION_SQL revision : revisions) {
 			final AtomicInteger numerator = map1.get(revision);
 			final AtomicInteger denominator = map2.get(revision);
-			final float occupancy = (float) numerator.get() / (float) denominator.get();
+			final float occupancy = (float) numerator.get()
+					/ (float) denominator.get();
 			sum += occupancy;
 		}
 
 		return sum / revisions.size();
 	}
 
-	private static double getDeltaCFPF(final PATTERN_SQL cp, final int beforeTextSupport) {
-		final double pf = (double) getChanges(cp).size() / (double) beforeTextSupport;
-		final long count1 = DAO.getInstance().getRevisions().stream().filter(revision -> revision.bugfix).count();
-		final double cf1 = (double) getCommits(cp, true) / (double) (0 < count1 ? count1 : 1);
-		final long count2 = DAO.getInstance().getRevisions().stream().filter(revision -> !revision.bugfix).count();
-		final double cf2 = (double) getCommits(cp, false) / (double) (0 < count2 ? count2 : 1);
+	private static double getDeltaCFPF(final PATTERN_SQL cp,
+			final int beforeTextSupport) {
+		final double pf = (double) getChanges(cp).size()
+				/ (double) beforeTextSupport;
+		final long count1 = DAO.getInstance().getRevisions().stream()
+				.filter(revision -> revision.bugfix).count();
+		final double cf1 = (double) getCommits(cp, true)
+				/ (double) (0 < count1 ? count1 : 1);
+		final long count2 = DAO.getInstance().getRevisions().stream()
+				.filter(revision -> !revision.bugfix).count();
+		final double cf2 = (double) getCommits(cp, false)
+				/ (double) (0 < count2 ? count2 : 1);
 		final double pfcf = pf * (cf1 - cf2);
 		return pfcf;
 	}
@@ -382,11 +466,13 @@ public class FBChangePatternFinderWithoutFindBugs {
 		return DAO.getInstance().getChanges(beforeHash, afterHash);
 	}
 
-	private static List<CHANGE_SQL> getChanges(final PATTERN_SQL cp, final boolean bugfix) {
+	private static List<CHANGE_SQL> getChanges(final PATTERN_SQL cp,
+			final boolean bugfix) {
 
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
-		final List<CHANGE_SQL> changes = DAO.getInstance().getChanges(beforeHash, afterHash);
+		final List<CHANGE_SQL> changes = DAO.getInstance().getChanges(
+				beforeHash, afterHash);
 		final Iterator<CHANGE_SQL> iterator = changes.iterator();
 		while (iterator.hasNext()) {
 			final CHANGE_SQL change = iterator.next();
@@ -403,7 +489,8 @@ public class FBChangePatternFinderWithoutFindBugs {
 		final SortedSet<String> authors = new TreeSet<>();
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
-		final List<CHANGE_SQL> changes = DAO.getInstance().getChanges(beforeHash, afterHash);
+		final List<CHANGE_SQL> changes = DAO.getInstance().getChanges(
+				beforeHash, afterHash);
 		for (final CHANGE_SQL change : changes) {
 			authors.add(change.author);
 		}
@@ -411,12 +498,14 @@ public class FBChangePatternFinderWithoutFindBugs {
 		return authors;
 	}
 
-	private static SortedSet<String> getAuthors(final PATTERN_SQL cp, final boolean bugfix) {
+	private static SortedSet<String> getAuthors(final PATTERN_SQL cp,
+			final boolean bugfix) {
 
 		final SortedSet<String> authors = new TreeSet<>();
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
-		final List<CHANGE_SQL> changes = DAO.getInstance().getChanges(beforeHash, afterHash);
+		final List<CHANGE_SQL> changes = DAO.getInstance().getChanges(
+				beforeHash, afterHash);
 		for (final CHANGE_SQL change : changes) {
 			if ((bugfix && change.bugfix) || (!bugfix && !change.bugfix)) {
 				authors.add(change.author);
@@ -431,7 +520,8 @@ public class FBChangePatternFinderWithoutFindBugs {
 		final SortedSet<String> files = new TreeSet<>();
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
-		final List<CHANGE_SQL> changes = DAO.getInstance().getChanges(beforeHash, afterHash);
+		final List<CHANGE_SQL> changes = DAO.getInstance().getChanges(
+				beforeHash, afterHash);
 		for (final CHANGE_SQL change : changes) {
 			files.add(change.filepath);
 		}
@@ -439,12 +529,14 @@ public class FBChangePatternFinderWithoutFindBugs {
 		return files;
 	}
 
-	private static SortedSet<String> getFiles(final PATTERN_SQL cp, final boolean bugfix) {
+	private static SortedSet<String> getFiles(final PATTERN_SQL cp,
+			final boolean bugfix) {
 
 		final SortedSet<String> files = new TreeSet<>();
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
-		final List<CHANGE_SQL> changes = DAO.getInstance().getChanges(beforeHash, afterHash);
+		final List<CHANGE_SQL> changes = DAO.getInstance().getChanges(
+				beforeHash, afterHash);
 		for (final CHANGE_SQL change : changes) {
 			if ((bugfix && change.bugfix) || (!bugfix && !change.bugfix)) {
 				files.add(change.filepath);
@@ -457,12 +549,14 @@ public class FBChangePatternFinderWithoutFindBugs {
 	private static int countTextAppearances(final PATTERN_SQL cp) {
 
 		CPAConfig.initialize(new String[] {});
-		final List<Statement> pattern = StringUtility.splitToStatements(cp.beforeNText, 1, 1);
+		final List<Statement> pattern = StringUtility.splitToStatements(
+				cp.beforeNText, 1, 1);
 		int count = 0;
 
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
-		final SortedSet<REVISION_SQL> revisions = DAO.getInstance().getRevisions(beforeHash, afterHash);
+		final SortedSet<REVISION_SQL> revisions = DAO.getInstance()
+				.getRevisions(beforeHash, afterHash);
 		final int firstRevision = revisions.first().number - 1;
 		final List<List<Statement>> contents = getFileContents(firstRevision);
 		for (final List<Statement> content : contents) {
@@ -488,10 +582,12 @@ public class FBChangePatternFinderWithoutFindBugs {
 		final List<String> paths = new ArrayList<>();
 		try {
 
-			final SVNLogClient logClient = SVNClientManager.newInstance().getLogClient();
+			final SVNLogClient logClient = SVNClientManager.newInstance()
+					.getLogClient();
 			final SVNURL url = SVNURL.fromFile(new File(repository));
 			FSRepositoryFactory.setup();
-			logClient.doList(url, SVNRevision.create(revision), SVNRevision.create(revision), true, SVNDepth.INFINITY,
+			logClient.doList(url, SVNRevision.create(revision),
+					SVNRevision.create(revision), true, SVNDepth.INFINITY,
 					SVNDirEntry.DIRENT_ALL, entry -> {
 						if (entry.getKind() != SVNNodeKind.FILE) {
 							return;
@@ -505,21 +601,25 @@ public class FBChangePatternFinderWithoutFindBugs {
 		} catch (final SVNException | NullPointerException e) {
 		}
 
-		final SVNWCClient wcClient = SVNClientManager.newInstance().getWCClient();
+		final SVNWCClient wcClient = SVNClientManager.newInstance()
+				.getWCClient();
 		final List<List<Statement>> contents = new ArrayList<>();
 		for (final String path : paths) {
 			try {
-				final SVNURL fileurl = SVNURL
-						.fromFile(new File(repository + System.getProperty("file.separator") + path));
+				final SVNURL fileurl = SVNURL.fromFile(new File(repository
+						+ System.getProperty("file.separator") + path));
 				final StringBuilder text = new StringBuilder();
-				wcClient.doGetFileContents(fileurl, SVNRevision.create(revision), SVNRevision.create(revision), false,
+				wcClient.doGetFileContents(fileurl,
+						SVNRevision.create(revision),
+						SVNRevision.create(revision), false,
 						new OutputStream() {
 							@Override
 							public void write(int b) throws IOException {
 								text.append((char) b);
 							}
 						});
-				final List<Statement> statements = StringUtility.splitToStatements(text.toString(), LANGUAGE.JAVA);
+				final List<Statement> statements = StringUtility
+						.splitToStatements(text.toString(), LANGUAGE.JAVA);
 				contents.add(statements);
 			} catch (final SVNException | NullPointerException e) {
 			}
@@ -531,13 +631,15 @@ public class FBChangePatternFinderWithoutFindBugs {
 		return contents;
 	}
 
-	private static int getCount(final List<Statement> statements, final List<Statement> pattern) {
+	private static int getCount(final List<Statement> statements,
+			final List<Statement> pattern) {
 
 		int count = 0;
 		for (int index = 0; index < statements.size(); index++) {
 
 			int pIndex = 0;
-			while (Arrays.equals(statements.get(index + pIndex).hash, pattern.get(pIndex).hash)) {
+			while (Arrays.equals(statements.get(index + pIndex).hash,
+					pattern.get(pIndex).hash)) {
 				pIndex++;
 				if (pattern.size() == pIndex) {
 					count++;
@@ -552,7 +654,8 @@ public class FBChangePatternFinderWithoutFindBugs {
 		return count;
 	}
 
-	private static int[] getCacheRange(final SortedSet<Integer> revisions, final int revision) {
+	private static int[] getCacheRange(final SortedSet<Integer> revisions,
+			final int revision) {
 
 		if (revisions.isEmpty()) {
 			return new int[] { revision, revision };

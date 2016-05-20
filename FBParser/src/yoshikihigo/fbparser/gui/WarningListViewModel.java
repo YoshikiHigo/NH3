@@ -25,7 +25,7 @@ public class WarningListViewModel extends AbstractTableModel {
 			"SUPPORT", "FILES", "COMMITS", "AUTHORS", "LASTDATE", "Pattern ID",
 			"MATCHED" };
 
-	final private List<Warning> warnings;
+	final List<Warning> warnings;
 	final private Map<PATTERN, List<Warning>> pWarnings;
 
 	public WarningListViewModel(final List<Warning> warnings,
