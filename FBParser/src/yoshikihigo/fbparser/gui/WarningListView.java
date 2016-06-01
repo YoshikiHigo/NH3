@@ -7,12 +7,10 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
-import java.util.Set;
 
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -70,7 +68,6 @@ public class WarningListView extends JTable implements Observer {
 	final private SelectionHandler selectionHandler;
 	final private Map<String, List<Warning>> fWarnings;
 	final private Map<PATTERN, List<Warning>> pWarnings;
-	final private Set<Integer> trivialWarnings;
 	final public JScrollPane scrollPane;
 
 	public WarningListView(final Map<String, List<Warning>> fWarnings,
@@ -80,7 +77,6 @@ public class WarningListView extends JTable implements Observer {
 
 		this.fWarnings = fWarnings;
 		this.pWarnings = pWarnings;
-		this.trivialWarnings = new HashSet<>();
 		this.scrollPane = new JScrollPane();
 		this.scrollPane.setViewportView(this);
 		this.scrollPane
@@ -114,11 +110,14 @@ public class WarningListView extends JTable implements Observer {
 							final Warning warning = model.warnings
 									.get(modelIndex);
 							final int id = warning.pattern.mergedID;
-							if (WarningListView.this.trivialWarnings
-									.contains(id)) {
-								WarningListView.this.trivialWarnings.remove(id);
+
+							final SelectedEntities<Integer> trivialPatterns = SelectedEntities
+									.<Integer> getInstance(SelectedEntities.TRIVIAL_PATTERN);
+							if (trivialPatterns.contains(id)) {
+								trivialPatterns
+										.remove(id, WarningListView.this);
 							} else {
-								WarningListView.this.trivialWarnings.add(id);
+								trivialPatterns.add(id, WarningListView.this);
 							}
 						}
 						WarningListView.this.repaint();
@@ -221,8 +220,11 @@ public class WarningListView extends JTable implements Observer {
 					.getModel();
 			final Warning warning = model.warnings.get(modelIndex);
 			final int id = warning.pattern.mergedID;
+
+			final SelectedEntities<Integer> trivialPatterns = SelectedEntities
+					.<Integer> getInstance(SelectedEntities.TRIVIAL_PATTERN);
 			if (!isSelected) {
-				if (WarningListView.this.trivialWarnings.contains(id)) {
+				if (trivialPatterns.contains(id)) {
 					this.setBackground(Color.LIGHT_GRAY);
 				} else {
 					this.setBackground(table.getBackground());
@@ -230,7 +232,7 @@ public class WarningListView extends JTable implements Observer {
 			}
 
 			else {
-				if (WarningListView.this.trivialWarnings.contains(id)) {
+				if (trivialPatterns.contains(id)) {
 					this.setBackground(Color.GRAY);
 				} else {
 					this.setBackground(table.getSelectionBackground());

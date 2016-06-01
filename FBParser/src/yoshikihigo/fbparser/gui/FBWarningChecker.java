@@ -389,6 +389,19 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities.<Warning> getInstance(
 				SelectedEntities.SELECTED_WARNING).addObserver(patternWindow);
 
+		SelectedEntities
+				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
+				.addObserver(filelist);
+		SelectedEntities
+				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
+				.addObserver(sourcecode);
+		SelectedEntities
+				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
+				.addObserver(warninglist);
+		SelectedEntities
+				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
+				.addObserver(patternWindow);
+
 		this.setVisible(true);
 	}
 }

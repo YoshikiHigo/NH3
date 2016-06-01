@@ -16,16 +16,16 @@ public class FileListViewModel extends AbstractTableModel {
 	static final String[] TITLES = new String[] { "ID", "PATH", "WARNINGS" };
 
 	final private List<String> paths;
-	final private List<List<Warning>> allWarnings;
+	final private List<List<Warning>> fWarnings;
 
-	public FileListViewModel(final Map<String, List<Warning>> allWarnings) {
+	public FileListViewModel(final Map<String, List<Warning>> fWarnings) {
 		this.paths = new ArrayList<>();
-		this.allWarnings = new ArrayList<>();
-		for (final Entry<String, List<Warning>> entry : allWarnings.entrySet()) {
+		this.fWarnings = new ArrayList<>();
+		for (final Entry<String, List<Warning>> entry : fWarnings.entrySet()) {
 			final String path = entry.getKey();
 			final List<Warning> warnings = entry.getValue();
 			this.paths.add(path);
-			this.allWarnings.add(warnings);
+			this.fWarnings.add(warnings);
 		}
 	}
 
@@ -46,7 +46,7 @@ public class FileListViewModel extends AbstractTableModel {
 		case COL_PATH:
 			return this.paths.get(row);
 		case COL_WARNINGS:
-			return this.allWarnings.get(row).size();
+			return this.fWarnings.get(row).size();
 		default:
 			return null;
 		}
@@ -76,6 +76,6 @@ public class FileListViewModel extends AbstractTableModel {
 	}
 
 	public List<Warning> getWarnings(final int row) {
-		return this.allWarnings.get(row);
+		return this.fWarnings.get(row);
 	}
 }

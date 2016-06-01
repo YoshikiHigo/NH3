@@ -14,6 +14,7 @@ public final class SelectedEntities<T> extends Observable {
 
 	public static final String SELECTED_PATH = "SELECTED_PATH";
 	public static final String SELECTED_WARNING = "SELECTED_WARNING";
+	public static final String TRIVIAL_PATTERN = "TRIVIAL_PATTERN";
 
 	private static final Map<String, SelectedEntities<?>> INSTANCES = new HashMap<>();
 
@@ -106,6 +107,14 @@ public final class SelectedEntities<T> extends Observable {
 
 	public String getLabel() {
 		return this.label;
+	}
+
+	public boolean contains(final T entity) {
+		return this.selectedEntities.contains(entity);
+	}
+
+	public boolean containsAll(final Set<T> entities) {
+		return this.selectedEntities.containsAll(entities);
 	}
 
 	private SelectedEntities(final String label) {
