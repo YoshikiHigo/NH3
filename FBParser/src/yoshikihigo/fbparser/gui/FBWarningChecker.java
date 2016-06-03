@@ -57,6 +57,13 @@ public class FBWarningChecker extends JFrame {
 
 		final String xlsx = FBParserConfig.getInstance().getFIXCHANGEPATTERN();
 
+		System.out.println("Useful functions:");
+		System.out
+				.println(" double-clicking LEFT button on WARNINGLIST -> focusing the specified pattern");
+		System.out
+				.println(" double-clicking RIGHT button on WARNINGLIST -> marking the specified pattern as trivial");
+		System.out.println();
+
 		final SortedMap<String, String> files = new TreeMap<>();
 		if (FBParserConfig.getInstance().hasREPOSITORY()
 				&& FBParserConfig.getInstance().hasREVISION()) {
@@ -401,6 +408,15 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities
 				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
 				.addObserver(patternWindow);
+
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.FOCUSING_PATTERN).addObserver(filelist);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.FOCUSING_PATTERN).addObserver(sourcecode);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.FOCUSING_PATTERN).addObserver(warninglist);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.FOCUSING_PATTERN).addObserver(patternWindow);
 
 		this.setVisible(true);
 	}

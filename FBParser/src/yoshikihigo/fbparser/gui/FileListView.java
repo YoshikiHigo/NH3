@@ -7,6 +7,7 @@ import java.awt.event.MouseEvent;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Set;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.RowFilter;
 import javax.swing.RowSorter;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
@@ -23,10 +25,48 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
 public class FileListView extends JTable implements Observer {
 
+	class SelectionHandler implements ListSelectionListener {
+
+		@Override
+		public void valueChanged(final ListSelectionEvent e) {
+
+			if (e.getValueIsAdjusting()) {
+				return;
+			}
+
+			final int firstIndex = e.getFirstIndex();
+			final int lastIndex = e.getLastIndex();
+			for (int i = firstIndex; i <= lastIndex; i++) {
+				final int modelIndex = FileListView.this
+						.convertRowIndexToModel(i);
+				final FileListViewModel model = (FileListViewModel) FileListView.this
+						.getModel();
+				final String path = model.getPath(modelIndex);
+				if (FileListView.this.getSelectionModel().isSelectedIndex(i)) {
+					SelectedEntities.<String> getInstance(
+							SelectedEntities.SELECTED_PATH).add(path,
+							FileListView.this);
+					SelectedEntities.<Warning> getInstance(
+							SelectedEntities.SELECTED_WARNING).clear(
+							FileListView.this);
+				} else {
+					SelectedEntities.<String> getInstance(
+							SelectedEntities.SELECTED_PATH).remove(path,
+							FileListView.this);
+					SelectedEntities.<Warning> getInstance(
+							SelectedEntities.SELECTED_WARNING).clear(
+							FileListView.this);
+				}
+			}
+		}
+	}
+
+	final private SelectionHandler selectionHandler;
 	final private Map<String, List<Warning>> fWarnings;
 	final public JScrollPane scrollPane;
 
@@ -61,43 +101,9 @@ public class FileListView extends JTable implements Observer {
 		this.getColumnModel().getColumn(2).setMinWidth(70);
 		this.getColumnModel().getColumn(2).setMaxWidth(140);
 
-		this.getSelectionModel().addListSelectionListener(
-				new ListSelectionListener() {
-
-					@Override
-					public void valueChanged(final ListSelectionEvent e) {
-
-						if (e.getValueIsAdjusting()) {
-							return;
-						}
-
-						final int firstIndex = e.getFirstIndex();
-						final int lastIndex = e.getLastIndex();
-						for (int i = firstIndex; i <= lastIndex; i++) {
-							final int modelIndex = FileListView.this
-									.convertRowIndexToModel(i);
-							final FileListViewModel model = (FileListViewModel) FileListView.this
-									.getModel();
-							final String path = model.getPath(modelIndex);
-							if (FileListView.this.getSelectionModel()
-									.isSelectedIndex(i)) {
-								SelectedEntities.<String> getInstance(
-										SelectedEntities.SELECTED_PATH).add(
-										path, FileListView.this);
-								SelectedEntities.<Warning> getInstance(
-										SelectedEntities.SELECTED_WARNING)
-										.clear(FileListView.this);
-							} else {
-								SelectedEntities.<String> getInstance(
-										SelectedEntities.SELECTED_PATH).remove(
-										path, FileListView.this);
-								SelectedEntities.<Warning> getInstance(
-										SelectedEntities.SELECTED_WARNING)
-										.clear(FileListView.this);
-							}
-						}
-					}
-				});
+		this.selectionHandler = new SelectionHandler();
+		this.getSelectionModel()
+				.addListSelectionListener(this.selectionHandler);
 	}
 
 	public void init() {
@@ -123,6 +129,50 @@ public class FileListView extends JTable implements Observer {
 				}
 
 				this.repaint();
+			}
+
+			else if (selectedEntities.getLabel().equals(
+					SelectedEntities.FOCUSING_PATTERN)) {
+
+				this.getSelectionModel().removeListSelectionListener(
+						this.selectionHandler);
+
+				final List<Integer> focusingPatterns = SelectedEntities
+						.<Integer> getInstance(
+								SelectedEntities.FOCUSING_PATTERN).get();
+				final TableRowSorter<TableModel> sorter = (TableRowSorter<TableModel>) this
+						.getRowSorter();
+
+				if (focusingPatterns.isEmpty()) {
+					sorter.setRowFilter(null);
+				} else {
+					final Set<String> focusingPaths = new HashSet<>();
+					for (final Entry<String, List<Warning>> entry : this.fWarnings
+							.entrySet()) {
+						final String path = entry.getKey();
+						final List<Warning> warnings = entry.getValue();
+						final Set<Integer> patterns = warnings.stream()
+								.map(warning -> warning.pattern.mergedID)
+								.collect(Collectors.toSet());
+						patterns.retainAll(focusingPatterns);
+						if (!patterns.isEmpty()) {
+							focusingPaths.add(path);
+						}
+					}
+
+					sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
+						@Override
+						public boolean include(
+								Entry<? extends TableModel, ? extends Integer> entry) {
+							final String path = entry.getStringValue(1);
+							return focusingPaths.contains(path);
+						}
+					});
+				}
+				this.repaint();
+
+				this.getSelectionModel().addListSelectionListener(
+						this.selectionHandler);
 			}
 		}
 	}

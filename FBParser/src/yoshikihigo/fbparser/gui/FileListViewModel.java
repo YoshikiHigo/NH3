@@ -45,8 +45,19 @@ public class FileListViewModel extends AbstractTableModel {
 			return row;
 		case COL_PATH:
 			return this.paths.get(row);
-		case COL_WARNINGS:
-			return this.fWarnings.get(row).size();
+		case COL_WARNINGS: {
+			final SelectedEntities<Integer> focusingPatterns = SelectedEntities
+					.getInstance(SelectedEntities.FOCUSING_PATTERN);
+			if (focusingPatterns.isSet()) {
+				return (int) this.fWarnings
+						.get(row)
+						.stream()
+						.filter(warning -> focusingPatterns
+								.contains(warning.pattern.mergedID)).count();
+			} else {
+				return this.fWarnings.get(row).size();
+			}
+		}
 		default:
 			return null;
 		}

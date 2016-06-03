@@ -78,7 +78,6 @@ public class PastChangesView extends JTabbedPane implements Observer {
 
 					for (final CHANGE_SQL change : changes) {
 						final PastChange pastChange = new PastChange(change);
-						System.out.println("E");
 						this.addTab(Integer.toString(this.getTabCount() + 1),
 								pastChange);
 					}

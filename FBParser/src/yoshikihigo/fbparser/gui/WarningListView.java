@@ -7,15 +7,17 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.Set;
 
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
-import javax.swing.RowSorter;
+import javax.swing.RowFilter;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
@@ -23,6 +25,7 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
 import yoshikihigo.fbparser.XLSXMerger.PATTERN;
@@ -97,10 +100,16 @@ public class WarningListView extends JTable implements Observer {
 				.addListSelectionListener(this.selectionHandler);
 
 		this.addMouseListener(new MouseAdapter() {
+
 			@Override
 			public void mouseClicked(final MouseEvent e) {
+
 				if ((e.getModifiers() & MouseEvent.BUTTON3_MASK) != 0) {
 					if (2 == e.getClickCount()) {
+
+						WarningListView.this.setCursor(Cursor
+								.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
 						for (final int index : WarningListView.this
 								.getSelectedRows()) {
 							final int modelIndex = WarningListView.this
@@ -121,6 +130,42 @@ public class WarningListView extends JTable implements Observer {
 							}
 						}
 						WarningListView.this.repaint();
+
+						WarningListView.this.setCursor(Cursor
+								.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+					}
+				}
+
+				else if ((e.getModifiers() & MouseEvent.BUTTON1_MASK) != 0) {
+					if (2 == e.getClickCount()) {
+
+						WarningListView.this.setCursor(Cursor
+								.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+						final Set<Integer> pattern = new HashSet<>();
+						for (final int index : WarningListView.this
+								.getSelectedRows()) {
+							final int modelIndex = WarningListView.this
+									.convertRowIndexToModel(index);
+							final WarningListViewModel model = (WarningListViewModel) WarningListView.this
+									.getModel();
+							final Warning warning = model.warnings
+									.get(modelIndex);
+							final int id = warning.pattern.mergedID;
+							pattern.add(id);
+						}
+
+						final SelectedEntities<Integer> focusingPattern = SelectedEntities
+								.<Integer> getInstance(SelectedEntities.FOCUSING_PATTERN);
+						if (focusingPattern.isSet()) {
+							focusingPattern.clear(WarningListView.this);
+						} else {
+							focusingPattern.setAll(pattern,
+									WarningListView.this);
+						}
+
+						WarningListView.this.setCursor(Cursor
+								.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 					}
 				}
 			}
@@ -136,9 +181,22 @@ public class WarningListView extends JTable implements Observer {
 		final WarningListViewModel model = new WarningListViewModel(warnings,
 				this.pWarnings);
 		this.setModel(model);
-		final RowSorter<WarningListViewModel> sorter = new TableRowSorter<>(
+		final TableRowSorter<WarningListViewModel> sorter = new TableRowSorter<>(
 				model);
 		this.setRowSorter(sorter);
+
+		final SelectedEntities<Integer> focusingPatterns = SelectedEntities
+				.<Integer> getInstance(SelectedEntities.FOCUSING_PATTERN);
+		if (focusingPatterns.isSet()) {
+			sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
+				@Override
+				public boolean include(
+						Entry<? extends TableModel, ? extends Integer> entry) {
+					final Integer patternID = (Integer) entry.getValue(8);
+					return focusingPatterns.contains(patternID);
+				}
+			});
+		}
 
 		final WRenderer renderer = new WRenderer();
 		final TableColumnModel columnModel = this.getColumnModel();
@@ -182,23 +240,44 @@ public class WarningListView extends JTable implements Observer {
 					Collections.sort(warnings);
 					this.setWarnings(warnings);
 				} else {
-					this.setWarnings(new ArrayList<Warning>());
+					this.setWarnings(Collections.<Warning> emptyList());
 				}
 
 				this.repaint();
 			}
+
+			else if (selectedEntities.getLabel().equals(
+					SelectedEntities.FOCUSING_PATTERN)) {
+
+				this.getSelectionModel().removeListSelectionListener(
+						this.selectionHandler);
+
+				final TableRowSorter<TableModel> sorter = (TableRowSorter<TableModel>) this
+						.getRowSorter();
+
+				if (selectedEntities.isSet()) {
+					sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
+						@Override
+						public boolean include(
+								Entry<? extends TableModel, ? extends Integer> entry) {
+							final Integer patternID = (Integer) entry
+									.getValue(8);
+							return selectedEntities.contains(patternID);
+						}
+					});
+				}
+
+				else {
+					sorter.setRowFilter(null);
+				}
+
+				this.repaint();
+
+				this.getSelectionModel().addListSelectionListener(
+						this.selectionHandler);
+			}
 		}
 	}
-
-	// @Override
-	// public String getToolTipText(final MouseEvent e) {
-	// final Point stopPoint = e.getPoint();
-	// final int stopRow = this.rowAtPoint(stopPoint);
-	// final int modelRow = this.convertRowIndexToModel(stopRow);
-	// final WarningListViewModel model = (WarningListViewModel)
-	// this.getModel();
-	// return model.getPath(modelRow);
-	// }
 
 	public class WRenderer extends DefaultTableCellRenderer {
 
