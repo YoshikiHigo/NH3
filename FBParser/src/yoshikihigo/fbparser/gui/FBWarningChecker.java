@@ -62,6 +62,8 @@ public class FBWarningChecker extends JFrame {
 				.println(" double-clicking LEFT button on WARNINGLIST -> focusing the specified pattern");
 		System.out
 				.println(" double-clicking RIGHT button on WARNINGLIST -> marking the specified pattern as trivial");
+		System.out
+				.println(" double-clicking LEFT button on the header of PASTCHANGES -> showing up commit information");
 		System.out.println();
 
 		final SortedMap<String, String> files = new TreeMap<>();
@@ -185,6 +187,7 @@ public class FBWarningChecker extends JFrame {
 
 			final int lastRowNumber = sheet.getLastRowNum();
 			for (int rowNumber = 1; rowNumber < lastRowNumber; rowNumber++) {
+				System.out.println(rowNumber + " : " + lastRowNumber);
 				final Row row = sheet.getRow(rowNumber);
 				final String beforeText = row.getCell(23).getStringCellValue();
 				final String afterText = row.getCell(24).getStringCellValue();
