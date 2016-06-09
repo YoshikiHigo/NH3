@@ -132,7 +132,9 @@ public class FileListView extends JTable implements Observer {
 			}
 
 			else if (selectedEntities.getLabel().equals(
-					SelectedEntities.FOCUSING_PATTERN)) {
+					SelectedEntities.FOCUSING_PATTERN)
+					|| selectedEntities.getLabel().equals(
+							SelectedEntities.LOGKEYWORD_PATTERN)) {
 
 				this.getSelectionModel().removeListSelectionListener(
 						this.selectionHandler);
@@ -213,6 +215,11 @@ public class FileListView extends JTable implements Observer {
 			final Set<Integer> patterns = warnings.stream()
 					.map(warning -> warning.pattern.mergedID)
 					.collect(Collectors.toSet());
+			if (SelectedEntities.getInstance(
+					SelectedEntities.LOGKEYWORD_PATTERN).isSet()) {
+				patterns.retainAll(SelectedEntities.getInstance(
+						SelectedEntities.LOGKEYWORD_PATTERN).get());
+			}
 			if (!isSelected) {
 				if (this.trivialPatterns.containsAll(patterns)) {
 					this.setBackground(Color.LIGHT_GRAY);

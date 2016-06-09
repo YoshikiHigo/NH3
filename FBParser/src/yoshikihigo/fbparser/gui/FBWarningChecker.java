@@ -1,7 +1,7 @@
 package yoshikihigo.fbparser.gui;
 
+import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.GridLayout;
 import java.awt.Toolkit;
 import java.io.File;
 import java.io.FileInputStream;
@@ -187,7 +187,6 @@ public class FBWarningChecker extends JFrame {
 
 			final int lastRowNumber = sheet.getLastRowNum();
 			for (int rowNumber = 1; rowNumber < lastRowNumber; rowNumber++) {
-				System.out.println(rowNumber + " : " + lastRowNumber);
 				final Row row = sheet.getRow(rowNumber);
 				final String beforeText = row.getCell(23).getStringCellValue();
 				final String afterText = row.getCell(24).getStringCellValue();
@@ -361,11 +360,16 @@ public class FBWarningChecker extends JFrame {
 		this.setSize(new Dimension(d.width - 10, d.height - 60));
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		this.getContentPane().setLayout(new GridLayout(1, 2));
+		this.getContentPane().setLayout(new BorderLayout());
+		final CommitLogKeywordField logKeywordField = new CommitLogKeywordField(
+				fWarnings, pWarnings);
+		this.getContentPane().add(logKeywordField, BorderLayout.NORTH);
+		final JSplitPane mainPanel = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+		this.getContentPane().add(mainPanel, BorderLayout.CENTER);
 		final JSplitPane leftPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-		this.getContentPane().add(leftPane);
+		mainPanel.setLeftComponent(leftPane);
 		final JSplitPane rightPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-		this.getContentPane().add(rightPane);
+		mainPanel.setRightComponent(rightPane);
 
 		final FileListView filelist = new FileListView(fWarnings);
 		leftPane.add(filelist.scrollPane, JSplitPane.TOP);
@@ -389,6 +393,8 @@ public class FBWarningChecker extends JFrame {
 				.addObserver(warninglist);
 		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
 				.addObserver(patternWindow);
+		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
+				.addObserver(logKeywordField);
 
 		SelectedEntities.<Warning> getInstance(
 				SelectedEntities.SELECTED_WARNING).addObserver(filelist);
@@ -398,6 +404,8 @@ public class FBWarningChecker extends JFrame {
 				SelectedEntities.SELECTED_WARNING).addObserver(warninglist);
 		SelectedEntities.<Warning> getInstance(
 				SelectedEntities.SELECTED_WARNING).addObserver(patternWindow);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.SELECTED_WARNING).addObserver(logKeywordField);
 
 		SelectedEntities
 				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
@@ -411,6 +419,9 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities
 				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
 				.addObserver(patternWindow);
+		SelectedEntities
+				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
+				.addObserver(logKeywordField);
 
 		SelectedEntities.<Warning> getInstance(
 				SelectedEntities.FOCUSING_PATTERN).addObserver(filelist);
@@ -420,7 +431,22 @@ public class FBWarningChecker extends JFrame {
 				SelectedEntities.FOCUSING_PATTERN).addObserver(warninglist);
 		SelectedEntities.<Warning> getInstance(
 				SelectedEntities.FOCUSING_PATTERN).addObserver(patternWindow);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.FOCUSING_PATTERN).addObserver(logKeywordField);
+
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.LOGKEYWORD_PATTERN).addObserver(filelist);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.LOGKEYWORD_PATTERN).addObserver(sourcecode);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.LOGKEYWORD_PATTERN).addObserver(warninglist);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.LOGKEYWORD_PATTERN).addObserver(patternWindow);
+		SelectedEntities.<Warning> getInstance(
+				SelectedEntities.LOGKEYWORD_PATTERN).addObserver(
+				logKeywordField);
 
 		this.setVisible(true);
+		mainPanel.setDividerLocation(mainPanel.getWidth() / 2);
 	}
 }

@@ -191,20 +191,20 @@ public class FBChangePatternFinderWithoutFindBugs {
 					continue;
 				}
 
-				if (cp.confidence < 0.5f) {
-					continue;
-				}
-
-				if (cp.support < 2) {
-					continue;
-				}
+//				if (cp.confidence < 0.5f) {
+//					continue;
+//				}
+//
+//				if (cp.support < 2) {
+//					continue;
+//				}
 
 				System.out.println(currentRow + " : " + cp.lastdate);
 
 				final int findBugsSupport = 0;
 
-				final Row dataRow = sheet.createRow(currentRow);
-				dataRow.createCell(0).setCellValue(currentRow++);
+				final Row dataRow = sheet.createRow(currentRow++);
+				dataRow.createCell(0).setCellValue(cp.id);
 				dataRow.createCell(1).setCellValue(cp.id);
 				dataRow.createCell(2).setCellValue(findBugsSupport);
 				dataRow.createCell(3).setCellValue(getAuthors(cp).size());

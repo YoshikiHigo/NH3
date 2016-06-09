@@ -86,7 +86,34 @@ public class DAO {
 		}
 
 		return revisions;
+	}
 
+	public SortedSet<REVISION_SQL> getRevisions(final String keyword) {
+
+		final SortedSet<REVISION_SQL> revisions = new TreeSet<>();
+
+		try {
+
+			final String text = "select distinct C.revision, C.bugfix "
+					+ "from bugfixchanges C inner join bugfixrevisions R "
+					+ "on C.revision = R.number where R.message like \"%"
+					+ keyword + "%\"";
+			final Statement statement = this.connector.createStatement();
+			final ResultSet result = statement.executeQuery(text);
+			while (result.next()) {
+				final int number = result.getInt(1);
+				final boolean bugfix = 0 < result.getInt(2);
+				final REVISION_SQL revision = new REVISION_SQL(number, bugfix);
+				revisions.add(revision);
+			}
+
+			statement.close();
+
+		} catch (final SQLException e) {
+			e.printStackTrace();
+		}
+
+		return revisions;
 	}
 
 	public SortedSet<REVISION_SQL> getRevisions(final byte[] beforeHash,
@@ -397,6 +424,24 @@ public class DAO {
 		return changepatterns;
 	}
 
+	public List<PATTERN_SQL> getFixChangePatterns(final String keyword) {
+
+		final List<PATTERN_SQL> patterns = this.getFixChangePatterns();
+		final List<PATTERN_SQL> keyPatterns = new ArrayList<>();
+		final SortedSet<REVISION_SQL> keyRevisions = this.getRevisions(keyword);
+
+		for (final PATTERN_SQL pattern : patterns) {
+			final SortedSet<REVISION_SQL> revisions = this.getRevisions(
+					pattern.beforeHash, pattern.afterHash);
+			revisions.retainAll(keyRevisions);
+			if (!revisions.isEmpty()) {
+				keyPatterns.add(pattern);
+			}
+		}
+
+		return keyPatterns;
+	}
+
 	public int count(final String sql) {
 
 		int count = 0;
@@ -609,6 +654,22 @@ public class DAO {
 			this.afterHash = afterHash;
 			this.beforeNText = beforeNText;
 			this.afterNText = afterNText;
+		}
+
+		@Override
+		public boolean equals(final Object o) {
+
+			if (!(o instanceof PATTERN_SQL)) {
+				return false;
+			}
+
+			final PATTERN_SQL target = (PATTERN_SQL) o;
+			return this.id == target.id;
+		}
+
+		@Override
+		public int hashCode() {
+			return this.id;
 		}
 	}
 

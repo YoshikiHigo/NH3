@@ -232,37 +232,56 @@ public class WarningListView extends JTable implements Observer {
 			final SelectedEntities selectedEntities = (SelectedEntities) o;
 
 			if (selectedEntities.getLabel().equals(
-					SelectedEntities.SELECTED_PATH)) {
-
-				if (selectedEntities.isSet()) {
-					final String path = (String) selectedEntities.get().get(0);
-					final List<Warning> warnings = this.fWarnings.get(path);
-					Collections.sort(warnings);
-					this.setWarnings(warnings);
-				} else {
-					this.setWarnings(Collections.<Warning> emptyList());
-				}
-
-				this.repaint();
-			}
-
-			else if (selectedEntities.getLabel().equals(
-					SelectedEntities.FOCUSING_PATTERN)) {
+					SelectedEntities.SELECTED_PATH)
+					|| selectedEntities.getLabel().equals(
+							SelectedEntities.FOCUSING_PATTERN)
+					|| selectedEntities.getLabel().equals(
+							SelectedEntities.LOGKEYWORD_PATTERN)) {
 
 				this.getSelectionModel().removeListSelectionListener(
 						this.selectionHandler);
 
+				if (selectedEntities.getLabel().equals(
+						SelectedEntities.SELECTED_PATH)) {
+					if (selectedEntities.isSet()) {
+						final String path = (String) selectedEntities.get()
+								.get(0);
+						final List<Warning> warnings = this.fWarnings.get(path);
+						Collections.sort(warnings);
+						this.setWarnings(warnings);
+					} else {
+						this.setWarnings(Collections.<Warning> emptyList());
+					}
+				}
+
+				final SelectedEntities<Integer> focusingPatterns = SelectedEntities
+						.getInstance(SelectedEntities.FOCUSING_PATTERN);
+				final SelectedEntities<Integer> logKeyPatterns = SelectedEntities
+						.getInstance(SelectedEntities.LOGKEYWORD_PATTERN);
+
 				final TableRowSorter<TableModel> sorter = (TableRowSorter<TableModel>) this
 						.getRowSorter();
 
-				if (selectedEntities.isSet()) {
+				if (focusingPatterns.isSet()) {
 					sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
 						@Override
 						public boolean include(
 								Entry<? extends TableModel, ? extends Integer> entry) {
 							final Integer patternID = (Integer) entry
 									.getValue(8);
-							return selectedEntities.contains(patternID);
+							return focusingPatterns.contains(patternID);
+						}
+					});
+				}
+
+				else if (logKeyPatterns.isSet()) {
+					sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
+						@Override
+						public boolean include(
+								Entry<? extends TableModel, ? extends Integer> entry) {
+							final Integer patternID = (Integer) entry
+									.getValue(8);
+							return logKeyPatterns.contains(patternID);
 						}
 					});
 				}
