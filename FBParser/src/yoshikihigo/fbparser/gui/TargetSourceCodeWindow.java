@@ -20,6 +20,8 @@ import javax.swing.text.Element;
 public class TargetSourceCodeWindow extends JTextArea implements Observer {
 
 	private static final int TAB_SIZE = 2;
+	private static final Color WARNING = new Color(180, 180, 180, 125);
+	private static final Color SWARNING = new Color(0, 200, 0, 50);
 
 	final private TargetSourceCodeUI sourceCodeUI;
 
@@ -56,49 +58,30 @@ public class TargetSourceCodeWindow extends JTextArea implements Observer {
 				"SOURCE CODE"));
 	}
 
-	private void addHighlight(final List<Warning> warnings) {
+	private int getFromOffset(final int line) throws BadLocationException {
+		return 0 < line ? super.getLineStartOffset(line - 1) : 0;
+	}
 
-		final DefaultHighlightPainter densePainter = new DefaultHighlightPainter(
-				new Color(0, 0, 200, 50));
-		final DefaultHighlightPainter middlePainter = new DefaultHighlightPainter(
-				new Color(0, 200, 0, 50));
-		final DefaultHighlightPainter scatteredPainter = new DefaultHighlightPainter(
-				new Color(200, 0, 0, 50));
-		final DefaultHighlightPainter uninterestingPainter = new DefaultHighlightPainter(
-				new Color(180, 180, 180, 125));
+	private int getToOffset(final int line) throws BadLocationException {
+		return 0 < line ? super.getLineEndOffset(line - 1) : 0;
+	}
 
-		try {
+	private void setHighlights(final Warning selectedWarning,
+			final List<Warning> warnings) {
 
-			for (final Warning warning : warnings) {
+		this.getHighlighter().removeAllHighlights();
 
-				int fromOffset = 0;
-				int toOffset = 0;
-
-				final int fromLine = warning.fromLine;
-				final int toLine = warning.toLine;
-
-				if (0 < fromLine) {
-					fromOffset = super.getLineStartOffset(fromLine - 1);
-				} else if (0 == fromLine) {
-					fromOffset = 0;
-				} else {
-					System.err.println("Error Happened in SourceCodeWindow.");
-				}
-
-				if (0 < toLine) {
-					toOffset = super.getLineEndOffset(toLine - 1);
-				} else if (0 == toLine) {
-					toOffset = 0;
-				} else {
-					System.err.println("Error Happened in SourceCodeWindow.");
-				}
-
+		for (final Warning warning : warnings) {
+			final DefaultHighlightPainter painter = new DefaultHighlightPainter(
+					warning.equals(selectedWarning) ? SWARNING : WARNING);
+			try {
+				final int fromOffset = this.getFromOffset(warning.fromLine);
+				final int toOffset = this.getToOffset(warning.toLine);
 				this.getHighlighter().addHighlight(fromOffset, toOffset,
-						middlePainter);
+						painter);
+			} catch (final BadLocationException e) {
+				e.printStackTrace();
 			}
-
-		} catch (final BadLocationException e) {
-			System.err.println(e.getMessage());
 		}
 	}
 
@@ -125,7 +108,7 @@ public class TargetSourceCodeWindow extends JTextArea implements Observer {
 					this.setCaretPosition(0);
 
 					final List<Warning> warnings = this.warnings.get(path);
-					this.addHighlight(warnings);
+					this.setHighlights(null, warnings);
 				}
 
 				this.repaint();
@@ -134,10 +117,21 @@ public class TargetSourceCodeWindow extends JTextArea implements Observer {
 			else if (selectedEntities.getLabel().equals(
 					SelectedEntities.SELECTED_WARNING)) {
 
-				if (selectedEntities.isSet()) {
-					final Warning warning = (Warning) selectedEntities.get()
+				final Warning selectedWarning = selectedEntities.isSet() ? (Warning) selectedEntities
+						.get().get(0) : null;
+				if (SelectedEntities
+						.getInstance(SelectedEntities.SELECTED_PATH).isSet()) {
+					final String path = (String) SelectedEntities
+							.getInstance(SelectedEntities.SELECTED_PATH).get()
 							.get(0);
-					this.displayAt(warning.fromLine);
+					final List<Warning> warnings = this.warnings.get(path);
+					this.setHighlights(selectedWarning, warnings);
+				}
+
+				this.repaint();
+
+				if (null != selectedWarning) {
+					this.displayAt(selectedWarning.fromLine);
 				}
 			}
 		}
