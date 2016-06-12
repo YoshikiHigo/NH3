@@ -18,8 +18,6 @@ import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.RowFilter;
 import javax.swing.RowSorter;
-import javax.swing.border.LineBorder;
-import javax.swing.border.TitledBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -83,9 +81,6 @@ public class FileListView extends JTable implements Observer {
 		this.scrollPane
 				.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
-		this.scrollPane.setBorder(new TitledBorder(new LineBorder(Color.black),
-				"FILE LIST"));
-
 		this.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
 		this.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
@@ -134,7 +129,9 @@ public class FileListView extends JTable implements Observer {
 			else if (selectedEntities.getLabel().equals(
 					SelectedEntities.FOCUSING_PATTERN)
 					|| selectedEntities.getLabel().equals(
-							SelectedEntities.LOGKEYWORD_PATTERN)) {
+							SelectedEntities.LOGKEYWORD_PATTERN)
+					|| selectedEntities.getLabel().equals(
+							SelectedEntities.PATHKEYWORD_PATTERN)) {
 
 				this.getSelectionModel().removeListSelectionListener(
 						this.selectionHandler);
@@ -142,26 +139,31 @@ public class FileListView extends JTable implements Observer {
 				final List<Integer> focusingPatterns = SelectedEntities
 						.<Integer> getInstance(
 								SelectedEntities.FOCUSING_PATTERN).get();
+				final List<String> focusingPaths = SelectedEntities
+						.<String> getInstance(
+								SelectedEntities.PATHKEYWORD_PATTERN).get();
+
 				final TableRowSorter<TableModel> sorter = (TableRowSorter<TableModel>) this
 						.getRowSorter();
 
-				if (focusingPatterns.isEmpty()) {
+				if (focusingPatterns.isEmpty() && focusingPaths.isEmpty()) {
 					sorter.setRowFilter(null);
-				} else {
-					final Set<String> focusingPaths = new HashSet<>();
-					for (final Entry<String, List<Warning>> entry : this.fWarnings
-							.entrySet()) {
-						final String path = entry.getKey();
-						final List<Warning> warnings = entry.getValue();
-						final Set<Integer> patterns = warnings.stream()
-								.map(warning -> warning.pattern.mergedID)
-								.collect(Collectors.toSet());
-						patterns.retainAll(focusingPatterns);
-						if (!patterns.isEmpty()) {
-							focusingPaths.add(path);
-						}
-					}
+				}
 
+				else if (!focusingPatterns.isEmpty() && focusingPaths.isEmpty()) {
+
+					final Set<String> showingPaths = getPaths(focusingPatterns);
+					sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
+						@Override
+						public boolean include(
+								Entry<? extends TableModel, ? extends Integer> entry) {
+							final String path = entry.getStringValue(1);
+							return showingPaths.contains(path);
+						}
+					});
+				}
+
+				else if (focusingPatterns.isEmpty() && !focusingPaths.isEmpty()) {
 					sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
 						@Override
 						public boolean include(
@@ -171,12 +173,43 @@ public class FileListView extends JTable implements Observer {
 						}
 					});
 				}
+
+				else {
+					final Set<String> showingPaths = getPaths(focusingPatterns);
+					sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
+						@Override
+						public boolean include(
+								Entry<? extends TableModel, ? extends Integer> entry) {
+							final String path = entry.getStringValue(1);
+							return showingPaths.contains(path)
+									&& focusingPaths.contains(path);
+						}
+					});
+				}
+
 				this.repaint();
 
 				this.getSelectionModel().addListSelectionListener(
 						this.selectionHandler);
 			}
 		}
+	}
+
+	private Set<String> getPaths(final List<Integer> patternIDs) {
+		final Set<String> paths = new HashSet<>();
+		for (final Entry<String, List<Warning>> entry : this.fWarnings
+				.entrySet()) {
+			final String path = entry.getKey();
+			final List<Warning> warnings = entry.getValue();
+			final Set<Integer> patterns = warnings.stream()
+					.map(warning -> warning.pattern.mergedID)
+					.collect(Collectors.toSet());
+			patterns.retainAll(patternIDs);
+			if (!patterns.isEmpty()) {
+				paths.add(path);
+			}
+		}
+		return paths;
 	}
 
 	@Override

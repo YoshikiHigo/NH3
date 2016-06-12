@@ -1,6 +1,7 @@
 package yoshikihigo.fbparser.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.io.File;
@@ -21,9 +22,12 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -370,9 +374,16 @@ public class FBWarningChecker extends JFrame {
 		mainPanel.setLeftComponent(leftPane);
 		final JSplitPane rightPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
 		mainPanel.setRightComponent(rightPane);
+		final JPanel fileListPanel = new JPanel(new BorderLayout());
+		leftPane.setTopComponent(fileListPanel);
+		fileListPanel.setBorder(new TitledBorder(new LineBorder(Color.black),
+				"FILE LIST"));
 
+		final FilePathKeywordField pathKeywordField = new FilePathKeywordField(
+				fWarnings);
+		fileListPanel.add(pathKeywordField, BorderLayout.NORTH);
 		final FileListView filelist = new FileListView(fWarnings);
-		leftPane.add(filelist.scrollPane, JSplitPane.TOP);
+		fileListPanel.add(filelist.scrollPane, BorderLayout.CENTER);
 
 		final TargetSourceCodeWindow sourcecode = new TargetSourceCodeWindow(
 				files, fWarnings);
@@ -385,66 +396,83 @@ public class FBWarningChecker extends JFrame {
 		final PastChangesView patternWindow = new PastChangesView();
 		rightPane.add(patternWindow, JSplitPane.BOTTOM);
 
-		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_PATH)
 				.addObserver(filelist);
-		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_PATH)
 				.addObserver(sourcecode);
-		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_PATH)
 				.addObserver(warninglist);
-		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_PATH)
 				.addObserver(patternWindow);
-		SelectedEntities.<String> getInstance(SelectedEntities.SELECTED_PATH)
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_PATH)
 				.addObserver(logKeywordField);
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_PATH)
+				.addObserver(pathKeywordField);
 
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.SELECTED_WARNING).addObserver(filelist);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.SELECTED_WARNING).addObserver(sourcecode);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.SELECTED_WARNING).addObserver(warninglist);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.SELECTED_WARNING).addObserver(patternWindow);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.SELECTED_WARNING).addObserver(logKeywordField);
-
-		SelectedEntities
-				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_WARNING)
 				.addObserver(filelist);
-		SelectedEntities
-				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_WARNING)
 				.addObserver(sourcecode);
-		SelectedEntities
-				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_WARNING)
 				.addObserver(warninglist);
-		SelectedEntities
-				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_WARNING)
 				.addObserver(patternWindow);
-		SelectedEntities
-				.<Warning> getInstance(SelectedEntities.TRIVIAL_PATTERN)
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_WARNING)
 				.addObserver(logKeywordField);
+		SelectedEntities.getInstance(SelectedEntities.SELECTED_WARNING)
+				.addObserver(pathKeywordField);
 
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.FOCUSING_PATTERN).addObserver(filelist);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.FOCUSING_PATTERN).addObserver(sourcecode);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.FOCUSING_PATTERN).addObserver(warninglist);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.FOCUSING_PATTERN).addObserver(patternWindow);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.FOCUSING_PATTERN).addObserver(logKeywordField);
+		SelectedEntities.getInstance(SelectedEntities.TRIVIAL_PATTERN)
+				.addObserver(filelist);
+		SelectedEntities.getInstance(SelectedEntities.TRIVIAL_PATTERN)
+				.addObserver(sourcecode);
+		SelectedEntities.getInstance(SelectedEntities.TRIVIAL_PATTERN)
+				.addObserver(warninglist);
+		SelectedEntities.getInstance(SelectedEntities.TRIVIAL_PATTERN)
+				.addObserver(patternWindow);
+		SelectedEntities.getInstance(SelectedEntities.TRIVIAL_PATTERN)
+				.addObserver(logKeywordField);
+		SelectedEntities.getInstance(SelectedEntities.TRIVIAL_PATTERN)
+				.addObserver(pathKeywordField);
 
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.LOGKEYWORD_PATTERN).addObserver(filelist);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.LOGKEYWORD_PATTERN).addObserver(sourcecode);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.LOGKEYWORD_PATTERN).addObserver(warninglist);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.LOGKEYWORD_PATTERN).addObserver(patternWindow);
-		SelectedEntities.<Warning> getInstance(
-				SelectedEntities.LOGKEYWORD_PATTERN).addObserver(
-				logKeywordField);
+		SelectedEntities.getInstance(SelectedEntities.FOCUSING_PATTERN)
+				.addObserver(filelist);
+		SelectedEntities.getInstance(SelectedEntities.FOCUSING_PATTERN)
+				.addObserver(sourcecode);
+		SelectedEntities.getInstance(SelectedEntities.FOCUSING_PATTERN)
+				.addObserver(warninglist);
+		SelectedEntities.getInstance(SelectedEntities.FOCUSING_PATTERN)
+				.addObserver(patternWindow);
+		SelectedEntities.getInstance(SelectedEntities.FOCUSING_PATTERN)
+				.addObserver(logKeywordField);
+		SelectedEntities.getInstance(SelectedEntities.FOCUSING_PATTERN)
+				.addObserver(pathKeywordField);
+
+		SelectedEntities.getInstance(SelectedEntities.LOGKEYWORD_PATTERN)
+				.addObserver(filelist);
+		SelectedEntities.getInstance(SelectedEntities.LOGKEYWORD_PATTERN)
+				.addObserver(sourcecode);
+		SelectedEntities.getInstance(SelectedEntities.LOGKEYWORD_PATTERN)
+				.addObserver(warninglist);
+		SelectedEntities.getInstance(SelectedEntities.LOGKEYWORD_PATTERN)
+				.addObserver(patternWindow);
+		SelectedEntities.getInstance(SelectedEntities.LOGKEYWORD_PATTERN)
+				.addObserver(logKeywordField);
+		SelectedEntities.getInstance(SelectedEntities.LOGKEYWORD_PATTERN)
+				.addObserver(pathKeywordField);
+
+		SelectedEntities.getInstance(SelectedEntities.PATHKEYWORD_PATTERN)
+				.addObserver(filelist);
+		SelectedEntities.getInstance(SelectedEntities.PATHKEYWORD_PATTERN)
+				.addObserver(sourcecode);
+		SelectedEntities.getInstance(SelectedEntities.PATHKEYWORD_PATTERN)
+				.addObserver(warninglist);
+		SelectedEntities.getInstance(SelectedEntities.PATHKEYWORD_PATTERN)
+				.addObserver(patternWindow);
+		SelectedEntities.getInstance(SelectedEntities.PATHKEYWORD_PATTERN)
+				.addObserver(logKeywordField);
+		SelectedEntities.getInstance(SelectedEntities.PATHKEYWORD_PATTERN)
+				.addObserver(pathKeywordField);
 
 		this.setVisible(true);
 		mainPanel.setDividerLocation(mainPanel.getWidth() / 2);
