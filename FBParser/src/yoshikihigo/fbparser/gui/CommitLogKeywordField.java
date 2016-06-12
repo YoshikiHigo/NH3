@@ -2,6 +2,7 @@ package yoshikihigo.fbparser.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Cursor;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -18,6 +19,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
+import javax.swing.border.EtchedBorder;
 
 import yoshikihigo.fbparser.XLSXMerger.PATTERN;
 import yoshikihigo.fbparser.db.DAO;
@@ -25,6 +27,8 @@ import yoshikihigo.fbparser.db.DAO;
 public class CommitLogKeywordField extends JPanel implements Observer {
 
 	final private JTextField field;
+	final private JRadioButton includingButton;
+	final private JRadioButton excludingButton;
 	final private JRadioButton andButton;
 	final private JRadioButton orButton;
 
@@ -40,18 +44,31 @@ public class CommitLogKeywordField extends JPanel implements Observer {
 		this.pWarnings = pWarnings;
 
 		this.field = new JTextField();
+		this.includingButton = new JRadioButton("INCLUDING (INC)", true);
+		this.excludingButton = new JRadioButton("EXCLUDING (EXC)", false);
+		final ButtonGroup ieGroup = new ButtonGroup();
+		ieGroup.add(this.includingButton);
+		ieGroup.add(this.excludingButton);
 		this.andButton = new JRadioButton("AND", true);
 		this.orButton = new JRadioButton("OR", false);
-		final ButtonGroup buttonGroup = new ButtonGroup();
-		buttonGroup.add(this.andButton);
-		buttonGroup.add(this.orButton);
+		final ButtonGroup aoGroup = new ButtonGroup();
+		aoGroup.add(this.andButton);
+		aoGroup.add(this.orButton);
 
-		this.add(new JLabel("Keywords for filtering change patterns"),
+		this.add(new JLabel("WORDS FOR FILTERING CHANGE PATTERNS"),
 				BorderLayout.WEST);
 		this.add(this.field, BorderLayout.CENTER);
-		final JPanel buttonPanel = new JPanel(new GridLayout(1, 2));
-		buttonPanel.add(this.andButton);
-		buttonPanel.add(this.orButton);
+		final JPanel buttonPanel = new JPanel(new FlowLayout());
+		final JPanel iePanel = new JPanel(new GridLayout(1, 2));
+		buttonPanel.add(iePanel);
+		iePanel.setBorder(new EtchedBorder());
+		iePanel.add(this.includingButton);
+		iePanel.add(this.excludingButton);
+		final JPanel aoPanel = new JPanel(new GridLayout(1, 2));
+		buttonPanel.add(aoPanel);
+		aoPanel.setBorder(new EtchedBorder());
+		aoPanel.add(this.andButton);
+		aoPanel.add(this.orButton);
 		this.add(buttonPanel, BorderLayout.EAST);
 
 		this.field
@@ -59,7 +76,10 @@ public class CommitLogKeywordField extends JPanel implements Observer {
 
 					this.field.setCursor(Cursor
 							.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
 					this.field.setEnabled(false);
+					this.includingButton.setEnabled(false);
+					this.excludingButton.setEnabled(false);
 					this.andButton.setEnabled(false);
 					this.orButton.setEnabled(false);
 
@@ -77,39 +97,76 @@ public class CommitLogKeywordField extends JPanel implements Observer {
 								.clear(this);
 					} else {
 
-						final List<String> keywords = new ArrayList<>();
+						final List<String> words = new ArrayList<>();
 						while (tokenizer.hasMoreTokens()) {
-							keywords.add(tokenizer.nextToken());
+							words.add(tokenizer.nextToken());
 						}
-						final List<Set<Integer>> patterns = keywords
+
+						final Set<Integer> allPatternIDs = DAO.getInstance()
+								.getFixChangePatterns().stream()
+								.map(pattern -> pattern.id)
+								.collect(Collectors.toSet());
+
+						final List<Set<Integer>> includingPatternIDs = words
 								.stream()
-								.map(keyword -> DAO.getInstance()
-										.getFixChangePatterns(keyword).stream()
+								.map(word -> DAO.getInstance()
+										.getFixChangePatterns(word).stream()
 										.map(pattern -> pattern.id)
 										.collect(Collectors.toSet()))
 								.collect(Collectors.toList());
 
-						final Set<Integer> keyPatterns = new HashSet<>();
-						if (this.andButton.isSelected()) {
-							keyPatterns.addAll(patterns.get(0));
-							patterns.stream().forEach(
-									p -> keyPatterns.retainAll(p));
-						} else if (this.orButton.isSelected()) {
-							patterns.stream().forEach(
-									p -> keyPatterns.addAll(p));
+						final Set<Integer> keyPatternIDs = new HashSet<>();
+						if (this.includingButton.isSelected()) {
+
+							if (this.andButton.isSelected()) {
+								keyPatternIDs.addAll(includingPatternIDs.get(0));
+								includingPatternIDs.stream().forEach(
+										p -> keyPatternIDs.retainAll(p));
+							} else if (this.orButton.isSelected()) {
+								includingPatternIDs.stream().forEach(
+										p -> keyPatternIDs.addAll(p));
+							}
+
+							if (keyPatternIDs.isEmpty()) {
+								keyPatternIDs.add(Integer.valueOf(-1));
+							}
+							SelectedEntities.<Integer> getInstance(
+									SelectedEntities.LOGKEYWORD_PATTERN)
+									.setAll(keyPatternIDs, this);
 						}
 
-						if (keyPatterns.isEmpty()) {
-							keyPatterns.add(Integer.valueOf(-1));
+						else if (this.excludingButton.isSelected()) {
+							final List<Set<Integer>> excludingPatternIDs = new ArrayList<>();
+							for (final Set<Integer> ids : includingPatternIDs) {
+								final Set<Integer> excluding = new HashSet<>(
+										allPatternIDs);
+								excluding.removeAll(ids);
+								excludingPatternIDs.add(excluding);
+							}
+
+							if (this.andButton.isSelected()) {
+								keyPatternIDs.addAll(excludingPatternIDs.get(0));
+								excludingPatternIDs.stream().forEach(
+										p -> keyPatternIDs.retainAll(p));
+							} else if (this.orButton.isSelected()) {
+								excludingPatternIDs.stream().forEach(
+										p -> keyPatternIDs.addAll(p));
+							}
+
+							if (keyPatternIDs.isEmpty()) {
+								keyPatternIDs.add(Integer.valueOf(-1));
+							}
+							SelectedEntities.<Integer> getInstance(
+									SelectedEntities.LOGKEYWORD_PATTERN)
+									.setAll(keyPatternIDs, this);
 						}
-						SelectedEntities.<Integer> getInstance(
-								SelectedEntities.LOGKEYWORD_PATTERN).setAll(
-								keyPatterns, this);
 					}
 
 					this.field.setCursor(Cursor
 							.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 					this.field.setEnabled(true);
+					this.includingButton.setEnabled(true);
+					this.excludingButton.setEnabled(true);
 					this.andButton.setEnabled(true);
 					this.orButton.setEnabled(true);
 				});
