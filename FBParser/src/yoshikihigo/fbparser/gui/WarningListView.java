@@ -141,6 +141,9 @@ public class WarningListView extends JTable implements Observer {
 
 						WarningListView.this.setCursor(Cursor
 								.getPredefinedCursor(Cursor.WAIT_CURSOR));
+						WarningListView.this.getSelectionModel()
+								.removeListSelectionListener(
+										WarningListView.this.selectionHandler);
 
 						final Set<Integer> pattern = new HashSet<>();
 						for (final int index : WarningListView.this
@@ -164,6 +167,9 @@ public class WarningListView extends JTable implements Observer {
 									WarningListView.this);
 						}
 
+						WarningListView.this.getSelectionModel()
+								.addListSelectionListener(
+										WarningListView.this.selectionHandler);
 						WarningListView.this.setCursor(Cursor
 								.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 					}

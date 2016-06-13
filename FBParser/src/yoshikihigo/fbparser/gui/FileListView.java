@@ -89,6 +89,7 @@ public class FileListView extends JTable implements Observer {
 		this.setModel(model);
 		final RowSorter<FileListViewModel> sorter = new TableRowSorter<>(model);
 		this.setRowSorter(sorter);
+		this.setRenderer(new FRenderer());
 
 		this.getColumnModel().getColumn(0).setMinWidth(50);
 		this.getColumnModel().getColumn(0).setMaxWidth(50);
@@ -114,15 +115,7 @@ public class FileListView extends JTable implements Observer {
 			if (selectedEntities.getLabel().equals(
 					SelectedEntities.TRIVIAL_PATTERN)) {
 
-				final FRenderer renderer = new FRenderer();
-				final TableColumnModel columnModel = this.getColumnModel();
-				final TableColumn[] column = new TableColumn[this.getModel()
-						.getColumnCount()];
-				for (int i = 0; i < column.length; i++) {
-					column[i] = columnModel.getColumn(i);
-					column[i].setCellRenderer(renderer);
-				}
-
+				this.setRenderer(new FRenderer());
 				this.repaint();
 			}
 
@@ -192,6 +185,16 @@ public class FileListView extends JTable implements Observer {
 				this.getSelectionModel().addListSelectionListener(
 						this.selectionHandler);
 			}
+		}
+	}
+
+	private void setRenderer(final FRenderer renderer) {
+		final TableColumnModel columnModel = this.getColumnModel();
+		final TableColumn[] column = new TableColumn[this.getModel()
+				.getColumnCount()];
+		for (int i = 0; i < column.length; i++) {
+			column[i] = columnModel.getColumn(i);
+			column[i].setCellRenderer(renderer);
 		}
 	}
 
