@@ -50,17 +50,33 @@ public class FileListViewModel extends AbstractTableModel {
 					.getInstance(SelectedEntities.FOCUSING_PATTERN);
 			final SelectedEntities<Integer> logKeyPatterns = SelectedEntities
 					.getInstance(SelectedEntities.LOGKEYWORD_PATTERN);
+			final SelectedEntities<Integer> metricsPatterns = SelectedEntities
+					.getInstance(SelectedEntities.METRICS_PATTERN);
 			if (focusingPatterns.isSet()) {
 				return (int) this.fWarnings
 						.get(row)
 						.stream()
 						.filter(warning -> focusingPatterns
 								.contains(warning.pattern.mergedID)).count();
-			} else if (logKeyPatterns.isSet()) {
+			} else if (logKeyPatterns.isSet() && !metricsPatterns.isSet()) {
 				return this.fWarnings
 						.get(row)
 						.stream()
 						.filter(warning -> logKeyPatterns
+								.contains(warning.pattern.mergedID)).count();
+			} else if (!logKeyPatterns.isSet() && metricsPatterns.isSet()) {
+				return this.fWarnings
+						.get(row)
+						.stream()
+						.filter(warning -> metricsPatterns
+								.contains(warning.pattern.mergedID)).count();
+			} else if (logKeyPatterns.isSet() && metricsPatterns.isSet()) {
+				return this.fWarnings
+						.get(row)
+						.stream()
+						.filter(warning -> logKeyPatterns
+								.contains(warning.pattern.mergedID))
+						.filter(warning -> metricsPatterns
 								.contains(warning.pattern.mergedID)).count();
 			} else {
 				return this.fWarnings.get(row).size();

@@ -365,9 +365,9 @@ public class FBWarningChecker extends JFrame {
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		this.getContentPane().setLayout(new BorderLayout());
-		final CommitLogKeywordField logKeywordField = new CommitLogKeywordField(
+		final PatternFilteringPanel patternFilteringPanel = new PatternFilteringPanel(
 				fWarnings, pWarnings);
-		this.getContentPane().add(logKeywordField, BorderLayout.NORTH);
+		this.getContentPane().add(patternFilteringPanel, BorderLayout.NORTH);
 		final JSplitPane mainPanel = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
 		this.getContentPane().add(mainPanel, BorderLayout.CENTER);
 		final JSplitPane leftPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
@@ -405,7 +405,7 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities.getInstance(SelectedEntities.SELECTED_PATH)
 				.addObserver(patternWindow);
 		SelectedEntities.getInstance(SelectedEntities.SELECTED_PATH)
-				.addObserver(logKeywordField);
+				.addObserver(patternFilteringPanel);
 		SelectedEntities.getInstance(SelectedEntities.SELECTED_PATH)
 				.addObserver(pathKeywordField);
 
@@ -418,7 +418,7 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities.getInstance(SelectedEntities.SELECTED_WARNING)
 				.addObserver(patternWindow);
 		SelectedEntities.getInstance(SelectedEntities.SELECTED_WARNING)
-				.addObserver(logKeywordField);
+				.addObserver(patternFilteringPanel);
 		SelectedEntities.getInstance(SelectedEntities.SELECTED_WARNING)
 				.addObserver(pathKeywordField);
 
@@ -431,7 +431,7 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities.getInstance(SelectedEntities.TRIVIAL_PATTERN)
 				.addObserver(patternWindow);
 		SelectedEntities.getInstance(SelectedEntities.TRIVIAL_PATTERN)
-				.addObserver(logKeywordField);
+				.addObserver(patternFilteringPanel);
 		SelectedEntities.getInstance(SelectedEntities.TRIVIAL_PATTERN)
 				.addObserver(pathKeywordField);
 
@@ -444,7 +444,7 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities.getInstance(SelectedEntities.FOCUSING_PATTERN)
 				.addObserver(patternWindow);
 		SelectedEntities.getInstance(SelectedEntities.FOCUSING_PATTERN)
-				.addObserver(logKeywordField);
+				.addObserver(patternFilteringPanel);
 		SelectedEntities.getInstance(SelectedEntities.FOCUSING_PATTERN)
 				.addObserver(pathKeywordField);
 
@@ -457,8 +457,21 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities.getInstance(SelectedEntities.LOGKEYWORD_PATTERN)
 				.addObserver(patternWindow);
 		SelectedEntities.getInstance(SelectedEntities.LOGKEYWORD_PATTERN)
-				.addObserver(logKeywordField);
+				.addObserver(patternFilteringPanel);
 		SelectedEntities.getInstance(SelectedEntities.LOGKEYWORD_PATTERN)
+				.addObserver(pathKeywordField);
+
+		SelectedEntities.getInstance(SelectedEntities.METRICS_PATTERN)
+				.addObserver(filelist);
+		SelectedEntities.getInstance(SelectedEntities.METRICS_PATTERN)
+				.addObserver(sourcecode);
+		SelectedEntities.getInstance(SelectedEntities.METRICS_PATTERN)
+				.addObserver(warninglist);
+		SelectedEntities.getInstance(SelectedEntities.METRICS_PATTERN)
+				.addObserver(patternWindow);
+		SelectedEntities.getInstance(SelectedEntities.METRICS_PATTERN)
+				.addObserver(patternFilteringPanel);
+		SelectedEntities.getInstance(SelectedEntities.METRICS_PATTERN)
 				.addObserver(pathKeywordField);
 
 		SelectedEntities.getInstance(SelectedEntities.PATHKEYWORD_PATTERN)
@@ -470,7 +483,7 @@ public class FBWarningChecker extends JFrame {
 		SelectedEntities.getInstance(SelectedEntities.PATHKEYWORD_PATTERN)
 				.addObserver(patternWindow);
 		SelectedEntities.getInstance(SelectedEntities.PATHKEYWORD_PATTERN)
-				.addObserver(logKeywordField);
+				.addObserver(patternFilteringPanel);
 		SelectedEntities.getInstance(SelectedEntities.PATHKEYWORD_PATTERN)
 				.addObserver(pathKeywordField);
 

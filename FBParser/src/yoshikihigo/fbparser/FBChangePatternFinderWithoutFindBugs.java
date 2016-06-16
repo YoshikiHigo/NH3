@@ -191,13 +191,13 @@ public class FBChangePatternFinderWithoutFindBugs {
 					continue;
 				}
 
-//				if (cp.confidence < 0.5f) {
-//					continue;
-//				}
-//
-//				if (cp.support < 2) {
-//					continue;
-//				}
+				if (cp.confidence < 0.5f) {
+					continue;
+				}
+
+				if (cp.support < 2) {
+					continue;
+				}
 
 				System.out.println(currentRow + " : " + cp.lastdate);
 

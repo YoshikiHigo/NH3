@@ -1,6 +1,7 @@
 package yoshikihigo.fbparser.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -16,17 +17,20 @@ import java.util.stream.Collectors;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.border.EtchedBorder;
+import javax.swing.border.LineBorder;
 
 import yoshikihigo.fbparser.XLSXMerger.PATTERN;
 import yoshikihigo.fbparser.db.DAO;
 
-public class CommitLogKeywordField extends JPanel implements Observer {
+public class PatternFilteringPanel extends JPanel implements Observer {
 
-	final private JTextField field;
+	final private JTextField logKeywordField;
+	final private JTextField matchedNumberField;
 	final private JRadioButton includingButton;
 	final private JRadioButton excludingButton;
 	final private JRadioButton andButton;
@@ -35,15 +39,17 @@ public class CommitLogKeywordField extends JPanel implements Observer {
 	final private Map<String, List<Warning>> fWarnings;
 	final private Map<PATTERN, List<Warning>> pWarnings;
 
-	public CommitLogKeywordField(final Map<String, List<Warning>> fWarnings,
+	public PatternFilteringPanel(final Map<String, List<Warning>> fWarnings,
 			final Map<PATTERN, List<Warning>> pWarnings) {
 
 		super(new BorderLayout());
 
+		this.setBorder(new LineBorder(Color.black));
+
 		this.fWarnings = fWarnings;
 		this.pWarnings = pWarnings;
 
-		this.field = new JTextField();
+		this.logKeywordField = new JTextField();
 		this.includingButton = new JRadioButton("INCLUDING (INC)", true);
 		this.excludingButton = new JRadioButton("EXCLUDING (EXC)", false);
 		final ButtonGroup ieGroup = new ButtonGroup();
@@ -55,9 +61,9 @@ public class CommitLogKeywordField extends JPanel implements Observer {
 		aoGroup.add(this.andButton);
 		aoGroup.add(this.orButton);
 
-		this.add(new JLabel("WORDS FOR FILTERING CHANGE PATTERNS"),
+		this.add(new JLabel(" WORDS FOR FILTERING CHANGE PATTERNS "),
 				BorderLayout.WEST);
-		this.add(this.field, BorderLayout.CENTER);
+		this.add(this.logKeywordField, BorderLayout.CENTER);
 		final JPanel buttonPanel = new JPanel(new FlowLayout());
 		final JPanel iePanel = new JPanel(new GridLayout(1, 2));
 		buttonPanel.add(iePanel);
@@ -71,13 +77,24 @@ public class CommitLogKeywordField extends JPanel implements Observer {
 		aoPanel.add(this.orButton);
 		this.add(buttonPanel, BorderLayout.EAST);
 
-		this.field
+		final JPanel southPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		this.add(southPanel, BorderLayout.SOUTH);
+		southPanel.add(new JLabel(" METRICS FOR FILTERING CHANGE PATTERNS "));
+		final JPanel matchedNumberPanel = new JPanel(new FlowLayout(
+				FlowLayout.LEFT));
+		southPanel.add(matchedNumberPanel);
+		matchedNumberPanel.setBorder(new EtchedBorder());
+		matchedNumberPanel.add(new JLabel(" MATCHED NUMBER "));
+		this.matchedNumberField = new JTextField(5);
+		matchedNumberPanel.add(this.matchedNumberField);
+
+		this.logKeywordField
 				.addActionListener(e -> {
 
-					this.field.setCursor(Cursor
+					this.setCursor(Cursor
 							.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
-					this.field.setEnabled(false);
+					this.logKeywordField.setEnabled(false);
 					this.includingButton.setEnabled(false);
 					this.excludingButton.setEnabled(false);
 					this.andButton.setEnabled(false);
@@ -90,7 +107,7 @@ public class CommitLogKeywordField extends JPanel implements Observer {
 									this);
 
 					final StringTokenizer tokenizer = new StringTokenizer(
-							this.field.getText(), " \t");
+							this.logKeywordField.getText(), " \t");
 					if (0 == tokenizer.countTokens()) {
 						SelectedEntities.getInstance(
 								SelectedEntities.LOGKEYWORD_PATTERN)
@@ -162,13 +179,64 @@ public class CommitLogKeywordField extends JPanel implements Observer {
 						}
 					}
 
-					this.field.setCursor(Cursor
+					this.setCursor(Cursor
 							.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-					this.field.setEnabled(true);
+					this.logKeywordField.setEnabled(true);
 					this.includingButton.setEnabled(true);
 					this.excludingButton.setEnabled(true);
 					this.andButton.setEnabled(true);
 					this.orButton.setEnabled(true);
+				});
+
+		this.matchedNumberField
+				.addActionListener(e -> {
+
+					this.setCursor(Cursor
+							.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+					this.matchedNumberField.setEnabled(false);
+
+					SelectedEntities.getInstance(
+							SelectedEntities.SELECTED_WARNING).clear(this);
+					SelectedEntities
+							.getInstance(SelectedEntities.SELECTED_PATH).clear(
+									this);
+
+					final String text = this.matchedNumberField.getText();
+					if (text.isEmpty()) {
+						SelectedEntities.getInstance(
+								SelectedEntities.METRICS_PATTERN).clear(this);
+					}
+
+					else {
+						final int matchedNumberThreshold;
+						try {
+							matchedNumberThreshold = Integer.parseInt(text);
+						} catch (final NumberFormatException exception) {
+							JOptionPane.showMessageDialog(this,
+									"Text must be int value.");
+							this.matchedNumberField.setEnabled(true);
+							return;
+						}
+
+						final Set<Integer> patternIDs = this.pWarnings
+								.keySet()
+								.stream()
+								.filter(p -> this.pWarnings.get(p).size() <= matchedNumberThreshold)
+								.map(p -> p.mergedID)
+								.collect(Collectors.toSet());
+
+						if (patternIDs.isEmpty()) {
+							patternIDs.add(Integer.valueOf(-1));
+						}
+						SelectedEntities.<Integer> getInstance(
+								SelectedEntities.METRICS_PATTERN).setAll(
+								patternIDs, this);
+					}
+
+					this.matchedNumberField.setCursor(Cursor
+							.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+					this.matchedNumberField.setEnabled(true);
 				});
 	}
 

@@ -242,7 +242,9 @@ public class WarningListView extends JTable implements Observer {
 					|| selectedEntities.getLabel().equals(
 							SelectedEntities.FOCUSING_PATTERN)
 					|| selectedEntities.getLabel().equals(
-							SelectedEntities.LOGKEYWORD_PATTERN)) {
+							SelectedEntities.LOGKEYWORD_PATTERN)
+					|| selectedEntities.getLabel().equals(
+							SelectedEntities.METRICS_PATTERN)) {
 
 				this.getSelectionModel().removeListSelectionListener(
 						this.selectionHandler);
@@ -264,6 +266,8 @@ public class WarningListView extends JTable implements Observer {
 						.getInstance(SelectedEntities.FOCUSING_PATTERN);
 				final SelectedEntities<Integer> logKeyPatterns = SelectedEntities
 						.getInstance(SelectedEntities.LOGKEYWORD_PATTERN);
+				final SelectedEntities<Integer> metricsPatterns = SelectedEntities
+						.getInstance(SelectedEntities.METRICS_PATTERN);
 
 				final TableRowSorter<TableModel> sorter = (TableRowSorter<TableModel>) this
 						.getRowSorter();
@@ -280,7 +284,7 @@ public class WarningListView extends JTable implements Observer {
 					});
 				}
 
-				else if (logKeyPatterns.isSet()) {
+				else if (logKeyPatterns.isSet() && !metricsPatterns.isSet()) {
 					sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
 						@Override
 						public boolean include(
@@ -288,6 +292,31 @@ public class WarningListView extends JTable implements Observer {
 							final Integer patternID = (Integer) entry
 									.getValue(8);
 							return logKeyPatterns.contains(patternID);
+						}
+					});
+				}
+
+				else if (!logKeyPatterns.isSet() && metricsPatterns.isSet()) {
+					sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
+						@Override
+						public boolean include(
+								Entry<? extends TableModel, ? extends Integer> entry) {
+							final Integer patternID = (Integer) entry
+									.getValue(8);
+							return metricsPatterns.contains(patternID);
+						}
+					});
+				}
+
+				else if (logKeyPatterns.isSet() && metricsPatterns.isSet()) {
+					sorter.setRowFilter(new RowFilter<TableModel, Integer>() {
+						@Override
+						public boolean include(
+								Entry<? extends TableModel, ? extends Integer> entry) {
+							final Integer patternID = (Integer) entry
+									.getValue(8);
+							return logKeyPatterns.contains(patternID)
+									&& metricsPatterns.contains(patternID);
 						}
 					});
 				}

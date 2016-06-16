@@ -17,6 +17,7 @@ public final class SelectedEntities<T> extends Observable {
 	public static final String TRIVIAL_PATTERN = "TRIVIAL_PATTERN";
 	public static final String FOCUSING_PATTERN = "FOCUSING_PATTERN";
 	public static final String LOGKEYWORD_PATTERN = "LOGKEYWORD_PATTERN";
+	public static final String METRICS_PATTERN = "METRICS_PATTERN";
 	public static final String PATHKEYWORD_PATTERN = "PATHKEYWORD_PATTERN";
 
 	private static final Map<String, SelectedEntities<?>> INSTANCES = new HashMap<>();

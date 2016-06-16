@@ -124,6 +124,8 @@ public class FileListView extends JTable implements Observer {
 					|| selectedEntities.getLabel().equals(
 							SelectedEntities.LOGKEYWORD_PATTERN)
 					|| selectedEntities.getLabel().equals(
+							SelectedEntities.METRICS_PATTERN)
+					|| selectedEntities.getLabel().equals(
 							SelectedEntities.PATHKEYWORD_PATTERN)) {
 
 				this.getSelectionModel().removeListSelectionListener(
@@ -255,6 +257,11 @@ public class FileListView extends JTable implements Observer {
 					SelectedEntities.LOGKEYWORD_PATTERN).isSet()) {
 				patterns.retainAll(SelectedEntities.getInstance(
 						SelectedEntities.LOGKEYWORD_PATTERN).get());
+			}
+			if (SelectedEntities.getInstance(SelectedEntities.METRICS_PATTERN)
+					.isSet()) {
+				patterns.retainAll(SelectedEntities.getInstance(
+						SelectedEntities.METRICS_PATTERN).get());
 			}
 			if (!isSelected) {
 				if (this.trivialPatterns.containsAll(patterns)) {
