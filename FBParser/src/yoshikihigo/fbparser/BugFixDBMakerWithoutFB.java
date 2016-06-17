@@ -1,6 +1,6 @@
 package yoshikihigo.fbparser;
 
-public class BugFixDBMaker2 {
+public class BugFixDBMakerWithoutFB {
 
 	public static void main(final String[] args) {
 		BugFixRevisionsMaker.main(args);

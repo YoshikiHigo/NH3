@@ -52,7 +52,7 @@ import yoshikihigo.fbparser.db.DAO.CHANGE_SQL;
 import yoshikihigo.fbparser.db.DAO.PATTERN_SQL;
 import yoshikihigo.fbparser.db.DAO.REVISION_SQL;
 
-public class FBChangePatternFinderWithoutFindBugs {
+public class FBChangePatternFinderWithoutFB {
 
 	public static void main(final String[] args) {
 
@@ -198,8 +198,6 @@ public class FBChangePatternFinderWithoutFindBugs {
 				if (cp.support < 2) {
 					continue;
 				}
-
-				System.out.println(currentRow + " : " + cp.lastdate);
 
 				final int findBugsSupport = 0;
 
