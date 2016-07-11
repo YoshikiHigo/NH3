@@ -316,7 +316,8 @@ public class FBChangePatternFinder {
 					dataRow.getCell(column).setCellStyle(style);
 				}
 
-				int loc = Math.max(getLOC(cp.beforeNText), getLOC(cp.afterNText));
+				int loc = Math.max(getLOC(cp.beforeNText),
+						getLOC(cp.afterNText));
 				dataRow.setHeight((short) (loc * dataRow.getHeight()));
 			}
 
@@ -428,8 +429,7 @@ public class FBChangePatternFinder {
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
 		return (int) DAO.getInstance().getChanges(beforeHash, afterHash)
-				.stream().mapToInt(change -> change.revision).distinct()
-				.count();
+				.stream().map(change -> change.revision).distinct().count();
 	}
 
 	private static int getCommits(final PATTERN_SQL cp, final boolean bugfix) {
@@ -456,15 +456,18 @@ public class FBChangePatternFinder {
 			map1.put(revision, new AtomicInteger(0));
 			map2.put(revision, new AtomicInteger(0));
 			List<CHANGE_SQL> changesInRevision = DAO.getInstance().getChanges(
-					revision.number);
-			changesInRevision.stream().forEach(change -> {
-				if (changesInPattern.contains(change)) {
-					final AtomicInteger size = map1.get(revision);
-					size.addAndGet(change.beforeEndLine - change.beforeStartLine + 1);
-				}
-				final AtomicInteger size = map2.get(revision);
-				size.addAndGet(change.beforeEndLine - change.beforeStartLine + 1);
-			});
+					revision.id);
+			changesInRevision.stream().forEach(
+					change -> {
+						if (changesInPattern.contains(change)) {
+							final AtomicInteger size = map1.get(revision);
+							size.addAndGet(change.beforeEndLine
+									- change.beforeStartLine + 1);
+						}
+						final AtomicInteger size = map2.get(revision);
+						size.addAndGet(change.beforeEndLine
+								- change.beforeStartLine + 1);
+					});
 		}
 
 		float sum = 0;
@@ -593,8 +596,14 @@ public class FBChangePatternFinder {
 		final byte[] afterHash = cp.afterHash;
 		final SortedSet<REVISION_SQL> revisions = DAO.getInstance()
 				.getRevisions(beforeHash, afterHash);
-		final int firstRevision = revisions.first().number - 1;
-		final List<List<Statement>> contents = getFileContents(firstRevision);
+		List<List<Statement>> contents = Collections.emptyList();
+		if (FBParserConfig.getInstance().hasSVNREPOSITORY()) {
+			final int firstRevision = Integer.parseInt(revisions.first().id) - 1;
+			contents = getSVNFileContents(firstRevision);
+		} else if (FBParserConfig.getInstance().hasGITREPOSITORY()) {
+
+		}
+
 		for (final List<Statement> content : contents) {
 			count += getCount(content, pattern);
 		}
@@ -609,12 +618,13 @@ public class FBChangePatternFinder {
 	static private int PREVIOUS_CHANGEPATTERN_REVISION = 0;
 	static private List<List<Statement>> PREVIOUS_REVISION_CONTENTS = null;
 
-	private static List<List<Statement>> getFileContents(final int revision) {
+	private static List<List<Statement>> getSVNFileContents(final int revision) {
 		if (revision == PREVIOUS_CHANGEPATTERN_REVISION) {
 			return PREVIOUS_REVISION_CONTENTS;
 		}
 
-		final String repository = FBParserConfig.getInstance().getREPOSITORY();
+		final String repository = FBParserConfig.getInstance()
+				.getSVNREPOSITORY();
 		final List<String> paths = new ArrayList<>();
 		try {
 
@@ -725,8 +735,8 @@ class Line {
 	final int rank;
 	final int priority;
 	final String status;
-	final long startrev;
-	final long endrev;
+	final String startrev;
+	final String endrev;
 	final String path;
 	final int startstartline;
 	final int startendline;
@@ -740,8 +750,8 @@ class Line {
 		this.rank = Integer.parseInt(tokenizer.nextToken());
 		this.priority = Integer.parseInt(tokenizer.nextToken());
 		this.status = tokenizer.nextToken();
-		this.startrev = Long.parseLong(tokenizer.nextToken());
-		this.endrev = Long.parseLong(tokenizer.nextToken());
+		this.startrev = tokenizer.nextToken();
+		this.endrev = tokenizer.nextToken();
 		this.path = tokenizer.nextToken();
 		final String startpos = tokenizer.nextToken();
 		final String endpos = tokenizer.nextToken();

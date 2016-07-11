@@ -40,7 +40,8 @@ public class FBChangeRetriever {
 		final String endrevFBResult = fbResults.get(1);
 		final int startrev = FBParserConfig.getInstance().getSTARTREV();
 		final int endrev = FBParserConfig.getInstance().getENDREV();
-		final String repository = FBParserConfig.getInstance().getREPOSITORY();
+		final String repository = FBParserConfig.getInstance()
+				.getSVNREPOSITORY();
 
 		final FBParser startrevParser = new FBParser(startrevFBResult);
 		startrevParser.perform();

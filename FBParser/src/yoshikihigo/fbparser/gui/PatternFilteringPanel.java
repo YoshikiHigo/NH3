@@ -84,7 +84,7 @@ public class PatternFilteringPanel extends JPanel implements Observer {
 				FlowLayout.LEFT));
 		southPanel.add(matchedNumberPanel);
 		matchedNumberPanel.setBorder(new EtchedBorder());
-		matchedNumberPanel.add(new JLabel(" MATCHED NUMBER "));
+		matchedNumberPanel.add(new JLabel(" UPPER LIMIT OF MATCHED NUMBER "));
 		this.matchedNumberField = new JTextField(5);
 		matchedNumberPanel.add(this.matchedNumberField);
 

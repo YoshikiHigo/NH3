@@ -6,6 +6,7 @@ import java.awt.Cursor;
 import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
@@ -24,6 +25,13 @@ import javax.swing.border.TitledBorder;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultHighlighter.DefaultHighlightPainter;
 
+import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.tmatesoft.svn.core.SVNException;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
@@ -122,7 +130,7 @@ class PastChange extends JPanel {
 					frame.setSize(500, 600);
 					final JTextArea text = new JTextArea();
 					text.append("Revision: ");
-					text.append(Integer.toString(change.revision));
+					text.append(change.revision);
 					text.append(System.lineSeparator());
 					text.append(System.lineSeparator());
 					text.append("Author: ");
@@ -150,10 +158,19 @@ class PastChange extends JPanel {
 			return;
 		}
 
-		final String beforeText = this.getText(this.change.filepath,
-				this.change.revision - 1);
-		final String afterText = this.getText(this.change.filepath,
-				this.change.revision);
+		String beforeText = "";
+		String afterText = "";
+		if (FBParserConfig.getInstance().hasSVNREPOSITORY()) {
+			beforeText = this.getSVNText(this.change.filepath,
+					Integer.parseInt(this.change.revision) - 1);
+			afterText = this.getSVNText(this.change.filepath,
+					Integer.parseInt(this.change.revision));
+		} else if (FBParserConfig.getInstance().hasGITREPOSITORY()) {
+			beforeText = this.getGITText(this.change.filepath,
+					this.change.revision, false);
+			afterText = this.getGITText(this.change.filepath,
+					this.change.revision, true);
+		}
 
 		final ChangeInstanceView beforeView = new ChangeInstanceView(
 				"BEFORE TEXT", beforeText);
@@ -175,9 +192,10 @@ class PastChange extends JPanel {
 		afterView.displayAt(this.change.afterEndLine);
 	}
 
-	private String getText(final String path, final int revision) {
+	private String getSVNText(final String path, final int revision) {
 
-		final String repository = FBParserConfig.getInstance().getREPOSITORY();
+		final String repository = FBParserConfig.getInstance()
+				.getSVNREPOSITORY();
 		final SVNURL url = StringUtility.getSVNURL(repository, path);
 		FSRepositoryFactory.setup();
 		SVNWCClient wcClient = SVNClientManager.newInstance().getWCClient();
@@ -197,6 +215,41 @@ class PastChange extends JPanel {
 		}
 
 		return text.toString();
+	}
+
+	private String getGITText(final String path, final String revision,
+			final boolean after) {
+
+		final String gitrepo = FBParserConfig.getInstance().getGITREPOSITORY();
+		String text = "";
+		try (final FileRepository repo = new FileRepository(new File(gitrepo
+				+ "/.git"));
+				final ObjectReader reader = repo.newObjectReader();
+				final RevWalk revWalk = new RevWalk(reader)) {
+
+			final ObjectId rootId = repo.resolve(revision);
+			revWalk.markStart(revWalk.parseCommit(rootId));
+			final RevCommit afterCommit = revWalk.next();
+			final RevCommit beforeCommit = revWalk.next();
+			System.out.println("after: " + afterCommit.name());
+			System.out.println("before: " + beforeCommit.name());
+
+			RevTree tree = null;
+			if (after) {
+				tree = afterCommit.getTree();
+			} else {
+				tree = beforeCommit.getTree();
+			}
+
+			final TreeWalk treeWalk = TreeWalk.forPath(reader, path, tree);
+			final byte[] data = reader.open(treeWalk.getObjectId(0)).getBytes();
+			text = new String(data, "utf-8");
+
+		} catch (final IOException e) {
+			e.printStackTrace();
+		}
+
+		return text;
 	}
 
 	class ChangeInstanceView extends JTextArea {

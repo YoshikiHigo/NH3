@@ -19,7 +19,7 @@ public class BugFixChangesMaker {
 		final String BUGFIXCHANGES_SCHEMA = "software string, "
 				+ "id integer, " + "filepath string, " + "beforeID integer, "
 				+ "beforeHash blob, " + "afterID integer, "
-				+ "afterHash blob, " + "revision integer, " + "date string, "
+				+ "afterHash blob, " + "revision string, " + "date string, "
 				+ "changetype integer, " + "difftype integer, "
 				+ "bugfix integer, " + "warningfix integer, "
 				+ "primary key(software, id)";
@@ -73,7 +73,7 @@ public class BugFixChangesMaker {
 							+ "C.date, "
 							+ "C.changetype, "
 							+ "C.difftype, "
-							+ "(select R.bugfix from bugfixrevisions R where R.number = C.revision) "
+							+ "(select R.bugfix from bugfixrevisions R where R.id = C.revision) "
 							+ "from changes C");
 			final PreparedStatement statement3 = connector
 					.prepareStatement("insert into bugfixchanges values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -85,7 +85,7 @@ public class BugFixChangesMaker {
 				final byte[] beforeHash = results2.getBytes(5);
 				final int afterID = results2.getInt(6);
 				final byte[] afterHash = results2.getBytes(7);
-				final int revision = results2.getInt(8);
+				final String revision = results2.getString(8);
 				final String date = results2.getString(9);
 				final int changetype = results2.getInt(10);
 				final int difftype = results2.getInt(11);
@@ -98,7 +98,7 @@ public class BugFixChangesMaker {
 				statement3.setBytes(5, beforeHash);
 				statement3.setInt(6, afterID);
 				statement3.setBytes(7, afterHash);
-				statement3.setInt(8, revision);
+				statement3.setString(8, revision);
 				statement3.setString(9, date);
 				statement3.setInt(10, changetype);
 				statement3.setInt(11, difftype);

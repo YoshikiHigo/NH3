@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -33,6 +34,13 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.tmatesoft.svn.core.ISVNDirEntryHandler;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
@@ -59,6 +67,12 @@ public class FBWarningChecker extends JFrame {
 
 		FBParserConfig.initialize(args);
 
+		if (!FBParserConfig.getInstance().hasLANGUAGE()) {
+			System.out
+					.println("\"-lang\" option is required to specify target languages");
+			System.exit(0);
+		}
+
 		final String xlsx = FBParserConfig.getInstance().getFIXCHANGEPATTERN();
 
 		System.out.println("Useful functions:");
@@ -71,14 +85,24 @@ public class FBWarningChecker extends JFrame {
 		System.out.println();
 
 		final SortedMap<String, String> files = new TreeMap<>();
-		if (FBParserConfig.getInstance().hasREPOSITORY()
-				&& FBParserConfig.getInstance().hasREVISION()) {
+		if (FBParserConfig.getInstance().hasSVNREPOSITORY()
+				&& FBParserConfig.getInstance().hasSVNREVISION()) {
 
 			final String repository = FBParserConfig.getInstance()
-					.getREPOSITORY();
-			final int revision = FBParserConfig.getInstance().getREVISION();
+					.getSVNREPOSITORY();
+			final int revision = FBParserConfig.getInstance().getSVNREVISION();
 			// files.putAll(retrieveRevision(repository, revision));
 			files.putAll(retrieveRevision2(repository, revision));
+		}
+
+		else if (FBParserConfig.getInstance().hasGITREPOSITORY()
+				&& FBParserConfig.getInstance().hasGITCOMMIT()) {
+
+			final String gitrepo = FBParserConfig.getInstance()
+					.getGITREPOSITORY();
+			final String gitcommit = FBParserConfig.getInstance()
+					.getGITCOMMIT();
+			files.putAll(retrieveGITFiles(gitrepo, gitcommit));
 		}
 
 		else if (FBParserConfig.getInstance().hasSOURCE()) {
@@ -344,6 +368,52 @@ public class FBWarningChecker extends JFrame {
 		Collections.sort(paths);
 
 		return paths;
+	}
+
+	static SortedMap<String, String> retrieveGITFiles(final String repository,
+			final String revision) {
+
+		final SortedMap<String, String> fileMap = new TreeMap<>();
+
+		final String gitrepo = FBParserConfig.getInstance().getGITREPOSITORY();
+		final Set<LANGUAGE> languages = FBParserConfig.getInstance()
+				.getLANGUAGE();
+
+		try (final FileRepository repo = new FileRepository(gitrepo + "/.git");
+				final ObjectReader reader = repo.newObjectReader();
+				final TreeWalk treeWalk = new TreeWalk(reader);
+				final RevWalk revWalk = new RevWalk(reader)) {
+
+			final ObjectId rootId = repo.resolve(revision);
+			revWalk.markStart(revWalk.parseCommit(rootId));
+			final RevCommit commit = revWalk.next();
+			final RevTree tree = commit.getTree();
+			treeWalk.addTree(tree);
+			treeWalk.setRecursive(true);
+			final List<String> files = new ArrayList<>();
+			while (treeWalk.next()) {
+				final String path = treeWalk.getPathString();
+				for (final LANGUAGE language : languages) {
+					if (language.isTarget(path)) {
+						files.add(path);
+					}
+					break;
+				}
+			}
+
+			for (final String file : files) {
+				final TreeWalk nodeWalk = TreeWalk.forPath(reader, file, tree);
+				final byte[] data = reader.open(nodeWalk.getObjectId(0))
+						.getBytes();
+				final String text = new String(data, "utf-8");
+				fileMap.put(file, text);
+			}
+
+		} catch (final IOException e) {
+			e.printStackTrace();
+		}
+
+		return fileMap;
 	}
 
 	final private Map<String, String> files;

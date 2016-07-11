@@ -137,7 +137,7 @@ public class BugFixChangesUpdater {
 		try {
 
 			final String repository = FBParserConfig.getInstance()
-					.getREPOSITORY();
+					.getSVNREPOSITORY();
 			final SVNDiffClient diffClient = SVNClientManager.newInstance()
 					.getDiffClient();
 			final Map<String, String> diffCache = new HashMap<>();
@@ -161,7 +161,7 @@ public class BugFixChangesUpdater {
 					if (SVNNodeKind.NONE == node) {
 						continue;
 					}
-					
+
 					final StringBuilder text = new StringBuilder();
 					diffClient.doDiff(fileURL,
 							SVNRevision.create(revision - 1), fileURL,

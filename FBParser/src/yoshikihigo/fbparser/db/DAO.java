@@ -71,11 +71,12 @@ public class DAO {
 
 			final Statement statement = this.connector.createStatement();
 			final ResultSet result = statement
-					.executeQuery("select distinct revision, bugfix from bugfixchanges");
+					.executeQuery("select distinct revision, date, bugfix from bugfixchanges");
 			while (result.next()) {
-				final int number = result.getInt(1);
-				final boolean bugfix = 0 < result.getInt(2);
-				final REVISION_SQL revision = new REVISION_SQL(number, bugfix);
+				final String id = result.getString(1);
+				final String date = result.getString(2);
+				final boolean bugfix = 0 < result.getInt(3);
+				final REVISION_SQL revision = new REVISION_SQL(id, date, bugfix);
 				revisions.add(revision);
 			}
 
@@ -94,16 +95,17 @@ public class DAO {
 
 		try {
 
-			final String text = "select distinct C.revision, C.bugfix "
+			final String text = "select distinct C.revision, C.date, C.bugfix "
 					+ "from bugfixchanges C inner join bugfixrevisions R "
-					+ "on C.revision = R.number where R.message like \"%"
-					+ keyword + "%\"";
+					+ "on C.revision = R.id where R.message like \"%" + keyword
+					+ "%\"";
 			final Statement statement = this.connector.createStatement();
 			final ResultSet result = statement.executeQuery(text);
 			while (result.next()) {
-				final int number = result.getInt(1);
-				final boolean bugfix = 0 < result.getInt(2);
-				final REVISION_SQL revision = new REVISION_SQL(number, bugfix);
+				final String id = result.getString(1);
+				final String date = result.getString(2);
+				final boolean bugfix = 0 < result.getInt(3);
+				final REVISION_SQL revision = new REVISION_SQL(id, date, bugfix);
 				revisions.add(revision);
 			}
 
@@ -123,7 +125,7 @@ public class DAO {
 
 		try {
 
-			final String text = "select distinct revision, bugfix from bugfixchanges "
+			final String text = "select distinct revision, date, bugfix from bugfixchanges "
 					+ "where beforeHash = ? and afterHash = ?";
 			final PreparedStatement statement = this.connector
 					.prepareStatement(text);
@@ -132,9 +134,10 @@ public class DAO {
 			final ResultSet result = statement.executeQuery();
 
 			while (result.next()) {
-				final int number = result.getInt(1);
-				final boolean bugfix = 0 < result.getInt(2);
-				final REVISION_SQL revision = new REVISION_SQL(number, bugfix);
+				final String id = result.getString(1);
+				final String date = result.getString(2);
+				final boolean bugfix = 0 < result.getInt(3);
+				final REVISION_SQL revision = new REVISION_SQL(id, date, bugfix);
 				revisions.add(revision);
 			}
 
@@ -159,8 +162,8 @@ public class DAO {
 					+ "(select end from codes where id = beforeID), "
 					+ "(select start from codes where id = afterID),"
 					+ "(select end from codes where id = afterID), "
-					+ "(select author from revisions where number = revision), "
-					+ "(select message from revisions where number = revision), "
+					+ "(select author from revisions where id = revision), "
+					+ "(select message from revisions where id = revision), "
 					+ "bugfix "
 					+ "from bugfixchanges where beforeHash = ? and afterHash = ?";
 			final PreparedStatement statement = this.connector
@@ -171,7 +174,7 @@ public class DAO {
 
 			while (results.next()) {
 				final int changeID = results.getInt(1);
-				final int revision = results.getInt(2);
+				final String revision = results.getString(2);
 				final String filepath = results.getString(3);
 				final int startline = results.getInt(4);
 				final int endline = results.getInt(5);
@@ -208,7 +211,7 @@ public class DAO {
 					+ "R.author, R.message, C1.bugfix from bugfixchanges C1 "
 					+ "inner join codes C2 on C1.beforeID = C2.id "
 					+ "inner join codes C3 on C1.afterID = C3.id "
-					+ "inner join revisions R on C1.revision = R.number "
+					+ "inner join revisions R on C1.revision = R.id "
 					+ "where C2.nText = ? and C3.nText = ?";
 			final PreparedStatement statement = this.connector
 					.prepareStatement(sqlText);
@@ -218,7 +221,7 @@ public class DAO {
 
 			while (results.next()) {
 				final int changeID = results.getInt(1);
-				final int revision = results.getInt(2);
+				final String revision = results.getString(2);
 				final String filepath = results.getString(3);
 				final byte[] beforeHash = results.getBytes(4);
 				final byte[] afterHash = results.getBytes(5);
@@ -247,16 +250,17 @@ public class DAO {
 		return changes;
 	}
 
-	public List<CHANGE_SQL> getChanges(final long revision) {
+	public List<CHANGE_SQL> getChanges(final String revision) {
 
 		final String text = "select id, beforeHash, afterHash, filepath, "
 				+ "(select start from codes where id = beforeID), "
 				+ "(select end from codes where id = beforeID), "
 				+ "(select start from codes where id = afterID), "
 				+ "(select end from codes where id = afterID), "
-				+ "(select author from revisions where number = revision), "
-				+ "(select message from revisions where number = revision), "
-				+ "bugfix " + "from bugfixchanges where revision = " + revision;
+				+ "(select author from revisions where id = revision), "
+				+ "(select message from revisions where id = revision), "
+				+ "bugfix " + "from bugfixchanges where revision = \""
+				+ revision + "\"";
 
 		final List<CHANGE_SQL> changes = new ArrayList<>();
 
@@ -277,8 +281,8 @@ public class DAO {
 				final String message = results.getString(10);
 				final int bugfix = results.getInt(11);
 				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash,
-						afterHash, (int) revision, filepath, startline,
-						endline, afterStartLine, afterEndLine, author, message,
+						afterHash, revision, filepath, startline, endline,
+						afterStartLine, afterEndLine, author, message,
 						0 < bugfix);
 				changes.add(change);
 			}
@@ -293,15 +297,16 @@ public class DAO {
 
 	}
 
-	public List<CHANGE_SQL> getChanges(final long revision, final String path) {
+	public List<CHANGE_SQL> getChanges(final String revision,
+			final String path, final int dummy) {
 
 		final String text = "select id, beforeHash, afterHash, filepath, "
 				+ "(select start from codes where id = beforeID), "
 				+ "(select end from codes where id = beforeID), "
 				+ "(select start from codes where id = afterID), "
 				+ "(select end from codes where id = afterID), "
-				+ "(select author from revisions where number = revision), "
-				+ "(select message from revisions where number = revision), "
+				+ "(select author from revisions where id = revision), "
+				+ "(select message from revisions where id = revision), "
 				+ "bugfix " + "from bugfixchanges where revision = " + revision
 				+ " and filepath = \'" + path + "\'";
 
@@ -325,8 +330,8 @@ public class DAO {
 				final String message = results.getString(10);
 				final int bugfix = results.getInt(11);
 				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash,
-						afterHash, (int) revision, filepath, startline,
-						endline, afterStartLine, afterEndLine, author, message,
+						afterHash, revision, filepath, startline, endline,
+						afterStartLine, afterEndLine, author, message,
 						0 < bugfix);
 				changes.add(change);
 			}
@@ -480,7 +485,7 @@ public class DAO {
 
 			final Set<Integer> bugIDs = this.getBugIDs();
 			final PreparedStatement statement2 = this.connector
-					.prepareStatement("select (select R.message from revisions R where R.number = C.revision) from changes C where C.beforeHash = ?");
+					.prepareStatement("select (select R.message from revisions R where R.id = C.revision) from changes C where C.beforeHash = ?");
 			CODE: for (final Iterator<CODE_SQL> iterator = codes.iterator(); iterator
 					.hasNext();) {
 				CODE_SQL code = iterator.next();
@@ -543,17 +548,20 @@ public class DAO {
 
 	public static class REVISION_SQL implements Comparable<REVISION_SQL> {
 
-		final public int number;
+		final public String id;
+		final public String date;
 		final public boolean bugfix;
 
-		public REVISION_SQL(final int number, final boolean bugfix) {
-			this.number = number;
+		public REVISION_SQL(final String id, final String date,
+				final boolean bugfix) {
+			this.id = id;
+			this.date = date;
 			this.bugfix = bugfix;
 		}
 
 		@Override
 		public int hashCode() {
-			return this.number;
+			return this.id.hashCode();
 		}
 
 		@Override
@@ -563,18 +571,12 @@ public class DAO {
 			}
 
 			final REVISION_SQL target = (REVISION_SQL) o;
-			return this.hashCode() == target.hashCode();
+			return this.id.equals(target.id);
 		}
 
 		@Override
 		public int compareTo(final REVISION_SQL target) {
-			if (this.number < target.number) {
-				return -1;
-			} else if (this.number > target.number) {
-				return 1;
-			} else {
-				return 0;
-			}
+			return this.date.compareTo(target.date);
 		}
 	}
 
@@ -583,7 +585,7 @@ public class DAO {
 		final public int id;
 		final public byte[] beforeHash;
 		final public byte[] afterHash;
-		final public int revision;
+		final public String revision;
 		final public String filepath;
 		final public int beforeStartLine;
 		final public int beforeEndLine;
@@ -594,7 +596,7 @@ public class DAO {
 		final public boolean bugfix;
 
 		public CHANGE_SQL(final int id, final byte[] beforeHash,
-				final byte[] afterHash, final int revision,
+				final byte[] afterHash, final String revision,
 				final String filepath, final int startline, final int endline,
 				final int afterStartLine, final int afterEndLine,
 				final String author, final String message, final boolean bugfix) {

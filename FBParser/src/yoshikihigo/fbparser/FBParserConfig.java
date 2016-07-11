@@ -1,7 +1,9 @@
 package yoshikihigo.fbparser;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.StringTokenizer;
 
 import org.apache.commons.cli.CommandLine;
@@ -10,6 +12,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
+
+import yoshikihigo.cpanalyzer.LANGUAGE;
 
 public class FBParserConfig {
 
@@ -22,6 +26,15 @@ public class FBParserConfig {
 		}
 
 		final Options options = new Options();
+
+		{
+			final Option option = new Option("lang", "language", true,
+					"programming language for analysis");
+			option.setArgName("language");
+			option.setArgs(1);
+			option.setRequired(false);
+			options.addOption(option);
+		}
 
 		{
 			final Option source = new Option("src", "source", true,
@@ -78,8 +91,17 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("repository", "repository", true,
-					"repository of a target software");
+			final Option source = new Option("svnrepo", "svnrepository", true,
+					"svn repository of a target software");
+			source.setArgName("number");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
+			final Option source = new Option("gitrepo", "gitrepository", true,
+					"git repository of a target software");
 			source.setArgName("number");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -159,12 +181,21 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option revision = new Option("r", "revision", true,
-					"targete revision");
+			final Option revision = new Option("svnrev", "svnrevision", true,
+					"SVN target revision");
 			revision.setArgName("number");
 			revision.setArgs(1);
 			revision.setRequired(false);
 			options.addOption(revision);
+		}
+
+		{
+			final Option commit = new Option("gitcommit", "gitcommit", true,
+					"GIT commit id");
+			commit.setArgName("id");
+			commit.setArgs(1);
+			commit.setRequired(false);
+			options.addOption(commit);
 		}
 
 		{
@@ -207,6 +238,39 @@ public class FBParserConfig {
 
 	private FBParserConfig(final CommandLine commandLine) {
 		this.commandLine = commandLine;
+	}
+
+	public boolean hasLANGUAGE() {
+		return this.commandLine.hasOption("lang");
+	}
+	
+	public final Set<LANGUAGE> getLANGUAGE() {
+
+		final Set<LANGUAGE> languages = new HashSet<>();
+
+		if (this.commandLine.hasOption("lang")) {
+			final String option = this.commandLine.getOptionValue("lang");
+			final StringTokenizer tokenizer = new StringTokenizer(option, ":");
+			while (tokenizer.hasMoreTokens()) {
+				try {
+					final String value = tokenizer.nextToken();
+					final LANGUAGE language = LANGUAGE.valueOf(value
+							.toUpperCase());
+					languages.add(language);
+				} catch (final IllegalArgumentException e) {
+					System.err.println("invalid option value for \"-lang\"");
+					System.exit(0);
+				}
+			}
+		}
+
+		else {
+			for (final LANGUAGE language : LANGUAGE.values()) {
+				languages.add(language);
+			}
+		}
+
+		return languages;
 	}
 
 	public boolean hasSOURCE() {
@@ -265,16 +329,28 @@ public class FBParserConfig {
 		return this.commandLine.getOptionValue("bug");
 	}
 
-	public boolean hasREPOSITORY() {
-		return this.commandLine.hasOption("repository");
+	public boolean hasSVNREPOSITORY() {
+		return this.commandLine.hasOption("svnrepo");
 	}
 
-	public String getREPOSITORY() {
-		if (!this.commandLine.hasOption("repository")) {
-			System.err.println("option \"repository\" is not specified.");
+	public boolean hasGITREPOSITORY() {
+		return this.commandLine.hasOption("gitrepo");
+	}
+
+	public String getSVNREPOSITORY() {
+		if (!this.commandLine.hasOption("svnrepo")) {
+			System.err.println("option \"svnrepo\" is not specified.");
 			System.exit(0);
 		}
-		return this.commandLine.getOptionValue("repository");
+		return this.commandLine.getOptionValue("svnrepo");
+	}
+
+	public String getGITREPOSITORY() {
+		if (!this.commandLine.hasOption("gitrepo")) {
+			System.err.println("option \"gitrepo\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("gitrepo");
 	}
 
 	public int getSTARTREV() {
@@ -365,16 +441,28 @@ public class FBParserConfig {
 		return this.commandLine.hasOption("metricsresultxlsx");
 	}
 
-	public boolean hasREVISION() {
-		return this.commandLine.hasOption("r");
+	public boolean hasSVNREVISION() {
+		return this.commandLine.hasOption("svnrev");
 	}
 
-	public int getREVISION() {
-		if (!this.commandLine.hasOption("r")) {
-			System.err.println("option \"r\" is not specified.");
+	public int getSVNREVISION() {
+		if (!this.commandLine.hasOption("svnrev")) {
+			System.err.println("option \"svnrev\" is not specified.");
 			System.exit(0);
 		}
-		return Integer.parseInt(this.commandLine.getOptionValue("r"));
+		return Integer.parseInt(this.commandLine.getOptionValue("svnrev"));
+	}
+
+	public boolean hasGITCOMMIT() {
+		return this.commandLine.hasOption("gitcommit");
+	}
+
+	public String getGITCOMMIT() {
+		if (!this.commandLine.hasOption("gitcommit")) {
+			System.err.println("option \"gitcommit\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("gitcommit");
 	}
 
 	public boolean isVERBOSE() {

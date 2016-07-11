@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
@@ -32,6 +33,13 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
@@ -387,8 +395,7 @@ public class FBChangePatternFinderWithoutFB {
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
 		return (int) DAO.getInstance().getChanges(beforeHash, afterHash)
-				.stream().mapToInt(change -> change.revision).distinct()
-				.count();
+				.stream().map(change -> change.revision).distinct().count();
 	}
 
 	private static int getCommits(final PATTERN_SQL cp, final boolean bugfix) {
@@ -415,7 +422,7 @@ public class FBChangePatternFinderWithoutFB {
 			map1.put(revision, new AtomicInteger(0));
 			map2.put(revision, new AtomicInteger(0));
 			List<CHANGE_SQL> changesInRevision = DAO.getInstance().getChanges(
-					revision.number);
+					revision.id);
 			changesInRevision.stream().forEach(
 					change -> {
 						if (changesInPattern.contains(change)) {
@@ -555,8 +562,14 @@ public class FBChangePatternFinderWithoutFB {
 		final byte[] afterHash = cp.afterHash;
 		final SortedSet<REVISION_SQL> revisions = DAO.getInstance()
 				.getRevisions(beforeHash, afterHash);
-		final int firstRevision = revisions.first().number - 1;
-		final List<List<Statement>> contents = getFileContents(firstRevision);
+		List<List<Statement>> contents = Collections.emptyList();
+		if (FBParserConfig.getInstance().hasSVNREPOSITORY()) {
+			final int firstRevision = Integer.valueOf(revisions.first().id) - 1;
+			contents = getSVNFileContents(firstRevision);
+		} else if (FBParserConfig.getInstance().hasGITREPOSITORY()) {
+			final String firstRevision = revisions.first().id;
+			contents = getGITFileContents(firstRevision);
+		}
 		for (final List<Statement> content : contents) {
 			count += getCount(content, pattern);
 		}
@@ -568,15 +581,17 @@ public class FBChangePatternFinderWithoutFB {
 	static final private Map<String, Cache> FILEPATH_CACHE_MAP = new HashMap<>();
 	static final private Map<String, SortedSet<Integer>> FILEPATH_REVISIONS_MAP = new HashMap<>();
 
-	static private int PREVIOUS_CHANGEPATTERN_REVISION = 0;
+	static private String PREVIOUS_CHANGEPATTERN_REVISION = "";
 	static private List<List<Statement>> PREVIOUS_REVISION_CONTENTS = null;
 
-	private static List<List<Statement>> getFileContents(final int revision) {
-		if (revision == PREVIOUS_CHANGEPATTERN_REVISION) {
+	private static List<List<Statement>> getSVNFileContents(final int revision) {
+
+		if (Integer.toString(revision).equals(PREVIOUS_CHANGEPATTERN_REVISION)) {
 			return PREVIOUS_REVISION_CONTENTS;
 		}
 
-		final String repository = FBParserConfig.getInstance().getREPOSITORY();
+		final String repository = FBParserConfig.getInstance()
+				.getSVNREPOSITORY();
 		final List<String> paths = new ArrayList<>();
 		try {
 
@@ -584,8 +599,9 @@ public class FBChangePatternFinderWithoutFB {
 					.getLogClient();
 			final SVNURL url = SVNURL.fromFile(new File(repository));
 			FSRepositoryFactory.setup();
-			logClient.doList(url, SVNRevision.create(revision),
-					SVNRevision.create(revision), true, SVNDepth.INFINITY,
+			final long revNumber = Long.valueOf(revision);
+			logClient.doList(url, SVNRevision.create(revNumber),
+					SVNRevision.create(revNumber), true, SVNDepth.INFINITY,
 					SVNDirEntry.DIRENT_ALL, entry -> {
 						if (entry.getKind() != SVNNodeKind.FILE) {
 							return;
@@ -607,9 +623,10 @@ public class FBChangePatternFinderWithoutFB {
 				final SVNURL fileurl = SVNURL.fromFile(new File(repository
 						+ System.getProperty("file.separator") + path));
 				final StringBuilder text = new StringBuilder();
+				final long revNumber = Long.valueOf(revision);
 				wcClient.doGetFileContents(fileurl,
-						SVNRevision.create(revision),
-						SVNRevision.create(revision), false,
+						SVNRevision.create(revNumber),
+						SVNRevision.create(revNumber), false,
 						new OutputStream() {
 							@Override
 							public void write(int b) throws IOException {
@@ -621,6 +638,61 @@ public class FBChangePatternFinderWithoutFB {
 				contents.add(statements);
 			} catch (final SVNException | NullPointerException e) {
 			}
+		}
+
+		PREVIOUS_CHANGEPATTERN_REVISION = Integer.toString(revision);
+		PREVIOUS_REVISION_CONTENTS = contents;
+
+		return contents;
+	}
+
+	private static List<List<Statement>> getGITFileContents(
+			final String revision) {
+
+		if (revision.equals(PREVIOUS_CHANGEPATTERN_REVISION)) {
+			return PREVIOUS_REVISION_CONTENTS;
+		}
+
+		final String gitrepo = FBParserConfig.getInstance().getGITREPOSITORY();
+		final Set<LANGUAGE> languages = FBParserConfig.getInstance()
+				.getLANGUAGE();
+
+		final List<List<Statement>> contents = new ArrayList<>();
+		try (final FileRepository repo = new FileRepository(new File(gitrepo
+				+ "/.git"));
+				final ObjectReader reader = repo.newObjectReader();
+				final TreeWalk treeWalk = new TreeWalk(reader);
+				final RevWalk revWalk = new RevWalk(reader)) {
+
+			final ObjectId rootId = repo.resolve(revision);
+			revWalk.markStart(revWalk.parseCommit(rootId));
+			final RevCommit commit = revWalk.next();
+			final RevTree tree = commit.getTree();
+			treeWalk.addTree(tree);
+			treeWalk.setRecursive(true);
+			final List<String> files = new ArrayList<>();
+			while (treeWalk.next()) {
+				final String path = treeWalk.getPathString();
+				for (final LANGUAGE language : languages) {
+					if (language.isTarget(path)) {
+						files.add(path);
+					}
+					break;
+				}
+			}
+
+			for (final String file : files) {
+				final TreeWalk nodeWalk = TreeWalk.forPath(reader, file, tree);
+				final byte[] data = reader.open(nodeWalk.getObjectId(0))
+						.getBytes();
+				final String text = new String(data, "utf-8");
+				final List<Statement> statements = StringUtility
+						.splitToStatements(text.toString(), LANGUAGE.JAVA);
+				contents.add(statements);
+			}
+
+		} catch (final IOException e) {
+			e.printStackTrace();
 		}
 
 		PREVIOUS_CHANGEPATTERN_REVISION = revision;
