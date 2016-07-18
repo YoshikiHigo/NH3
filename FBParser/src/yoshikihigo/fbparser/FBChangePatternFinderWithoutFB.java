@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.StringTokenizer;
@@ -590,9 +591,11 @@ public class FBChangePatternFinderWithoutFB {
 			return PREVIOUS_REVISION_CONTENTS;
 		}
 
+		final Set<LANGUAGE> languages = FBParserConfig.getInstance()
+				.getLANGUAGE();
 		final String repository = FBParserConfig.getInstance()
 				.getSVNREPOSITORY();
-		final List<String> paths = new ArrayList<>();
+		final Map<String, LANGUAGE> files = new HashMap<>();
 		try {
 
 			final SVNLogClient logClient = SVNClientManager.newInstance()
@@ -607,10 +610,12 @@ public class FBChangePatternFinderWithoutFB {
 							return;
 						}
 						final String path = entry.getRelativePath();
-						if (!path.endsWith(".java")) {
-							return;
+						for (final LANGUAGE language : languages) {
+							if (language.isTarget(path)) {
+								files.put(path, language);
+							}
+							break;
 						}
-						paths.add(path);
 					});
 		} catch (final SVNException | NullPointerException e) {
 		}
@@ -618,7 +623,9 @@ public class FBChangePatternFinderWithoutFB {
 		final SVNWCClient wcClient = SVNClientManager.newInstance()
 				.getWCClient();
 		final List<List<Statement>> contents = new ArrayList<>();
-		for (final String path : paths) {
+		for (final Entry<String, LANGUAGE> file : files.entrySet()) {
+			final String path = file.getKey();
+			final LANGUAGE lang = file.getValue();
 			try {
 				final SVNURL fileurl = SVNURL.fromFile(new File(repository
 						+ System.getProperty("file.separator") + path));
@@ -634,7 +641,7 @@ public class FBChangePatternFinderWithoutFB {
 							}
 						});
 				final List<Statement> statements = StringUtility
-						.splitToStatements(text.toString(), LANGUAGE.JAVA);
+						.splitToStatements(text.toString(), lang);
 				contents.add(statements);
 			} catch (final SVNException | NullPointerException e) {
 			}
@@ -670,24 +677,26 @@ public class FBChangePatternFinderWithoutFB {
 			final RevTree tree = commit.getTree();
 			treeWalk.addTree(tree);
 			treeWalk.setRecursive(true);
-			final List<String> files = new ArrayList<>();
+			final Map<String, LANGUAGE> files = new HashMap<>();
 			while (treeWalk.next()) {
 				final String path = treeWalk.getPathString();
 				for (final LANGUAGE language : languages) {
 					if (language.isTarget(path)) {
-						files.add(path);
+						files.put(path, language);
 					}
 					break;
 				}
 			}
 
-			for (final String file : files) {
-				final TreeWalk nodeWalk = TreeWalk.forPath(reader, file, tree);
+			for (final Entry<String, LANGUAGE> file : files.entrySet()) {
+				final String path = file.getKey();
+				final LANGUAGE lang = file.getValue();
+				final TreeWalk nodeWalk = TreeWalk.forPath(reader, path, tree);
 				final byte[] data = reader.open(nodeWalk.getObjectId(0))
 						.getBytes();
 				final String text = new String(data, "utf-8");
 				final List<Statement> statements = StringUtility
-						.splitToStatements(text.toString(), LANGUAGE.JAVA);
+						.splitToStatements(text.toString(), lang);
 				contents.add(statements);
 			}
 

@@ -7,7 +7,6 @@ import java.awt.Toolkit;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,18 +40,13 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.treewalk.TreeWalk;
-import org.tmatesoft.svn.core.ISVNDirEntryHandler;
 import org.tmatesoft.svn.core.SVNDepth;
-import org.tmatesoft.svn.core.SVNDirEntry;
 import org.tmatesoft.svn.core.SVNException;
-import org.tmatesoft.svn.core.SVNNodeKind;
 import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
-import org.tmatesoft.svn.core.wc.SVNLogClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNUpdateClient;
-import org.tmatesoft.svn.core.wc.SVNWCClient;
 
 import yoshikihigo.cpanalyzer.CPAConfig;
 import yoshikihigo.cpanalyzer.LANGUAGE;
@@ -92,7 +86,7 @@ public class FBWarningChecker extends JFrame {
 					.getSVNREPOSITORY();
 			final int revision = FBParserConfig.getInstance().getSVNREVISION();
 			// files.putAll(retrieveRevision(repository, revision));
-			files.putAll(retrieveRevision2(repository, revision));
+			files.putAll(retrieveSVNFiles(repository, revision));
 		}
 
 		else if (FBParserConfig.getInstance().hasGITREPOSITORY()
@@ -108,17 +102,24 @@ public class FBWarningChecker extends JFrame {
 		else if (FBParserConfig.getInstance().hasSOURCE()) {
 
 			final String directory = FBParserConfig.getInstance().getSOURCE();
-			files.putAll(retrieveFiles(directory));
+			files.putAll(retrieveLocalFiles(directory));
 		}
 
+		final Set<LANGUAGE> languages = FBParserConfig.getInstance()
+				.getLANGUAGE();
 		final SortedMap<String, List<Statement>> allStatements = new TreeMap<>();
 		CPAConfig.initialize(new String[] {});
 		for (final Entry<String, String> entry : files.entrySet()) {
 			final String path = entry.getKey();
 			final String contents = entry.getValue();
-			final List<Statement> statements = yoshikihigo.cpanalyzer.StringUtility
-					.splitToStatements(contents, LANGUAGE.JAVA);
-			allStatements.put(path, statements);
+			for (final LANGUAGE lang : languages) {
+				if (lang.isTarget(path)) {
+					final List<Statement> statements = yoshikihigo.cpanalyzer.StringUtility
+							.splitToStatements(contents, lang);
+					allStatements.put(path, statements);
+					break;
+				}
+			}
 		}
 
 		final List<PATTERN> patterns = readXLSX(xlsx);
@@ -243,62 +244,7 @@ public class FBWarningChecker extends JFrame {
 		return patterns;
 	}
 
-	static SortedMap<String, String> retrieveRevision(final String repository,
-			final int revision) {
-
-		final SortedMap<String, String> files = new TreeMap<>();
-
-		try {
-			final SVNURL repourl = StringUtility.getSVNURL(repository, "");
-			FSRepositoryFactory.setup();
-			final SVNLogClient logClient = SVNClientManager.newInstance()
-					.getLogClient();
-			final SVNWCClient wcClient = SVNClientManager.newInstance()
-					.getWCClient();
-
-			final List<String> paths = new ArrayList<>();
-
-			logClient.doList(repourl, SVNRevision.create(revision),
-					SVNRevision.create(revision), true, SVNDepth.INFINITY,
-					SVNDirEntry.DIRENT_KIND, new ISVNDirEntryHandler() {
-
-						@Override
-						public void handleDirEntry(final SVNDirEntry entry)
-								throws SVNException {
-
-							if (entry.getKind() == SVNNodeKind.FILE) {
-								final String path = entry.getRelativePath();
-								if (path.endsWith(".java")) {
-									paths.add(path);
-								}
-							}
-						}
-					});
-
-			for (final String path : paths) {
-				final SVNURL fileurl = StringUtility
-						.getSVNURL(repository, path);
-				final StringBuilder text = new StringBuilder();
-				wcClient.doGetFileContents(fileurl,
-						SVNRevision.create(revision),
-						SVNRevision.create(revision), false,
-						new OutputStream() {
-							@Override
-							public void write(int b) throws IOException {
-								text.append((char) b);
-							}
-						});
-				files.put(path, text.toString());
-			}
-
-		} catch (final SVNException exception) {
-			exception.printStackTrace();
-		}
-
-		return files;
-	}
-
-	static SortedMap<String, String> retrieveRevision2(final String repository,
+	static SortedMap<String, String> retrieveSVNFiles(final String repository,
 			final int revision) {
 
 		Path tmpDir = null;
@@ -326,12 +272,14 @@ public class FBWarningChecker extends JFrame {
 			System.exit(0);
 		}
 
-		return retrieveFiles(tmpDir.toFile().getAbsolutePath());
+		return retrieveLocalFiles(tmpDir.toFile().getAbsolutePath());
 	}
 
-	static SortedMap<String, String> retrieveFiles(final String directory) {
+	static SortedMap<String, String> retrieveLocalFiles(final String directory) {
 
-		final List<String> paths = retrievePaths(new File(directory));
+		final Set<LANGUAGE> languages = FBParserConfig.getInstance()
+				.getLANGUAGE();
+		final List<String> paths = retrievePaths(new File(directory), languages);
 		final SortedMap<String, String> files = new TreeMap<>();
 
 		for (final String path : paths) {
@@ -349,19 +297,23 @@ public class FBWarningChecker extends JFrame {
 		return files;
 	}
 
-	static List<String> retrievePaths(final File directory) {
+	static List<String> retrievePaths(final File directory,
+			final Set<LANGUAGE> languages) {
 
 		final List<String> paths = new ArrayList<>();
 
 		if (directory.isFile()) {
-			if (directory.getName().endsWith(".java")) {
-				paths.add(directory.getAbsolutePath());
+			for (final LANGUAGE lang : languages) {
+				if (lang.isTarget(directory.getName())) {
+					paths.add(directory.getAbsolutePath());
+					break;
+				}
 			}
 		}
 
 		else if (directory.isDirectory()) {
 			for (final File child : directory.listFiles()) {
-				paths.addAll(retrievePaths(child));
+				paths.addAll(retrievePaths(child, languages));
 			}
 		}
 
@@ -396,8 +348,8 @@ public class FBWarningChecker extends JFrame {
 				for (final LANGUAGE language : languages) {
 					if (language.isTarget(path)) {
 						files.add(path);
+						break;
 					}
-					break;
 				}
 			}
 
@@ -416,19 +368,11 @@ public class FBWarningChecker extends JFrame {
 		return fileMap;
 	}
 
-	final private Map<String, String> files;
-	final private Map<String, List<Warning>> fWarnings;
-	final private Map<PATTERN, List<Warning>> pWarnings;
-
 	public FBWarningChecker(final Map<String, String> files,
 			final Map<String, List<Warning>> fWarnings,
 			final Map<PATTERN, List<Warning>> pWarnings) {
 
 		super("FBWarningChecker");
-
-		this.files = files;
-		this.fWarnings = fWarnings;
-		this.pWarnings = pWarnings;
 
 		final Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setSize(new Dimension(d.width - 10, d.height - 60));
