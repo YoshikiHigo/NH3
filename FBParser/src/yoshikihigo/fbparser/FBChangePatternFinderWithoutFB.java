@@ -200,7 +200,7 @@ public class FBChangePatternFinderWithoutFB {
 					continue;
 				}
 
-				if (cp.confidence < 0.5f) {
+				if (cp.confidence < 1.0f) {
 					continue;
 				}
 
@@ -392,14 +392,14 @@ public class FBChangePatternFinderWithoutFB {
 		return (int) (difference / 1000l / 60l / 60l / 24l);
 	}
 
-	private static int getCommits(final PATTERN_SQL cp) {
+	public static int getCommits(final PATTERN_SQL cp) {
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
 		return (int) DAO.getInstance().getChanges(beforeHash, afterHash)
 				.stream().map(change -> change.revision).distinct().count();
 	}
 
-	private static int getCommits(final PATTERN_SQL cp, final boolean bugfix) {
+	public static int getCommits(final PATTERN_SQL cp, final boolean bugfix) {
 		final byte[] beforeHash = cp.beforeHash;
 		final byte[] afterHash = cp.afterHash;
 		final List<CHANGE_SQL> changesInPattern = DAO.getInstance().getChanges(
@@ -504,7 +504,7 @@ public class FBChangePatternFinderWithoutFB {
 		return authors;
 	}
 
-	private static SortedSet<String> getAuthors(final PATTERN_SQL cp,
+	public static SortedSet<String> getAuthors(final PATTERN_SQL cp,
 			final boolean bugfix) {
 
 		final SortedSet<String> authors = new TreeSet<>();
@@ -521,7 +521,7 @@ public class FBChangePatternFinderWithoutFB {
 		return authors;
 	}
 
-	private static SortedSet<String> getFiles(final PATTERN_SQL cp) {
+	public static SortedSet<String> getFiles(final PATTERN_SQL cp) {
 
 		final SortedSet<String> files = new TreeSet<>();
 		final byte[] beforeHash = cp.beforeHash;
@@ -535,7 +535,7 @@ public class FBChangePatternFinderWithoutFB {
 		return files;
 	}
 
-	private static SortedSet<String> getFiles(final PATTERN_SQL cp,
+	public static SortedSet<String> getFiles(final PATTERN_SQL cp,
 			final boolean bugfix) {
 
 		final SortedSet<String> files = new TreeSet<>();

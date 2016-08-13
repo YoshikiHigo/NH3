@@ -51,9 +51,12 @@ import org.tmatesoft.svn.core.wc.SVNUpdateClient;
 import yoshikihigo.cpanalyzer.CPAConfig;
 import yoshikihigo.cpanalyzer.LANGUAGE;
 import yoshikihigo.cpanalyzer.data.Statement;
+import yoshikihigo.fbparser.FBChangePatternFinderWithoutFB;
 import yoshikihigo.fbparser.FBParserConfig;
 import yoshikihigo.fbparser.StringUtility;
 import yoshikihigo.fbparser.XLSXMerger.PATTERN;
+import yoshikihigo.fbparser.db.DAO;
+import yoshikihigo.fbparser.db.DAO.PATTERN_SQL;
 
 public class FBWarningChecker extends JFrame {
 
@@ -66,8 +69,6 @@ public class FBWarningChecker extends JFrame {
 					.println("\"-lang\" option is required to specify target languages");
 			System.exit(0);
 		}
-
-		final String xlsx = FBParserConfig.getInstance().getFIXCHANGEPATTERN();
 
 		System.out.println("Useful functions:");
 		System.out
@@ -122,7 +123,14 @@ public class FBWarningChecker extends JFrame {
 			}
 		}
 
-		final List<PATTERN> patterns = readXLSX(xlsx);
+		List<PATTERN> patterns = null;
+		if (FBParserConfig.getInstance().hasFIXCHANGEPATTERN()) {
+			final String xlsx = FBParserConfig.getInstance()
+					.getFIXCHANGEPATTERN();
+			patterns = readXLSX(xlsx);
+		} else {
+			patterns = getPatternsFromDB();
+		}
 
 		final SortedMap<String, List<Warning>> fWarnings = new TreeMap<>();
 		final SortedMap<PATTERN, List<Warning>> pWarnings = new TreeMap<>();
@@ -180,6 +188,10 @@ public class FBWarningChecker extends JFrame {
 
 	static private List<int[]> findMatchedCode(
 			final List<Statement> statements, final List<byte[]> pattern) {
+
+		if (pattern.isEmpty()) {
+			return Collections.emptyList();
+		}
 
 		int pIndex = 0;
 		final List<int[]> places = new ArrayList<>();
@@ -239,6 +251,48 @@ public class FBWarningChecker extends JFrame {
 		catch (final IOException e) {
 			e.printStackTrace();
 			System.exit(0);
+		}
+
+		return patterns;
+	}
+
+	static List<PATTERN> getPatternsFromDB() {
+
+		final List<PATTERN> patterns = new ArrayList<>();
+		final List<PATTERN_SQL> patternsSQL = DAO.getInstance()
+				.getFixChangePatterns();
+
+		for (final PATTERN_SQL patternSQL : patternsSQL) {
+
+			if (patternSQL.confidence < 1) {
+				continue;
+			}
+
+			if (patternSQL.support < 2) {
+				continue;
+			}
+
+			final String beforeText = patternSQL.beforeNText;
+			final String afterText = patternSQL.afterNText;
+
+			if (beforeText.isEmpty() || afterText.isEmpty()) {
+				continue;
+			}
+
+			final PATTERN pattern = new PATTERN(beforeText, afterText);
+			pattern.mergedID = patternSQL.id;
+			pattern.support = patternSQL.support;
+			pattern.bugfixSupport = patternSQL.support;
+			pattern.beforeTextSupport = 0;
+			pattern.addDate(patternSQL.firstdate);
+			pattern.addDate(patternSQL.lastdate);
+			pattern.bugfixCommits = FBChangePatternFinderWithoutFB.getCommits(
+					patternSQL, true);
+			pattern.addBugfixAuthors(FBChangePatternFinderWithoutFB.getAuthors(
+					patternSQL, true));
+			pattern.addBugfixFiles(FBChangePatternFinderWithoutFB.getFiles(
+					patternSQL, true));
+			patterns.add(pattern);
 		}
 
 		return patterns;

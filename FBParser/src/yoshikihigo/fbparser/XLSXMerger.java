@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -612,12 +613,20 @@ public class XLSXMerger {
 			this.files.addAll(StringUtility.split(fileText));
 		}
 
+		public void addFiles(final Collection<String> files) {
+			this.files.addAll(files);
+		}
+
 		public SortedSet<String> getFiles() {
 			return new TreeSet<String>(this.files);
 		}
 
 		public void addBugfixFiles(final String fileText) {
 			this.bugfixFiles.addAll(StringUtility.split(fileText));
+		}
+
+		public void addBugfixFiles(final Collection<String> files) {
+			this.bugfixFiles.addAll(files);
 		}
 
 		public SortedSet<String> getBugfixFiles() {
@@ -628,12 +637,20 @@ public class XLSXMerger {
 			this.authors.addAll(StringUtility.split(authorText));
 		}
 
+		public void addAuthors(final Collection<String> authors) {
+			this.authors.addAll(authors);
+		}
+
 		public SortedSet<String> getAuthors() {
 			return new TreeSet<>(this.authors);
 		}
 
 		public void addBugfixAuthors(final String authorText) {
 			this.bugfixAuthors.addAll(StringUtility.split(authorText));
+		}
+
+		public void addBugfixAuthors(final Collection<String> authors) {
+			this.bugfixAuthors.addAll(authors);
 		}
 
 		public SortedSet<String> getBugfixAuthors() {
