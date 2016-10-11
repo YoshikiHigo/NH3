@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.poi.hssf.util.CellRangeAddress;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.ClientAnchor;
@@ -36,7 +37,6 @@ import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.tmatesoft.svn.core.SVNDepth;
@@ -92,9 +92,13 @@ public class FBChangePatternFinder {
 							return;
 						}
 
-						final List<CHANGE_SQL> changes = dao.getChanges(
-								l.endrev + 1, l.path);
+						final List<CHANGE_SQL> changes = dao.getChanges(Integer
+								.toString(Integer.parseInt(l.endrev) + 1));
 						for (final CHANGE_SQL change : changes) {
+
+							if (!change.filepath.endsWith(l.path)) {
+								continue;
+							}
 
 							if (change.beforeEndLine < l.startstartline) {
 								continue;
@@ -107,6 +111,7 @@ public class FBChangePatternFinder {
 							final List<PATTERN_SQL> cps = dao
 									.getChangePatterns(change.beforeHash,
 											change.afterHash);
+
 							for (final PATTERN_SQL cp : cps) {
 								writer.print(line);
 								writer.print(", ");
@@ -250,7 +255,6 @@ public class FBChangePatternFinder {
 				if (cp.beforeNText.isEmpty()) {
 					continue;
 				}
-				// System.out.println(cp.id);
 
 				final int findBugsSupport = foundPatternIDs.containsKey(cp.id) ? foundPatternIDs
 						.get(cp.id).get() : 0;
@@ -264,7 +268,7 @@ public class FBChangePatternFinder {
 				dataRow.createCell(5).setCellValue(getFiles(cp, true).size());
 				final int support = getChanges(cp).size();
 				final int bugfixSupport = getChanges(cp, true).size();
-				final int beforeTextSupport = countTextAppearances(cp);
+				final int beforeTextSupport = support;// countTextAppearances(cp);
 				dataRow.createCell(6).setCellValue(support);
 				dataRow.createCell(7).setCellValue(bugfixSupport);
 				dataRow.createCell(8).setCellValue(beforeTextSupport);

@@ -50,8 +50,8 @@ public class BugFixChangesUpdater {
 			final SortedSet<Integer> revisions = new TreeSet<>();
 			final Statement statement1 = connector.createStatement();
 			final ResultSet results1 = statement1
-					.executeQuery("select number from revisions where "
-							+ startrev + " < number and number < " + endrev);
+					.executeQuery("select id from revisions where " + startrev
+							+ " < id and id < " + endrev);
 			while (results1.next()) {
 				final int revision = results1.getInt(1);
 				revisions.add(revision);
@@ -71,7 +71,7 @@ public class BugFixChangesUpdater {
 				final int endLine = sourceline.end;
 				final LocationTransition transition = new LocationTransition();
 				transition.add((int) startrev, new Location(path, startLine,
-						endLine));
+						endLine, false));
 				transitions.put(instance, transition);
 			}
 
@@ -230,11 +230,11 @@ public class BugFixChangesUpdater {
 									.substring(afterLocation.indexOf(',') + 1))
 							- 3;
 					final Location before = new Location(path, beforeStartLine,
-							beforeEndLine);
+							beforeEndLine, false);
 					final Location after = new Location(path, afterStartLine,
-							afterEndLine);
+							afterEndLine, false);
 					final ChangedLocation changedLocation = new ChangedLocation(
-							before, after);
+							before, after, false);
 					changedLocations.add(changedLocation);
 				}
 			}
@@ -273,23 +273,23 @@ public class BugFixChangesUpdater {
 						- cl.after.startLine;
 				if (0 < sizeOfBeforeChange && 0 < sizeOfAfterChange) {
 					return new Location_REPLACEMENT(movedPath, movedStartLine,
-							movedEndLine);
+							movedEndLine, false);
 				} else if (0 < sizeOfBeforeChange) {
 					return new Location_DELETION(movedPath, movedStartLine,
-							movedEndLine);
+							movedEndLine, false);
 				} else if (0 < sizeOfAfterChange) {
 					return new Location_ADDITION(movedPath, movedStartLine,
-							movedEndLine);
+							movedEndLine, false);
 				} else {
 					return new Location_UNKNOWN(movedPath, movedStartLine,
-							movedEndLine);
+							movedEndLine, false);
 				}
 			}
 		}
 
 		final Location movedWarningLocation = new Location(
 				warningLocation.path, warningLocation.startLine + moved,
-				warningLocation.endLine + moved);
+				warningLocation.endLine + moved, false);
 		return movedWarningLocation;
 	}
 }

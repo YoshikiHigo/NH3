@@ -14,7 +14,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedSet;
 import java.util.StringTokenizer;
+import java.util.stream.Collectors;
 
 import org.tmatesoft.svn.core.ISVNLogEntryHandler;
 import org.tmatesoft.svn.core.SVNDepth;
@@ -27,6 +30,9 @@ import org.tmatesoft.svn.core.io.SVNRepository;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNDiffClient;
 import org.tmatesoft.svn.core.wc.SVNRevision;
+
+import yoshikihigo.fbparser.db.DAO;
+import yoshikihigo.fbparser.db.DAO.REVISION_SQL;
 
 public class FBChangeRetriever {
 
@@ -60,9 +66,16 @@ public class FBChangeRetriever {
 			assert 0 < endLine : "variable \"endLine\" must no be 0.";
 
 			final LocationTransition transition = new LocationTransition();
-			transition.add(startrev, new Location(path, startLine, endLine));
+			transition.add(startrev, new Location(path, startLine, endLine,
+					false));
 			transitions.put(instance, transition);
 		}
+
+		final DAO dao = DAO.getInstance();
+		final SortedSet<REVISION_SQL> revisions = dao.getRevisions();
+		final Set<String> bugfixRevisionIDs = revisions.stream()
+				.filter(r -> r.bugfix).map(r -> r.id)
+				.collect(Collectors.toSet());
 
 		try {
 
@@ -79,6 +92,8 @@ public class FBChangeRetriever {
 								throws SVNException {
 
 							final int number = (int) logEntry.getRevision();
+							final boolean bugfix = bugfixRevisionIDs
+									.contains(Integer.toString(number));
 							for (final Object key : logEntry.getChangedPaths()
 									.keySet()) {
 								final String path = (String) key;
@@ -97,10 +112,12 @@ public class FBChangeRetriever {
 									if (path.endsWith(sourceline.sourcepath)) {
 
 										final StringBuilder text = new StringBuilder();
+										final String filepath = svnRepository
+												.getRepositoryRoot(false)
+												.getPath()
+												+ path;
 										final SVNURL fileURL = SVNURL
-												.fromFile(new File(repository
-														+ File.separator
-														+ sourceline.sourcepath));
+												.fromFile(new File(filepath));
 
 										final SVNRepository repo = FSRepositoryFactory
 												.create(fileURL);
@@ -135,7 +152,7 @@ public class FBChangeRetriever {
 
 											final List<ChangedLocation> locations = getChangedLocations(
 													sourceline.sourcepath,
-													text.toString());
+													text.toString(), bugfix);
 											final Location changedWarningLocation = moveWarningLocation(
 													transition
 															.getLatestLocation(),
@@ -204,19 +221,36 @@ public class FBChangeRetriever {
 				}
 
 				if (!surviving) {
-					if (!latestLocation.hasLineInformaltion()) {
-						writer.print("removed(unknown), ");
-					} else if (latestLocation instanceof Location_ADDITION) {
-						writer.print("removed(addition), ");
-					} else if (latestLocation instanceof Location_DELETION) {
-						writer.print("removed(deletion), ");
-					} else if (latestLocation instanceof Location_REPLACEMENT) {
-						writer.print("removed(replacement), ");
-					} else if (latestLocation instanceof Location_UNKNOWN) {
-						writer.print("removed(unknown), ");
+					if (latestLocation.bugfix) {
+						if (!latestLocation.hasLineInformaltion()) {
+							writer.print("fixed(unknown), ");
+						} else if (latestLocation instanceof Location_ADDITION) {
+							writer.print("fixed(addition), ");
+						} else if (latestLocation instanceof Location_DELETION) {
+							writer.print("fixed(deletion), ");
+						} else if (latestLocation instanceof Location_REPLACEMENT) {
+							writer.print("fixed(replacement), ");
+						} else if (latestLocation instanceof Location_UNKNOWN) {
+							writer.print("fixed(unknown), ");
+						} else {
+							writer.print("surviving(tracking), ");
+							surviving = true;
+						}
 					} else {
-						writer.print("surviving(tracking), ");
-						surviving = true;
+						if (!latestLocation.hasLineInformaltion()) {
+							writer.print("changed(unknown), ");
+						} else if (latestLocation instanceof Location_ADDITION) {
+							writer.print("changed(addition), ");
+						} else if (latestLocation instanceof Location_DELETION) {
+							writer.print("changed(deletion), ");
+						} else if (latestLocation instanceof Location_REPLACEMENT) {
+							writer.print("changed(replacement), ");
+						} else if (latestLocation instanceof Location_UNKNOWN) {
+							writer.print("changed(unknown), ");
+						} else {
+							writer.print("surviving(tracking), ");
+							surviving = true;
+						}
 					}
 				}
 
@@ -252,7 +286,7 @@ public class FBChangeRetriever {
 	}
 
 	static private List<ChangedLocation> getChangedLocations(final String path,
-			final String text) {
+			final String text, final boolean bugfix) {
 
 		final List<ChangedLocation> changedLocations = new ArrayList<>();
 
@@ -290,11 +324,11 @@ public class FBChangeRetriever {
 											.substring(afterLocationText
 													.indexOf(',') + 1)) - 3;
 					final Location beforeLocation = new Location(path,
-							beforeStartLine, beforeEndLine);
+							beforeStartLine, beforeEndLine, false);
 					final Location afterLocation = new Location(path,
-							afterStartLine, afterEndLine);
+							afterStartLine, afterEndLine, false);
 					final ChangedLocation changedLocation = new ChangedLocation(
-							beforeLocation, afterLocation);
+							beforeLocation, afterLocation, bugfix);
 					changedLocations.add(changedLocation);
 				}
 			}
@@ -331,25 +365,26 @@ public class FBChangeRetriever {
 						- changedLocation.before.startLine;
 				final int changedAfterLength = changedLocation.after.endLine
 						- changedLocation.after.startLine;
+				final boolean bugfix = changedLocation.bugfix;
 				if ((0 < changedBeforeLength) && (0 < changedAfterLength)) {
 					return new Location_REPLACEMENT(path, movedStartLine,
-							movedEndLine);
+							movedEndLine, bugfix);
 				} else if (0 < changedBeforeLength) {
 					return new Location_DELETION(path, movedStartLine,
-							movedEndLine);
+							movedEndLine, bugfix);
 				} else if (0 < changedAfterLength) {
 					return new Location_ADDITION(path, movedStartLine,
-							movedEndLine);
+							movedEndLine, bugfix);
 				} else {
 					return new Location_UNKNOWN(path, movedStartLine,
-							movedEndLine);
+							movedEndLine, bugfix);
 				}
 			}
 		}
 
 		final Location changedWarningLocation = new Location(
 				warningLocation.path, warningLocation.startLine + movedLOC,
-				warningLocation.endLine + movedLOC);
+				warningLocation.endLine + movedLOC, false);
 
 		return changedWarningLocation;
 	}

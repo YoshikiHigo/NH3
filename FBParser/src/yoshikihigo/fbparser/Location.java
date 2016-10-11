@@ -5,11 +5,14 @@ public class Location {
 	final public String path;
 	final public int startLine;
 	final public int endLine;
+	final public boolean bugfix;
 
-	public Location(final String path, final int startLine, final int endLine) {
+	public Location(final String path, final int startLine, final int endLine,
+			final boolean bugfix) {
 		this.path = path;
 		this.startLine = startLine;
 		this.endLine = endLine;
+		this.bugfix = bugfix;
 	}
 
 	public boolean hasLineInformaltion() {
