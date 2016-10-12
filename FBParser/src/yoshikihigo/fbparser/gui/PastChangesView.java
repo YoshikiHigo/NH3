@@ -231,8 +231,8 @@ class PastChange extends JPanel {
 			revWalk.markStart(revWalk.parseCommit(rootId));
 			final RevCommit afterCommit = revWalk.next();
 			final RevCommit beforeCommit = revWalk.next();
-			System.out.println("after: " + afterCommit.name());
-			System.out.println("before: " + beforeCommit.name());
+//			System.out.println("after: " + afterCommit.name());
+//			System.out.println("before: " + beforeCommit.name());
 
 			RevTree tree = null;
 			if (after) {

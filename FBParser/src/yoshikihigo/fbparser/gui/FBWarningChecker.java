@@ -6,7 +6,9 @@ import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +31,11 @@ import javax.swing.UIManager;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.ClientAnchor;
+import org.apache.poi.ss.usermodel.Comment;
+import org.apache.poi.ss.usermodel.CreationHelper;
+import org.apache.poi.ss.usermodel.Drawing;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -172,6 +179,8 @@ public class FBWarningChecker extends JFrame {
 				w2.addAll(warnings);
 			}
 		}
+
+		writeWarnings(fWarnings, pWarnings);
 
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -422,11 +431,94 @@ public class FBWarningChecker extends JFrame {
 		return fileMap;
 	}
 
+	static void writeWarnings(final SortedMap<String, List<Warning>> fWarnings,
+			final Map<PATTERN, List<Warning>> pWarnings) {
+		if (FBParserConfig.getInstance().hasWARNINGLIST()) {
+			final String warningListFile = FBParserConfig.getInstance()
+					.getWARNINGLIST();
+
+			try (final Workbook book = new XSSFWorkbook();
+					final OutputStream stream = new FileOutputStream(
+							warningListFile)) {
+
+				final Sheet sheet = book.createSheet();
+				book.setSheetName(0, "Suggestions");
+				final Row titleRow = sheet.createRow(0);
+				titleRow.createCell(0).setCellValue("File");
+				titleRow.createCell(1).setCellValue("Line");
+				titleRow.createCell(2).setCellValue("Problematic code");
+				titleRow.createCell(3).setCellValue("Solution");
+				titleRow.createCell(4).setCellValue("Pattern ID");
+				titleRow.createCell(5).setCellValue(
+						"the Number of Code Matched with the Pattern");
+
+				setCellComment(titleRow.getCell(0), "Higo",
+						"File where warning was identified", 4, 1);
+				setCellComment(titleRow.getCell(1), "Higo",
+						"Lines of identified warning", 4, 1);
+				setCellComment(titleRow.getCell(2), "Higo",
+						"Template of problematic code matched with the lines",
+						5, 1);
+				setCellComment(titleRow.getCell(3), "Higo",
+						"Template for how to remove the identified warning", 5,
+						1);
+				setCellComment(
+						titleRow.getCell(4),
+						"Higo",
+						"ID of the pattern used to identify the warning and suggest the solution",
+						7, 1);
+				setCellComment(titleRow.getCell(5), "Higo",
+						"the number of code matched with the pattern ID", 5, 1);
+
+				int currentRow = 1;
+				for (final Entry<String, List<Warning>> entry : fWarnings
+						.entrySet()) {
+					final String path = entry.getKey();
+					final List<Warning> warnings = entry.getValue();
+					for (final Warning w : warnings) {
+						final Row row = sheet.createRow(currentRow++);
+						row.createCell(0).setCellValue(path);
+						row.createCell(1).setCellValue(
+								w.fromLine == w.toLine ? Integer
+										.toString(w.fromLine) : w.fromLine
+										+ "--" + w.toLine);
+						row.createCell(2).setCellValue(w.pattern.beforeText);
+						row.createCell(3).setCellValue(w.pattern.afterText);
+						row.createCell(4).setCellValue(
+								Integer.toString(w.pattern.mergedID));
+						row.createCell(5).setCellValue(
+								Integer.toString(pWarnings.get(w.pattern)
+										.size()));
+					}
+				}
+				book.write(stream);
+			} catch (final IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private static void setCellComment(final Cell cell, final String author,
+			final String text, final int width, final int height) {
+
+		final Sheet sheet = cell.getSheet();
+		final Workbook workbook = sheet.getWorkbook();
+		final CreationHelper helper = workbook.getCreationHelper();
+
+		final Drawing drawing = sheet.createDrawingPatriarch();
+		final ClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, (short) 4,
+				2, (short) (4 + width), (2 + height));
+		final Comment comment = drawing.createCellComment(anchor);
+		comment.setAuthor(author);
+		comment.setString(helper.createRichTextString(text));
+		cell.setCellComment(comment);
+	}
+
 	public FBWarningChecker(final Map<String, String> files,
 			final Map<String, List<Warning>> fWarnings,
 			final Map<PATTERN, List<Warning>> pWarnings) {
 
-		super("FBWarningChecker");
+		super("Ammonia");
 
 		final Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setSize(new Dimension(d.width - 10, d.height - 60));

@@ -71,6 +71,15 @@ public class FBParserConfig {
 			source.setRequired(false);
 			options.addOption(source);
 		}
+		
+		{
+			final Option source = new Option("wl", "warninglist", true,
+					"warning list");
+			source.setArgName("file");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
 
 		{
 			final Option source = new Option("db", "database", true,
@@ -313,6 +322,18 @@ public class FBParserConfig {
 		return this.commandLine.getOptionValue("fcp");
 	}
 
+	public boolean hasWARNINGLIST() {
+		return this.commandLine.hasOption("wl");
+	}
+
+	public String getWARNINGLIST() {
+		if (!this.commandLine.hasOption("wl")) {
+			System.err.println("option \"wl\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("wl");
+	}
+	
 	public String getDATABASE() {
 		if (!this.commandLine.hasOption("db")) {
 			System.err.println("option \"db\" is not specified.");
