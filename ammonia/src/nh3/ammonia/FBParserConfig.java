@@ -82,6 +82,15 @@ public class FBParserConfig {
 		}
 
 		{
+			final Option source = new Option("wldb", "warninglistdb", true,
+					"warning list database");
+			source.setArgName("file");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+		
+		{
 			final Option source = new Option("db", "database", true,
 					"change patterns found by CPAnalyzer");
 			source.setArgName("file");
@@ -333,6 +342,19 @@ public class FBParserConfig {
 		}
 		return this.commandLine.getOptionValue("wl");
 	}
+	
+	public boolean hasWARNINGLISTDB() {
+		return this.commandLine.hasOption("wldb");
+	}
+
+	public String getWARNINGLISTDB() {
+		if (!this.commandLine.hasOption("wldb")) {
+			System.err.println("option \"wldb\" is not specified.");
+			System.exit(0);
+		}
+		return this.commandLine.getOptionValue("wldb");
+	}
+	
 	
 	public String getDATABASE() {
 		if (!this.commandLine.hasOption("db")) {
