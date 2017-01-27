@@ -33,6 +33,7 @@
 	<classpathentry kind="lib" path="lib/svnkit-1.8.10/src/svnkit-cli-1.8.10-sources.jar"/>
 	<classpathentry kind="lib" path="lib/jgit-4.4.0/org.eclipse.jgit-4.4.0.201606070830-r-javadoc.jar"/>
 	<classpathentry kind="lib" path="lib/jgit-4.4.0/org.eclipse.jgit-4.4.0.201606070830-r.jar"/>
+	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.15.1/sqlite-jdbc-3.15.1.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/MPAnalyzer"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
