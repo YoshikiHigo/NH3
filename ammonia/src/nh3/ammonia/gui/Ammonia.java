@@ -9,6 +9,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,12 +21,15 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -103,7 +107,8 @@ public class Ammonia extends JFrame {
 		}
 
 		final Set<LANGUAGE> languages = FBParserConfig.getInstance().getLANGUAGE();
-		final SortedMap<String, List<Statement>> allStatements = new TreeMap<>();
+		final SortedMap<String, List<Statement>> pathToStatements = new TreeMap<>();
+		final Map<MD5, SortedSet<String>> hashToPaths = new HashMap<>();
 		CPAConfig.initialize(new String[] {});
 		for (final Entry<String, String> entry : files.entrySet()) {
 			final String path = entry.getKey();
@@ -112,7 +117,17 @@ public class Ammonia extends JFrame {
 				if (lang.isTarget(path)) {
 					final List<Statement> statements = yoshikihigo.cpanalyzer.StringUtility.splitToStatements(contents,
 							lang);
-					allStatements.put(path, statements);
+					pathToStatements.put(path, statements);
+
+					for (final Statement statement : statements) {
+						final MD5 hash = new MD5(statement.hash);
+						SortedSet<String> paths = hashToPaths.get(hash);
+						if (null == paths) {
+							paths = new TreeSet<>();
+							hashToPaths.put(hash, paths);
+						}
+						paths.add(path);
+					}
 					break;
 				}
 			}
@@ -126,20 +141,35 @@ public class Ammonia extends JFrame {
 			patterns = getPatternsFromDB();
 		}
 
+		final long startTime = System.currentTimeMillis();
+
 		final SortedMap<String, List<Warning>> fWarnings = new TreeMap<>();
 		final SortedMap<PATTERN, List<Warning>> pWarnings = new TreeMap<>();
-		for (final Entry<String, List<Statement>> file : allStatements.entrySet()) {
-			final String path = file.getKey();
-			final List<Statement> statements = file.getValue();
-			for (final PATTERN pattern : patterns) {
+		PATTERN: for (final PATTERN pattern : patterns) {
 
-				if (100 <= pattern.beforeTextSupport) {
-					continue;
+			if (pattern.beforeTextHashs.isEmpty()) {
+				continue PATTERN;
+			}
+
+			final MD5 hash1 = new MD5(pattern.beforeTextHashs.get(0));
+			if (!hashToPaths.containsKey(hash1)) {
+				continue PATTERN;
+			}
+			final SortedSet<String> paths = hashToPaths.get(hash1);
+			for (int index = 1; index < pattern.beforeTextHashs.size(); index++) {
+				final MD5 hash2 = new MD5(pattern.beforeTextHashs.get(index));
+				if (!hashToPaths.containsKey(hash2)) {
+					continue PATTERN;
 				}
+				paths.retainAll(hashToPaths.get(hash2));
+			}
+
+			PATH: for (final String path : paths) {
+				final List<Statement> statements = pathToStatements.get(path);
 
 				final List<int[]> matchedCodes = findMatchedCode(statements, pattern.beforeTextHashs);
 				if (matchedCodes.isEmpty()) {
-					continue;
+					continue PATH;
 				}
 
 				final List<Warning> warnings = new ArrayList<>();
@@ -163,6 +193,47 @@ public class Ammonia extends JFrame {
 				w2.addAll(warnings);
 			}
 		}
+
+		// for (final Entry<String, List<Statement>> file :
+		// allStatements.entrySet()) {
+		// final String path = file.getKey();
+		// final List<Statement> statements = file.getValue();
+		// for (final PATTERN pattern : patterns) {
+		//
+		// // if (100 <= pattern.beforeTextSupport) {
+		// // continue;
+		// // }
+		//
+		// final List<int[]> matchedCodes = findMatchedCode(statements,
+		// pattern.beforeTextHashs);
+		// if (matchedCodes.isEmpty()) {
+		// continue;
+		// }
+		//
+		// final List<Warning> warnings = new ArrayList<>();
+		// for (final int[] code : matchedCodes) {
+		// final Warning warning = new Warning(code[0], code[1], pattern);
+		// warnings.add(warning);
+		// }
+		//
+		// List<Warning> w1 = fWarnings.get(path);
+		// if (null == w1) {
+		// w1 = new ArrayList<>();
+		// fWarnings.put(path, w1);
+		// }
+		// w1.addAll(warnings);
+		//
+		// List<Warning> w2 = pWarnings.get(pattern);
+		// if (null == w2) {
+		// w2 = new ArrayList<>();
+		// pWarnings.put(pattern, w2);
+		// }
+		// w2.addAll(warnings);
+		// }
+		// }
+
+		final long endTime = System.currentTimeMillis();
+		System.out.println((endTime - startTime) + " ms");
 
 		final boolean isWL = FBParserConfig.getInstance().hasWARNINGLIST();
 		final boolean isWLDB = FBParserConfig.getInstance().hasWARNINGLISTDB();
@@ -503,8 +574,8 @@ public class Ammonia extends JFrame {
 
 		try {
 			final PreparedStatement statement1 = connector.prepareStatement("insert into files values (?, ?)");
-			final PreparedStatement statement2 = connector
-					.prepareStatement("insert into warnings (fileID, line, issue, solution, patternID, matched) values (?, ?, ?, ?, ?, ?)");
+			final PreparedStatement statement2 = connector.prepareStatement(
+					"insert into warnings (fileID, line, issue, solution, patternID, matched) values (?, ?, ?, ?, ?, ?)");
 
 			int fileID = 0;
 			for (final Entry<String, List<Warning>> entry : fWarnings.entrySet()) {
@@ -660,5 +731,31 @@ public class Ammonia extends JFrame {
 
 		this.setVisible(true);
 		mainPanel.setDividerLocation(mainPanel.getWidth() / 2);
+	}
+
+	static class MD5 {
+		final byte[] hash;
+
+		MD5(final byte[] hash) {
+			this.hash = Arrays.copyOf(hash, hash.length);
+		}
+
+		@Override
+		public int hashCode() {
+			final BigInteger value = new BigInteger(1, this.hash);
+			return value.toString(16).hashCode();
+		}
+
+		@Override
+		public boolean equals(final Object o) {
+			if (null == o) {
+				return false;
+			}
+			if (!(o instanceof MD5)) {
+				return false;
+			}
+
+			return Arrays.equals(this.hash, ((MD5) o).hash);
+		}
 	}
 }
