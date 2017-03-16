@@ -28,8 +28,7 @@ public class FBParserConfig {
 		final Options options = new Options();
 
 		{
-			final Option option = new Option("lang", "language", true,
-					"programming language for analysis");
+			final Option option = new Option("lang", "language", true, "programming language for analysis");
 			option.setArgName("language");
 			option.setArgs(1);
 			option.setRequired(false);
@@ -37,8 +36,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("src", "source", true,
-					"directory of target source code");
+			final Option source = new Option("src", "source", true, "directory of target source code");
 			source.setArgName("sourcecode");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -55,8 +53,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("cp", "changepattern", true,
-					"change patterns for removed bugs");
+			final Option source = new Option("cp", "changepattern", true, "change patterns for removed bugs");
 			source.setArgName("file");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -64,17 +61,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("fcp", "fixchangepattern", true,
-					"bug-fix change patterns");
-			source.setArgName("file");
-			source.setArgs(1);
-			source.setRequired(false);
-			options.addOption(source);
-		}
-		
-		{
-			final Option source = new Option("wl", "warninglist", true,
-					"warning list");
+			final Option source = new Option("fcp", "fixchangepattern", true, "bug-fix change patterns");
 			source.setArgName("file");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -82,17 +69,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("wldb", "warninglistdb", true,
-					"warning list database");
-			source.setArgName("file");
-			source.setArgs(1);
-			source.setRequired(false);
-			options.addOption(source);
-		}
-		
-		{
-			final Option source = new Option("db", "database", true,
-					"change patterns found by CPAnalyzer");
+			final Option source = new Option("wl", "warninglist", true, "warning list");
 			source.setArgName("file");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -100,8 +77,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("bug", "bugfile", true,
-					"a csv file include bug IDs");
+			final Option source = new Option("wldb", "warninglistdb", true, "warning list database");
 			source.setArgName("file");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -109,8 +85,40 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("svnrepo", "svnrepository", true,
-					"svn repository of a target software");
+			final Option source = new Option("st", "supportthreshold", true, "support threshold of change pattterns");
+			source.setArgName("value");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
+			final Option source = new Option("ct", "confidencethreshold", true,
+					"confidence threshold of change patterns");
+			source.setArgName("file");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
+			final Option source = new Option("db", "database", true, "change patterns found by CPAnalyzer");
+			source.setArgName("file");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
+			final Option source = new Option("bug", "bugfile", true, "a csv file include bug IDs");
+			source.setArgName("file");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
+			final Option source = new Option("svnrepo", "svnrepository", true, "svn repository of a target software");
 			source.setArgName("number");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -118,8 +126,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("gitrepo", "gitrepository", true,
-					"git repository of a target software");
+			final Option source = new Option("gitrepo", "gitrepository", true, "git repository of a target software");
 			source.setArgName("number");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -127,8 +134,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("startrev", "startrev", true,
-					"revision number of the given XML file");
+			final Option source = new Option("startrev", "startrev", true, "revision number of the given XML file");
 			source.setArgName("number");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -136,8 +142,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("endrev", "endrev", true,
-					"revision number of ending border");
+			final Option source = new Option("endrev", "endrev", true, "revision number of ending border");
 			source.setArgName("number");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -145,8 +150,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("fbresult", "fbresult", true,
-					"a findbug's result on a target version");
+			final Option source = new Option("fbresult", "fbresult", true, "a findbug's result on a target version");
 			source.setArgName("xml file(findbug's result)");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -154,8 +158,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("fbresults", "fbresults", true,
-					"findbug's results on target versions");
+			final Option source = new Option("fbresults", "fbresults", true, "findbug's results on target versions");
 			source.setArgName("xml files(findbug's results)");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -163,8 +166,8 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("survivingbugscsv",
-					"survivingbugscsv", true, "surviving bugs in CSV format");
+			final Option source = new Option("survivingbugscsv", "survivingbugscsv", true,
+					"surviving bugs in CSV format");
 			source.setArgName("csvfile");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -172,8 +175,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("removedbugscsv",
-					"removedbugscsv", true, "removed bugs in CSV format");
+			final Option source = new Option("removedbugscsv", "removedbugscsv", true, "removed bugs in CSV format");
 			source.setArgName("csvfile");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -181,8 +183,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("addedbugscsv", "addedbugscsv",
-					true, "added bugs in CSV format");
+			final Option source = new Option("addedbugscsv", "addedbugscsv", true, "added bugs in CSV format");
 			source.setArgName("csvfile");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -190,8 +191,8 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option source = new Option("metricsresultxlsx",
-					"metricsresultxlsx", true, "metrics results in XLSX format");
+			final Option source = new Option("metricsresultxlsx", "metricsresultxlsx", true,
+					"metrics results in XLSX format");
 			source.setArgName("xlsxfile");
 			source.setArgs(1);
 			source.setRequired(false);
@@ -199,8 +200,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option revision = new Option("svnrev", "svnrevision", true,
-					"SVN target revision");
+			final Option revision = new Option("svnrev", "svnrevision", true, "SVN target revision");
 			revision.setArgName("number");
 			revision.setArgs(1);
 			revision.setRequired(false);
@@ -208,8 +208,7 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option commit = new Option("gitcommit", "gitcommit", true,
-					"GIT commit id");
+			final Option commit = new Option("gitcommit", "gitcommit", true, "GIT commit id");
 			commit.setArgName("id");
 			commit.setArgs(1);
 			commit.setRequired(false);
@@ -217,15 +216,13 @@ public class FBParserConfig {
 		}
 
 		{
-			final Option verbose = new Option("v", "verbose", false,
-					"verbose output for progressing");
+			final Option verbose = new Option("v", "verbose", false, "verbose output for progressing");
 			verbose.setRequired(false);
 			options.addOption(verbose);
 		}
 
 		{
-			final Option debug = new Option("debug", "debug", false,
-					"print some informlation for debugging");
+			final Option debug = new Option("debug", "debug", false, "print some informlation for debugging");
 			debug.setRequired(false);
 			options.addOption(debug);
 		}
@@ -261,7 +258,7 @@ public class FBParserConfig {
 	public boolean hasLANGUAGE() {
 		return this.commandLine.hasOption("lang");
 	}
-	
+
 	public final Set<LANGUAGE> getLANGUAGE() {
 
 		final Set<LANGUAGE> languages = new HashSet<>();
@@ -272,8 +269,7 @@ public class FBParserConfig {
 			while (tokenizer.hasMoreTokens()) {
 				try {
 					final String value = tokenizer.nextToken();
-					final LANGUAGE language = LANGUAGE.valueOf(value
-							.toUpperCase());
+					final LANGUAGE language = LANGUAGE.valueOf(value.toUpperCase());
 					languages.add(language);
 				} catch (final IllegalArgumentException e) {
 					System.err.println("invalid option value for \"-lang\"");
@@ -342,7 +338,7 @@ public class FBParserConfig {
 		}
 		return this.commandLine.getOptionValue("wl");
 	}
-	
+
 	public boolean hasWARNINGLISTDB() {
 		return this.commandLine.hasOption("wldb");
 	}
@@ -354,8 +350,21 @@ public class FBParserConfig {
 		}
 		return this.commandLine.getOptionValue("wldb");
 	}
-	
-	
+
+	public int getSUPPORTTHRESHOLD() {
+		if (!this.commandLine.hasOption("st")) {
+			return 2;
+		}
+		return Integer.parseInt(this.commandLine.getOptionValue("st"));
+	}
+
+	public float getCONFIDENCETHRESHOLD() {
+		if (!this.commandLine.hasOption("ct")) {
+			return 1.0f;
+		}
+		return Float.parseFloat(this.commandLine.getOptionValue("ct"));
+	}
+
 	public String getDATABASE() {
 		if (!this.commandLine.hasOption("db")) {
 			System.err.println("option \"db\" is not specified.");
@@ -426,8 +435,7 @@ public class FBParserConfig {
 			System.exit(0);
 		}
 		final List<String> versions = new ArrayList<String>();
-		final StringTokenizer tokenizer = new StringTokenizer(
-				this.commandLine.getOptionValue("fbresults"), ";");
+		final StringTokenizer tokenizer = new StringTokenizer(this.commandLine.getOptionValue("fbresults"), ";");
 		while (tokenizer.hasMoreTokens()) {
 			final String version = tokenizer.nextToken();
 			versions.add(version);
@@ -473,8 +481,7 @@ public class FBParserConfig {
 
 	public String getMETRICSRESULTXLSX() {
 		if (!this.commandLine.hasOption("metricsresultxlsx")) {
-			System.err
-					.println("option \"metricsresultxlsx\" is not specified.");
+			System.err.println("option \"metricsresultxlsx\" is not specified.");
 			System.exit(0);
 		}
 		return this.commandLine.getOptionValue("metricsresultxlsx");

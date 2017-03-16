@@ -338,16 +338,19 @@ public class Ammonia extends JFrame {
 
 	static List<PATTERN> getPatternsFromDB() {
 
+		final int supportThreshold = FBParserConfig.getInstance().getSUPPORTTHRESHOLD();
+		final float confidenceThreshold = FBParserConfig.getInstance().getCONFIDENCETHRESHOLD();
+
 		final List<PATTERN> patterns = new ArrayList<>();
 		final List<PATTERN_SQL> patternsSQL = DAO.getInstance().getFixChangePatterns();
 
 		for (final PATTERN_SQL patternSQL : patternsSQL) {
 
-			if (patternSQL.confidence < 1) {
+			if (patternSQL.confidence < confidenceThreshold) {
 				continue;
 			}
 
-			if (patternSQL.support < 2) {
+			if (patternSQL.support < supportThreshold) {
 				continue;
 			}
 
