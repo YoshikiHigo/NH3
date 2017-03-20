@@ -47,8 +47,7 @@ public class DAO {
 		try {
 			Class.forName("org.sqlite.JDBC");
 			final String database = FBParserConfig.getInstance().getDATABASE();
-			this.connector = DriverManager.getConnection("jdbc:sqlite:"
-					+ database);
+			this.connector = DriverManager.getConnection("jdbc:sqlite:" + database);
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 			System.exit(0);
@@ -97,8 +96,7 @@ public class DAO {
 
 			final String text = "select distinct C.revision, C.date, C.bugfix "
 					+ "from bugfixchanges C inner join bugfixrevisions R "
-					+ "on C.revision = R.id where R.message like \"%" + keyword
-					+ "%\"";
+					+ "on C.revision = R.id where R.message like \"%" + keyword + "%\"";
 			final Statement statement = this.connector.createStatement();
 			final ResultSet result = statement.executeQuery(text);
 			while (result.next()) {
@@ -118,8 +116,7 @@ public class DAO {
 		return revisions;
 	}
 
-	public SortedSet<REVISION_SQL> getRevisions(final byte[] beforeHash,
-			final byte[] afterHash) {
+	public SortedSet<REVISION_SQL> getRevisions(final byte[] beforeHash, final byte[] afterHash) {
 
 		final SortedSet<REVISION_SQL> revisions = new TreeSet<>();
 
@@ -127,8 +124,7 @@ public class DAO {
 
 			final String text = "select distinct revision, date, bugfix from bugfixchanges "
 					+ "where beforeHash = ? and afterHash = ?";
-			final PreparedStatement statement = this.connector
-					.prepareStatement(text);
+			final PreparedStatement statement = this.connector.prepareStatement(text);
 			statement.setBytes(1, beforeHash);
 			statement.setBytes(2, afterHash);
 			final ResultSet result = statement.executeQuery();
@@ -150,24 +146,19 @@ public class DAO {
 		return revisions;
 	}
 
-	public List<CHANGE_SQL> getChanges(final byte[] beforeHash,
-			final byte[] afterHash) {
+	public List<CHANGE_SQL> getChanges(final byte[] beforeHash, final byte[] afterHash) {
 
 		final List<CHANGE_SQL> changes = new ArrayList<>();
 
 		try {
 
-			final String text = "select id, revision, filepath, "
-					+ "(select start from codes where id = beforeID), "
-					+ "(select end from codes where id = beforeID), "
-					+ "(select start from codes where id = afterID),"
+			final String text = "select id, revision, filepath, " + "(select start from codes where id = beforeID), "
+					+ "(select end from codes where id = beforeID), " + "(select start from codes where id = afterID),"
 					+ "(select end from codes where id = afterID), "
 					+ "(select author from revisions where id = revision), "
-					+ "(select message from revisions where id = revision), "
-					+ "bugfix "
+					+ "(select message from revisions where id = revision), " + "bugfix "
 					+ "from bugfixchanges where beforeHash = ? and afterHash = ?";
-			final PreparedStatement statement = this.connector
-					.prepareStatement(text);
+			final PreparedStatement statement = this.connector.prepareStatement(text);
 			statement.setBytes(1, beforeHash);
 			statement.setBytes(2, afterHash);
 			final ResultSet results = statement.executeQuery();
@@ -183,10 +174,8 @@ public class DAO {
 				final String author = results.getString(8);
 				final String message = results.getString(9);
 				final int bugfix = results.getInt(10);
-				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash,
-						afterHash, revision, filepath, startline, endline,
-						afterStartLine, afterEndLine, author, message,
-						0 < bugfix);
+				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash, afterHash, revision, filepath, startline,
+						endline, afterStartLine, afterEndLine, author, message, 0 < bugfix);
 				changes.add(change);
 			}
 
@@ -199,8 +188,7 @@ public class DAO {
 		return changes;
 	}
 
-	public List<CHANGE_SQL> getChanges(final String beforeNText,
-			final String afterNText) {
+	public List<CHANGE_SQL> getChanges(final String beforeNText, final String afterNText) {
 
 		final List<CHANGE_SQL> changes = new ArrayList<>();
 
@@ -209,12 +197,9 @@ public class DAO {
 			final String sqlText = "select C1.id, C1.revision, C1.filepath, "
 					+ "C1.beforeHash, C1.afterHash, C2.start, C2.end, C3.start, C3.end, "
 					+ "R.author, R.message, C1.bugfix from bugfixchanges C1 "
-					+ "inner join codes C2 on C1.beforeID = C2.id "
-					+ "inner join codes C3 on C1.afterID = C3.id "
-					+ "inner join revisions R on C1.revision = R.id "
-					+ "where C2.nText = ? and C3.nText = ?";
-			final PreparedStatement statement = this.connector
-					.prepareStatement(sqlText);
+					+ "inner join codes C2 on C1.beforeID = C2.id " + "inner join codes C3 on C1.afterID = C3.id "
+					+ "inner join revisions R on C1.revision = R.id " + "where C2.nText = ? and C3.nText = ?";
+			final PreparedStatement statement = this.connector.prepareStatement(sqlText);
 			statement.setString(1, beforeNText);
 			statement.setString(2, afterNText);
 			final ResultSet results = statement.executeQuery();
@@ -233,10 +218,8 @@ public class DAO {
 				final String message = results.getString(11);
 				final int bugfix = results.getInt(12);
 				if (0 < bugfix) {
-					final CHANGE_SQL change = new CHANGE_SQL(changeID,
-							beforeHash, afterHash, revision, filepath,
-							startline, endline, afterStartLine, afterEndLine,
-							author, message, true);
+					final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash, afterHash, revision, filepath,
+							startline, endline, afterStartLine, afterEndLine, author, message, true);
 					changes.add(change);
 				}
 			}
@@ -253,14 +236,11 @@ public class DAO {
 	public List<CHANGE_SQL> getChanges(final String revision) {
 
 		final String text = "select id, beforeHash, afterHash, filepath, "
-				+ "(select start from codes where id = beforeID), "
-				+ "(select end from codes where id = beforeID), "
-				+ "(select start from codes where id = afterID), "
-				+ "(select end from codes where id = afterID), "
+				+ "(select start from codes where id = beforeID), " + "(select end from codes where id = beforeID), "
+				+ "(select start from codes where id = afterID), " + "(select end from codes where id = afterID), "
 				+ "(select author from revisions where id = revision), "
-				+ "(select message from revisions where id = revision), "
-				+ "bugfix " + "from bugfixchanges where revision = \""
-				+ revision + "\"";
+				+ "(select message from revisions where id = revision), " + "bugfix "
+				+ "from bugfixchanges where revision = \"" + revision + "\"";
 
 		final List<CHANGE_SQL> changes = new ArrayList<>();
 
@@ -280,10 +260,8 @@ public class DAO {
 				final String author = results.getString(9);
 				final String message = results.getString(10);
 				final int bugfix = results.getInt(11);
-				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash,
-						afterHash, revision, filepath, startline, endline,
-						afterStartLine, afterEndLine, author, message,
-						0 < bugfix);
+				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash, afterHash, revision, filepath, startline,
+						endline, afterStartLine, afterEndLine, author, message, 0 < bugfix);
 				changes.add(change);
 			}
 
@@ -297,24 +275,19 @@ public class DAO {
 
 	}
 
-	public List<CHANGE_SQL> getChanges(final String revision,
-			final String path, final int dummy) {
+	public List<CHANGE_SQL> getChanges(final String revision, final String path, final int dummy) {
 
 		final String text = "select id, beforeHash, afterHash, filepath, "
-				+ "(select start from codes where id = beforeID), "
-				+ "(select end from codes where id = beforeID), "
-				+ "(select start from codes where id = afterID), "
-				+ "(select end from codes where id = afterID), "
+				+ "(select start from codes where id = beforeID), " + "(select end from codes where id = beforeID), "
+				+ "(select start from codes where id = afterID), " + "(select end from codes where id = afterID), "
 				+ "(select author from revisions where id = revision), "
-				+ "(select message from revisions where id = revision), "
-				+ "bugfix " + "from bugfixchanges where revision = " + revision
-				+ " and filepath = \'" + path + "\'";
+				+ "(select message from revisions where id = revision), " + "bugfix "
+				+ "from bugfixchanges where revision = " + revision + " and filepath = \'" + path + "\'";
 
 		final List<CHANGE_SQL> changes = new ArrayList<>();
 
 		try {
-			final Statement revisionStatement = this.connector
-					.createStatement();
+			final Statement revisionStatement = this.connector.createStatement();
 			final ResultSet results = revisionStatement.executeQuery(text);
 
 			while (results.next()) {
@@ -329,10 +302,8 @@ public class DAO {
 				final String author = results.getString(9);
 				final String message = results.getString(10);
 				final int bugfix = results.getInt(11);
-				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash,
-						afterHash, revision, filepath, startline, endline,
-						afterStartLine, afterEndLine, author, message,
-						0 < bugfix);
+				final CHANGE_SQL change = new CHANGE_SQL(changeID, beforeHash, afterHash, revision, filepath, startline,
+						endline, afterStartLine, afterEndLine, author, message, 0 < bugfix);
 				changes.add(change);
 			}
 
@@ -346,8 +317,7 @@ public class DAO {
 		return changes;
 	}
 
-	public List<PATTERN_SQL> getChangePatterns(final byte[] beforeHash,
-			final byte[] afterHash) {
+	public List<PATTERN_SQL> getChangePatterns(final byte[] beforeHash, final byte[] afterHash) {
 
 		final List<PATTERN_SQL> changepatterns = new ArrayList<>();
 
@@ -357,8 +327,7 @@ public class DAO {
 					+ "(select nText from codes where hash = beforeHash), "
 					+ "(select nText from codes where hash = afterHash) "
 					+ "from patterns where beforeHash = ? and afterHash = ?";
-			final PreparedStatement statement = this.connector
-					.prepareStatement(sqlText);
+			final PreparedStatement statement = this.connector.prepareStatement(sqlText);
 			statement.setBytes(1, beforeHash);
 			statement.setBytes(2, afterHash);
 			final ResultSet result = statement.executeQuery();
@@ -372,13 +341,49 @@ public class DAO {
 				final String beforeNText = result.getString(6);
 				final String afterNText = result.getString(7);
 
-				final PATTERN_SQL changepattern = new PATTERN_SQL(
-						changepatternID, support, confidence, firstdate,
-						lastdate, beforeHash, afterHash, beforeNText,
-						afterNText);
+				final PATTERN_SQL changepattern = new PATTERN_SQL(changepatternID, support, confidence, firstdate,
+						lastdate, beforeHash, afterHash, beforeNText, afterNText);
 				changepatterns.add(changepattern);
 			}
 
+			statement.close();
+
+		} catch (final SQLException e) {
+			e.printStackTrace();
+		}
+
+		return changepatterns;
+	}
+
+	public List<PATTERN_SQL> getChangePatterns(final int bugfixThreshold, final int supportThreshold,
+			final float confidenceThreshold) {
+
+		final List<PATTERN_SQL> changepatterns = new ArrayList<>();
+
+		try {
+
+			final Statement statement = this.connector.createStatement();
+			final String sql = "select id, " + "support, confidence, " + "firstdate, lastdate, "
+					+ "beforeHash, afterHash, " + "(select C1.nText from codes C1 where C1.hash = beforeHash), "
+					+ "(select C2.nText from codes C2 where C2.hash = afterHash) " + "from bugfixpatterns where "
+					+ bugfixThreshold + " <= bugfix and " + supportThreshold + " <= support and " + confidenceThreshold
+					+ " <= confidence order by support desc";
+			final ResultSet result2 = statement.executeQuery(sql);
+			while (result2.next()) {
+				final int changepatternID = result2.getInt(1);
+				final int support = result2.getInt(2);
+				final float confidence = result2.getFloat(3);
+				final String firstdate = result2.getString(4);
+				final String lastdate = result2.getString(5);
+				final byte[] beforeHash = result2.getBytes(6);
+				final byte[] afterHash = result2.getBytes(7);
+				final String beforeNText = result2.getString(8);
+				final String afterNText = result2.getString(9);
+
+				final PATTERN_SQL changepattern = new PATTERN_SQL(changepatternID, support, confidence, firstdate,
+						lastdate, beforeHash, afterHash, beforeNText, afterNText);
+				changepatterns.add(changepattern);
+			}
 			statement.close();
 
 		} catch (final SQLException e) {
@@ -395,11 +400,8 @@ public class DAO {
 		try {
 
 			final Statement statement = this.connector.createStatement();
-			final String sql = "select id, "
-					+ "support, confidence, "
-					+ "firstdate, lastdate, "
-					+ "beforeHash, afterHash, "
-					+ "(select C1.nText from codes C1 where C1.hash = beforeHash), "
+			final String sql = "select id, " + "support, confidence, " + "firstdate, lastdate, "
+					+ "beforeHash, afterHash, " + "(select C1.nText from codes C1 where C1.hash = beforeHash), "
 					+ "(select C2.nText from codes C2 where C2.hash = afterHash) "
 					+ "from bugfixpatterns where 0 < bugfix order by support desc";
 			final ResultSet result2 = statement.executeQuery(sql);
@@ -414,10 +416,8 @@ public class DAO {
 				final String beforeNText = result2.getString(8);
 				final String afterNText = result2.getString(9);
 
-				final PATTERN_SQL changepattern = new PATTERN_SQL(
-						changepatternID, support, confidence, firstdate,
-						lastdate, beforeHash, afterHash, beforeNText,
-						afterNText);
+				final PATTERN_SQL changepattern = new PATTERN_SQL(changepatternID, support, confidence, firstdate,
+						lastdate, beforeHash, afterHash, beforeNText, afterNText);
 				changepatterns.add(changepattern);
 			}
 			statement.close();
@@ -436,8 +436,7 @@ public class DAO {
 		final SortedSet<REVISION_SQL> keyRevisions = this.getRevisions(keyword);
 
 		for (final PATTERN_SQL pattern : patterns) {
-			final SortedSet<REVISION_SQL> revisions = this.getRevisions(
-					pattern.beforeHash, pattern.afterHash);
+			final SortedSet<REVISION_SQL> revisions = this.getRevisions(pattern.beforeHash, pattern.afterHash);
 			revisions.retainAll(keyRevisions);
 			if (!revisions.isEmpty()) {
 				keyPatterns.add(pattern);
@@ -484,10 +483,9 @@ public class DAO {
 			statement1.close();
 
 			final Set<Integer> bugIDs = this.getBugIDs();
-			final PreparedStatement statement2 = this.connector
-					.prepareStatement("select (select R.message from revisions R where R.id = C.revision) from changes C where C.beforeHash = ?");
-			CODE: for (final Iterator<CODE_SQL> iterator = codes.iterator(); iterator
-					.hasNext();) {
+			final PreparedStatement statement2 = this.connector.prepareStatement(
+					"select (select R.message from revisions R where R.id = C.revision) from changes C where C.beforeHash = ?");
+			CODE: for (final Iterator<CODE_SQL> iterator = codes.iterator(); iterator.hasNext();) {
 				CODE_SQL code = iterator.next();
 				statement2.setBytes(1, code.hash);
 				final ResultSet result2 = statement2.executeQuery();
@@ -528,8 +526,7 @@ public class DAO {
 		final Set<Integer> ids = new HashSet<>();
 
 		try (final BufferedReader reader = new BufferedReader(
-				new InputStreamReader(new FileInputStream(bugFile),
-						"JISAutoDetect"))) {
+				new InputStreamReader(new FileInputStream(bugFile), "JISAutoDetect"))) {
 			reader.readLine();
 			while (true) {
 				final String lineText = reader.readLine();
@@ -552,8 +549,7 @@ public class DAO {
 		final public String date;
 		final public boolean bugfix;
 
-		public REVISION_SQL(final String id, final String date,
-				final boolean bugfix) {
+		public REVISION_SQL(final String id, final String date, final boolean bugfix) {
 			this.id = id;
 			this.date = date;
 			this.bugfix = bugfix;
@@ -595,11 +591,9 @@ public class DAO {
 		final public String message;
 		final public boolean bugfix;
 
-		public CHANGE_SQL(final int id, final byte[] beforeHash,
-				final byte[] afterHash, final String revision,
-				final String filepath, final int startline, final int endline,
-				final int afterStartLine, final int afterEndLine,
-				final String author, final String message, final boolean bugfix) {
+		public CHANGE_SQL(final int id, final byte[] beforeHash, final byte[] afterHash, final String revision,
+				final String filepath, final int startline, final int endline, final int afterStartLine,
+				final int afterEndLine, final String author, final String message, final boolean bugfix) {
 			this.id = id;
 			this.beforeHash = beforeHash;
 			this.afterHash = afterHash;
@@ -642,10 +636,8 @@ public class DAO {
 		final public String beforeNText;
 		final public String afterNText;
 
-		public PATTERN_SQL(final int id, final int support,
-				final float confidence, final String firstdate,
-				final String lastdate, final byte[] beforeHash,
-				final byte[] afterHash, final String beforeNText,
+		public PATTERN_SQL(final int id, final int support, final float confidence, final String firstdate,
+				final String lastdate, final byte[] beforeHash, final byte[] afterHash, final String beforeNText,
 				final String afterNText) {
 			this.id = id;
 			this.support = support;

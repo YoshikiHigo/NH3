@@ -85,6 +85,14 @@ public class FBParserConfig {
 		}
 
 		{
+			final Option source = new Option("bt", "bugfixthreshold", true, "bugfix threshold of change pattterns");
+			source.setArgName("value");
+			source.setArgs(1);
+			source.setRequired(false);
+			options.addOption(source);
+		}
+
+		{
 			final Option source = new Option("st", "supportthreshold", true, "support threshold of change pattterns");
 			source.setArgName("value");
 			source.setArgs(1);
@@ -349,6 +357,13 @@ public class FBParserConfig {
 			System.exit(0);
 		}
 		return this.commandLine.getOptionValue("wldb");
+	}
+
+	public int getBUGFIXTHRESHOLD() {
+		if (!this.commandLine.hasOption("bt")) {
+			return 1;
+		}
+		return Integer.parseInt(this.commandLine.getOptionValue("bt"));
 	}
 
 	public int getSUPPORTTHRESHOLD() {
