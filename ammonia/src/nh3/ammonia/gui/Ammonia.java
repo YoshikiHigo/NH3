@@ -527,7 +527,7 @@ public class Ammonia extends JFrame {
 				}
 			}
 			book.write(stream);
-		} catch (final IOException e) {
+		} catch (final Exception e) {
 			e.printStackTrace();
 		}
 	}
