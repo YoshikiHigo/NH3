@@ -238,12 +238,12 @@ public class Ammonia extends JFrame {
 		final boolean isWL = FBParserConfig.getInstance().hasWARNINGLIST();
 		final boolean isWLDB = FBParserConfig.getInstance().hasWARNINGLISTDB();
 
-		if (isWL) {
-			writeWarnings(fWarnings, pWarnings);
-		}
-
 		if (isWLDB) {
 			writeWarningsToDB(fWarnings, pWarnings);
+		}
+
+		if (isWL) {
+			writeWarnings(fWarnings, pWarnings);
 		}
 
 		if (!isWL && !isWLDB) {
@@ -528,6 +528,7 @@ public class Ammonia extends JFrame {
 			}
 			book.write(stream);
 		} catch (final Exception e) {
+			System.err.println("failed to create EXCEl file.");
 			e.printStackTrace();
 		}
 	}
