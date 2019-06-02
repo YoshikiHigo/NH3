@@ -121,7 +121,7 @@ public class Ammonia extends JFrame {
     final Set<LANGUAGE> languages = FBParserConfig.getInstance()
         .getLANGUAGE();
     final SortedMap<String, List<Statement>> pathToStatements = new TreeMap<>();
-    final Map<String, SortedSet<String>> hashToPaths = new HashMap<>();
+    final Map<MD5, SortedSet<String>> hashToPaths = new HashMap<>();
     CPAConfig.initialize(new String[] {});
     for (final Entry<String, String> entry : files.entrySet()) {
       final String path = entry.getKey();
@@ -133,11 +133,11 @@ public class Ammonia extends JFrame {
           pathToStatements.put(path, statements);
 
           for (final Statement statement : statements) {
-            final String normalizedText = statement.nText;
-            SortedSet<String> paths = hashToPaths.get(normalizedText);
+            final MD5 hash = new MD5(statement.hash);
+            SortedSet<String> paths = hashToPaths.get(hash);
             if (null == paths) {
               paths = new TreeSet<>();
-              hashToPaths.put(normalizedText, paths);
+              hashToPaths.put(hash, paths);
             }
             paths.add(path);
           }
@@ -164,17 +164,17 @@ public class Ammonia extends JFrame {
         continue PATTERN;
       }
 
-      final String normalizedText1 = pattern.beforeTextPattern.get(0);
-      if (!hashToPaths.containsKey(normalizedText1)) {
+      final MD5 hash1 = new MD5(pattern.beforeTextHashs.get(0));
+      if (!hashToPaths.containsKey(hash1)) {
         continue PATTERN;
       }
-      final SortedSet<String> paths = hashToPaths.get(normalizedText1);
+      final SortedSet<String> paths = hashToPaths.get(hash1);
       for (int index = 1; index < pattern.beforeTextHashs.size(); index++) {
-        final String normalizedText2 = pattern.beforeTextPattern.get(index);
-        if (!hashToPaths.containsKey(normalizedText2)) {
+        final MD5 hash2 = new MD5(pattern.beforeTextHashs.get(index));
+        if (!hashToPaths.containsKey(hash2)) {
           continue PATTERN;
         }
-        paths.retainAll(hashToPaths.get(normalizedText2));
+        paths.retainAll(hashToPaths.get(hash2));
       }
 
       PATH: for (final String path : paths) {
