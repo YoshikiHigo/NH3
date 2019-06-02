@@ -194,44 +194,6 @@ public class Ammonia extends JFrame {
 			}
 		}
 
-		// for (final Entry<String, List<Statement>> file :
-		// allStatements.entrySet()) {
-		// final String path = file.getKey();
-		// final List<Statement> statements = file.getValue();
-		// for (final PATTERN pattern : patterns) {
-		//
-		// // if (100 <= pattern.beforeTextSupport) {
-		// // continue;
-		// // }
-		//
-		// final List<int[]> matchedCodes = findMatchedCode(statements,
-		// pattern.beforeTextHashs);
-		// if (matchedCodes.isEmpty()) {
-		// continue;
-		// }
-		//
-		// final List<Warning> warnings = new ArrayList<>();
-		// for (final int[] code : matchedCodes) {
-		// final Warning warning = new Warning(code[0], code[1], pattern);
-		// warnings.add(warning);
-		// }
-		//
-		// List<Warning> w1 = fWarnings.get(path);
-		// if (null == w1) {
-		// w1 = new ArrayList<>();
-		// fWarnings.put(path, w1);
-		// }
-		// w1.addAll(warnings);
-		//
-		// List<Warning> w2 = pWarnings.get(pattern);
-		// if (null == w2) {
-		// w2 = new ArrayList<>();
-		// pWarnings.put(pattern, w2);
-		// }
-		// w2.addAll(warnings);
-		// }
-		// }
-
 		final long endTime = System.currentTimeMillis();
 		System.out.println((endTime - startTime) + " ms");
 
