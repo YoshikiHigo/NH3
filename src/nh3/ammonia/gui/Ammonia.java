@@ -119,7 +119,7 @@ public class Ammonia extends JFrame {
     final Set<LANGUAGE> languages = FBParserConfig.getInstance()
         .getLANGUAGE();
     final SortedMap<String, List<Statement>> pathToStatements = new TreeMap<>();
-    final Map<MD5, SortedSet<String>> hashToPaths = new HashMap<>();
+    final Map<String, SortedSet<String>> hashToPaths = new HashMap<>();
     CPAConfig.initialize(new String[] {});
     for (final Entry<String, String> entry : files.entrySet()) {
       final String path = entry.getKey();
@@ -131,11 +131,11 @@ public class Ammonia extends JFrame {
           pathToStatements.put(path, statements);
 
           for (final Statement statement : statements) {
-            final MD5 hash = new MD5(statement.hash);
-            SortedSet<String> paths = hashToPaths.get(hash);
+            final String normalizedText = statement.nText;
+            SortedSet<String> paths = hashToPaths.get(normalizedText);
             if (null == paths) {
               paths = new TreeSet<>();
-              hashToPaths.put(hash, paths);
+              hashToPaths.put(normalizedText, paths);
             }
             paths.add(path);
           }
@@ -164,23 +164,23 @@ public class Ammonia extends JFrame {
         continue PATTERN;
       }
 
-      final MD5 hash1 = new MD5(pattern.beforeTextHashs.get(0));
-      if (!hashToPaths.containsKey(hash1)) {
+      final String normalizedText1 = pattern.beforeTextPattern.get(0);
+      if (!hashToPaths.containsKey(normalizedText1)) {
         continue PATTERN;
       }
-      final SortedSet<String> paths = hashToPaths.get(hash1);
+      final SortedSet<String> paths = hashToPaths.get(normalizedText1);
       for (int index = 1; index < pattern.beforeTextHashs.size(); index++) {
-        final MD5 hash2 = new MD5(pattern.beforeTextHashs.get(index));
-        if (!hashToPaths.containsKey(hash2)) {
+        final String normalizedText2 = pattern.beforeTextPattern.get(index);
+        if (!hashToPaths.containsKey(normalizedText2)) {
           continue PATTERN;
         }
-        paths.retainAll(hashToPaths.get(hash2));
+        paths.retainAll(hashToPaths.get(normalizedText2));
       }
 
       PATH: for (final String path : paths) {
         final List<Statement> statements = pathToStatements.get(path);
 
-        final List<int[]> matchedCodes = findMatchedCode(statements, pattern.beforeTextHashs);
+        final List<int[]> matchedCodes = findMatchedCode(statements, pattern.beforeTextPattern);
         if (matchedCodes.isEmpty()) {
           continue PATH;
         }
@@ -250,7 +250,7 @@ public class Ammonia extends JFrame {
   }
 
   static private List<int[]> findMatchedCode(final List<Statement> statements,
-      final List<byte[]> pattern) {
+      final List<String> pattern) {
 
     if (pattern.isEmpty()) {
       return Collections.emptyList();
@@ -261,7 +261,7 @@ public class Ammonia extends JFrame {
     final List<Statement> code = new ArrayList<>();
     for (int index = 0; index < statements.size(); index++) {
 
-      if (Arrays.equals(statements.get(index).hash, pattern.get(pIndex))) {
+      if (statements.get(index).nText.equals(pattern.get(pIndex))) {
         pIndex++;
         code.add(statements.get(index));
         if (pIndex == pattern.size()) {
