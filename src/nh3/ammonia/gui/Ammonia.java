@@ -116,6 +116,8 @@ public class Ammonia extends JFrame {
       files.putAll(retrieveLocalFiles(directory));
     }
 
+    final long startTime = System.nanoTime();
+
     final Set<LANGUAGE> languages = FBParserConfig.getInstance()
         .getLANGUAGE();
     final SortedMap<String, List<Statement>> pathToStatements = new TreeMap<>();
@@ -153,8 +155,6 @@ public class Ammonia extends JFrame {
     } else {
       patterns = getPatternsFromDB();
     }
-
-    final long startTime = System.nanoTime();
 
     final SortedMap<String, List<Warning>> fWarnings = new TreeMap<>();
     final SortedMap<PATTERN, List<Warning>> pWarnings = new TreeMap<>();
