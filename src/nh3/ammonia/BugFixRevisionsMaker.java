@@ -55,14 +55,23 @@ public class BugFixRevisionsMaker {
         final String software = results2.getString(1);
         final String id = results2.getString(2);
         final String date = results2.getString(3);
-        final String message = results2.getString(4);
+        String message = results2.getString(4);
+        if (message.contains("git-svn-id")) {
+          message = message.substring(0, message.indexOf("git-svn-id"));
+        }
         final String author = results2.getString(5);
 
         int bugfix = 0;
         final StringBuilder urls = new StringBuilder();
         for (final Entry<String, String> entry : bugIDs.entrySet()) {
+          if (message.contains("Merged revisions")) {
+            continue;
+          }
           final String bugId = entry.getKey();
-          if (message.contains(bugId)) {
+          if (/*message.contains("CAMEL-")&&!(message.contains("/branches/"))*/message.endsWith(bugId) || message.contains(bugId + " ")
+              || message.contains(bugId + "\t") || message.contains(bugId + '\r')
+              || message.contains(bugId + '\n') || message.contains(bugId + ":")
+              || message.contains(bugId + ";") || message.contains(bugId + ".")) {
             bugfix++;
             final String url = entry.getValue();
             urls.append(url);

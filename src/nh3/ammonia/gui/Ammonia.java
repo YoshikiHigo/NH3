@@ -180,7 +180,7 @@ public class Ammonia extends JFrame {
       PATH: for (final String path : paths) {
         final List<Statement> statements = pathToStatements.get(path);
 
-        final List<int[]> matchedCodes = findMatchedCode(statements, pattern.beforeTextHashs);
+        final List<int[]> matchedCodes = findMatchedCode(statements, pattern.beforeTextPattern);
         if (matchedCodes.isEmpty()) {
           continue PATH;
         }
@@ -250,7 +250,7 @@ public class Ammonia extends JFrame {
   }
 
   static private List<int[]> findMatchedCode(final List<Statement> statements,
-      final List<byte[]> pattern) {
+      final List<String> pattern) {
 
     if (pattern.isEmpty()) {
       return Collections.emptyList();
@@ -261,7 +261,7 @@ public class Ammonia extends JFrame {
     final List<Statement> code = new ArrayList<>();
     for (int index = 0; index < statements.size(); index++) {
 
-      if (Arrays.equals(statements.get(index).hash, pattern.get(pIndex))) {
+      if (statements.get(index).nText.equals(pattern.get(pIndex))) {
         pIndex++;
         code.add(statements.get(index));
         if (pIndex == pattern.size()) {
