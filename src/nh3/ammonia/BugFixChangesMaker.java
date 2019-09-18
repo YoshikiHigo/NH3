@@ -17,7 +17,7 @@ public class BugFixChangesMaker {
 
   private void make() {
     final String BUGFIXCHANGES_SCHEMA = "software string, " + "id integer, " + "filepath string, "
-        + "beforeID integer, " + "beforeHash string, " + "afterID integer, " + "afterHash string, "
+        + "beforeID integer, " + "beforeHash blob, " + "afterID integer, " + "afterHash blob, "
         + "revision string, " + "date string, " + "changetype integer, " + "difftype integer, "
         + "bugfix integer, " + "warningfix integer, " + "primary key(software, id)";
     final String database = FBParserConfig.getInstance()
@@ -61,9 +61,9 @@ public class BugFixChangesMaker {
         final int id = results2.getInt(2);
         final String filepath = results2.getString(3);
         final int beforeID = results2.getInt(4);
-        final String beforeHash = results2.getString(5);
+        final byte[] beforeHash = results2.getBytes(5);
         final int afterID = results2.getInt(6);
-        final String afterHash = results2.getString(7);
+        final byte[] afterHash = results2.getBytes(7);
         final String revision = results2.getString(8);
         final String date = results2.getString(9);
         final int changetype = results2.getInt(10);
@@ -74,9 +74,9 @@ public class BugFixChangesMaker {
         statement3.setInt(2, id);
         statement3.setString(3, filepath);
         statement3.setInt(4, beforeID);
-        statement3.setString(5, beforeHash);
+        statement3.setBytes(5, beforeHash);
         statement3.setInt(6, afterID);
-        statement3.setString(7, afterHash);
+        statement3.setBytes(7, afterHash);
         statement3.setString(8, revision);
         statement3.setString(9, date);
         statement3.setInt(10, changetype);

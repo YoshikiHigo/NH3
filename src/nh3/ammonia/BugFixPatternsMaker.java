@@ -16,8 +16,8 @@ public class BugFixPatternsMaker {
   }
 
   private void make() {
-    final String BUGFIXPATTERNS_SCHEMA = "id integer primary key, " + "beforeHash string, "
-        + "afterHash string, " + "changetype integer, " + "difftype integer, " + "support integer, "
+    final String BUGFIXPATTERNS_SCHEMA = "id integer primary key, " + "beforeHash blob, "
+        + "afterHash blob, " + "changetype integer, " + "difftype integer, " + "support integer, "
         + "confidence real, " + "authors integer, " + "files integer, " + "nos integer, "
         + "firstdate string, " + "lastdate string, " + "bugfix integer, warningfix integer";
     final String database = FBParserConfig.getInstance()
@@ -55,8 +55,8 @@ public class BugFixPatternsMaker {
           "insert into bugfixpatterns values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
       while (results2.next()) {
         final int id = results2.getInt(1);
-        final String beforeHash = results2.getString(2);
-        final String afterHash = results2.getString(3);
+        final byte[] beforeHash = results2.getBytes(2);
+        final byte[] afterHash = results2.getBytes(3);
         final int changetype = results2.getInt(4);
         final int difftype = results2.getInt(5);
         final int support = results2.getInt(6);
@@ -69,8 +69,8 @@ public class BugFixPatternsMaker {
         final int bugfix = results2.getInt(13);
         final int warningfix = results2.getInt(14);
         statement3.setInt(1, id);
-        statement3.setString(2, beforeHash);
-        statement3.setString(3, afterHash);
+        statement3.setBytes(2, beforeHash);
+        statement3.setBytes(3, afterHash);
         statement3.setInt(4, changetype);
         statement3.setInt(5, difftype);
         statement3.setInt(6, support);
