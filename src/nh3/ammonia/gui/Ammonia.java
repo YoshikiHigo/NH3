@@ -60,12 +60,12 @@ import org.tmatesoft.svn.core.internal.io.fs.FSRepositoryFactory;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import org.tmatesoft.svn.core.wc.SVNRevision;
 import org.tmatesoft.svn.core.wc.SVNUpdateClient;
-import nh3.ammonia.FBChangePatternFinderWithoutFB;
+import nh3.ammonia.DAO;
 import nh3.ammonia.FBParserConfig;
+import nh3.ammonia.Pattern;
 import nh3.ammonia.StringUtility;
-import nh3.ammonia.XLSXMerger.PATTERN;
-import nh3.ammonia.db.DAO;
-import nh3.ammonia.db.DAO.PATTERN_SQL;
+import nh3.ammonia.DAO.CHANGE_SQL;
+import nh3.ammonia.DAO.PATTERN_SQL;
 import yoshikihigo.cpanalyzer.CPAConfig;
 import yoshikihigo.cpanalyzer.LANGUAGE;
 import yoshikihigo.cpanalyzer.data.Statement;
@@ -146,7 +146,7 @@ public class Ammonia extends JFrame {
       }
     }
 
-    List<PATTERN> patterns = null;
+    List<Pattern> patterns = null;
     if (FBParserConfig.getInstance()
         .hasFIXCHANGEPATTERN()) {
       final String xlsx = FBParserConfig.getInstance()
@@ -157,8 +157,8 @@ public class Ammonia extends JFrame {
     }
 
     final SortedMap<String, List<Warning>> fWarnings = new TreeMap<>();
-    final SortedMap<PATTERN, List<Warning>> pWarnings = new TreeMap<>();
-    PATTERN: for (final PATTERN pattern : patterns) {
+    final SortedMap<Pattern, List<Warning>> pWarnings = new TreeMap<>();
+    PATTERN: for (final Pattern pattern : patterns) {
 
       if (pattern.beforeTextHashs.isEmpty()) {
         continue PATTERN;
@@ -283,9 +283,9 @@ public class Ammonia extends JFrame {
     return places;
   }
 
-  static List<PATTERN> readXLSX(final String xlsx) {
+  static List<Pattern> readXLSX(final String xlsx) {
 
-    final List<PATTERN> patterns = new ArrayList<>();
+    final List<Pattern> patterns = new ArrayList<>();
     try (final Workbook book = new XSSFWorkbook(new FileInputStream(xlsx))) {
       final Sheet sheet = book.getSheetAt(0);
 
@@ -296,7 +296,7 @@ public class Ammonia extends JFrame {
             .getStringCellValue();
         final String afterText = row.getCell(24)
             .getStringCellValue();
-        final PATTERN pattern = new PATTERN(beforeText, afterText);
+        final Pattern pattern = new Pattern(beforeText, afterText);
         pattern.mergedID = (int) row.getCell(0)
             .getNumericCellValue();
         pattern.support = (int) row.getCell(7)
@@ -327,7 +327,7 @@ public class Ammonia extends JFrame {
     return patterns;
   }
 
-  static List<PATTERN> getPatternsFromDB() {
+  static List<Pattern> getPatternsFromDB() {
 
     final int bugfixThreshold = FBParserConfig.getInstance()
         .getBUGFIXTHRESHOLD();
@@ -336,7 +336,7 @@ public class Ammonia extends JFrame {
     final float confidenceThreshold = FBParserConfig.getInstance()
         .getCONFIDENCETHRESHOLD();
 
-    final List<PATTERN> patterns = new ArrayList<>();
+    final List<Pattern> patterns = new ArrayList<>();
     final List<PATTERN_SQL> patternsSQL = DAO.getInstance()
         .getChangePatterns(bugfixThreshold, supportThreshold, confidenceThreshold);
 
@@ -349,16 +349,16 @@ public class Ammonia extends JFrame {
         continue;
       }
 
-      final PATTERN pattern = new PATTERN(beforeText, afterText);
+      final Pattern pattern = new Pattern(beforeText, afterText);
       pattern.mergedID = patternSQL.id;
       pattern.support = patternSQL.support;
       pattern.bugfixSupport = patternSQL.support;
       pattern.beforeTextSupport = 0;
       pattern.addDate(patternSQL.firstdate);
       pattern.addDate(patternSQL.lastdate);
-      pattern.bugfixCommits = FBChangePatternFinderWithoutFB.getCommits(patternSQL, true);
-      pattern.addBugfixAuthors(FBChangePatternFinderWithoutFB.getAuthors(patternSQL, true));
-      pattern.addBugfixFiles(FBChangePatternFinderWithoutFB.getFiles(patternSQL, true));
+      pattern.bugfixCommits = getCommits(patternSQL, true);
+      pattern.addBugfixAuthors(getAuthors(patternSQL, true));
+      pattern.addBugfixFiles(getFiles(patternSQL, true));
       patterns.add(pattern);
     }
 
@@ -489,7 +489,7 @@ public class Ammonia extends JFrame {
   }
 
   static void writeWarnings(final SortedMap<String, List<Warning>> fWarnings,
-      final Map<PATTERN, List<Warning>> pWarnings) {
+      final Map<Pattern, List<Warning>> pWarnings) {
     final String warningListFile = FBParserConfig.getInstance()
         .getWARNINGLIST();
 
@@ -553,7 +553,7 @@ public class Ammonia extends JFrame {
   }
 
   static void writeWarningsToDB(final SortedMap<String, List<Warning>> fWarnings,
-      final Map<PATTERN, List<Warning>> pWarnings) {
+      final Map<Pattern, List<Warning>> pWarnings) {
 
     Connection connector = null;
     try {
@@ -667,7 +667,7 @@ public class Ammonia extends JFrame {
   }
 
   public Ammonia(final Map<String, String> files, final Map<String, List<Warning>> fWarnings,
-      final Map<PATTERN, List<Warning>> pWarnings) {
+      final Map<Pattern, List<Warning>> pWarnings) {
 
     super("Ammonia");
 
@@ -828,5 +828,49 @@ public class Ammonia extends JFrame {
 
       return Arrays.equals(this.hash, ((MD5) o).hash);
     }
+  }
+
+  public static int getCommits(final PATTERN_SQL cp, final boolean bugfix) {
+    final byte[] beforeHash = cp.beforeHash;
+    final byte[] afterHash = cp.afterHash;
+    final List<CHANGE_SQL> changesInPattern = DAO.getInstance()
+        .getChanges(beforeHash, afterHash);
+    return (int) changesInPattern.stream()
+        .filter(change -> bugfix == change.bugfix)
+        .count();
+  }
+
+
+  public static SortedSet<String> getAuthors(final PATTERN_SQL cp, final boolean bugfix) {
+
+    final SortedSet<String> authors = new TreeSet<>();
+    final byte[] beforeHash = cp.beforeHash;
+    final byte[] afterHash = cp.afterHash;
+    final List<CHANGE_SQL> changes = DAO.getInstance()
+        .getChanges(beforeHash, afterHash);
+    for (final CHANGE_SQL change : changes) {
+      if ((bugfix && change.bugfix) || (!bugfix && !change.bugfix)) {
+        authors.add(change.author);
+      }
+    }
+
+    return authors;
+  }
+
+
+  public static SortedSet<String> getFiles(final PATTERN_SQL cp, final boolean bugfix) {
+
+    final SortedSet<String> files = new TreeSet<>();
+    final byte[] beforeHash = cp.beforeHash;
+    final byte[] afterHash = cp.afterHash;
+    final List<CHANGE_SQL> changes = DAO.getInstance()
+        .getChanges(beforeHash, afterHash);
+    for (final CHANGE_SQL change : changes) {
+      if ((bugfix && change.bugfix) || (!bugfix && !change.bugfix)) {
+        files.add(change.filepath);
+      }
+    }
+
+    return files;
   }
 }

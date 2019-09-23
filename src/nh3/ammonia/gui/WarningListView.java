@@ -26,7 +26,7 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
-import nh3.ammonia.XLSXMerger.PATTERN;
+import nh3.ammonia.Pattern;
 
 public class WarningListView extends JTable implements Observer {
 
@@ -63,11 +63,11 @@ public class WarningListView extends JTable implements Observer {
 
   final private SelectionHandler selectionHandler;
   final private Map<String, List<Warning>> fWarnings;
-  final private Map<PATTERN, List<Warning>> pWarnings;
+  final private Map<Pattern, List<Warning>> pWarnings;
   final public JScrollPane scrollPane;
 
   public WarningListView(final Map<String, List<Warning>> fWarnings,
-      final Map<PATTERN, List<Warning>> pWarnings) {
+      final Map<Pattern, List<Warning>> pWarnings) {
 
     super();
 

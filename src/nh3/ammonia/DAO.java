@@ -1,4 +1,4 @@
-package nh3.ammonia.db;
+package nh3.ammonia;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -19,7 +19,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import nh3.ammonia.FBParserConfig;
 
 public class DAO {
 

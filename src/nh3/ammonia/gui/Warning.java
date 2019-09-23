@@ -1,14 +1,14 @@
 package nh3.ammonia.gui;
 
-import nh3.ammonia.XLSXMerger.PATTERN;
+import nh3.ammonia.Pattern;
 
 public class Warning implements Comparable<Warning> {
 
   final public int fromLine;
   final public int toLine;
-  final public PATTERN pattern;
+  final public Pattern pattern;
 
-  public Warning(final int fromLine, final int toLine, final PATTERN pattern) {
+  public Warning(final int fromLine, final int toLine, final Pattern pattern) {
     this.fromLine = fromLine;
     this.toLine = toLine;
     this.pattern = pattern;

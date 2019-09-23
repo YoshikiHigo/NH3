@@ -22,8 +22,8 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.LineBorder;
-import nh3.ammonia.XLSXMerger.PATTERN;
-import nh3.ammonia.db.DAO;
+import nh3.ammonia.DAO;
+import nh3.ammonia.Pattern;
 
 public class PatternFilteringPanel extends JPanel implements Observer {
 
@@ -35,10 +35,10 @@ public class PatternFilteringPanel extends JPanel implements Observer {
   final private JRadioButton orButton;
 
   final private Map<String, List<Warning>> fWarnings;
-  final private Map<PATTERN, List<Warning>> pWarnings;
+  final private Map<Pattern, List<Warning>> pWarnings;
 
   public PatternFilteringPanel(final Map<String, List<Warning>> fWarnings,
-      final Map<PATTERN, List<Warning>> pWarnings) {
+      final Map<Pattern, List<Warning>> pWarnings) {
 
     super(new BorderLayout());
 

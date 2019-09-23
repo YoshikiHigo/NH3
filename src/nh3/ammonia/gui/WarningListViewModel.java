@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import javax.swing.table.AbstractTableModel;
-import nh3.ammonia.XLSXMerger.PATTERN;
+import nh3.ammonia.Pattern;
 
 public class WarningListViewModel extends AbstractTableModel {
 
@@ -23,10 +23,10 @@ public class WarningListViewModel extends AbstractTableModel {
       "AUTHORS", "LASTDATE", "Pattern ID", "MATCHED"};
 
   final List<Warning> warnings;
-  final private Map<PATTERN, List<Warning>> pWarnings;
+  final private Map<Pattern, List<Warning>> pWarnings;
 
   public WarningListViewModel(final List<Warning> warnings,
-      final Map<PATTERN, List<Warning>> pWarnings) {
+      final Map<Pattern, List<Warning>> pWarnings) {
     this.warnings = new ArrayList<>();
     this.warnings.addAll(warnings);
     this.pWarnings = pWarnings;
