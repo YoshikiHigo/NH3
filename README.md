@@ -20,6 +20,7 @@ https://github.com/YoshikiHigo/MPAnalyzer
 Both Ammonia and MPAnalyzer are being developed with Eclipse and their repositories include Eclipse's setting files.
 Neither NH3 nor MPAnalyzer uses build tools such as maven and gradle.
 Consequently, we recommend to use Eclipse to build them.
+If you import the projects into your Eclipse workspace, the projects will be automatically built.
 
 After building the tools, we probably want to run the tools.
 Sample commands to run Ammonia and MPAnalyzer are introduced in README.txt in the following package:
