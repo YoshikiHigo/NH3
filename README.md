@@ -68,7 +68,7 @@ java -jar BugFixDBMaker.jar -db ANT.db -bug bugIDs-2016-07-11.csv
 
 The main class of BugFixDBMaker is <https://github.com/YoshikiHigo/NH3/blob/master/src/nh3/ammonia/BugFixDBMaker.java>.
 This command adds bugfix information to each code change and change pattern.
-You need to prepare a cvs file including keywords of bug-fixing commits.
+You need to prepare a csv file including keywords of bug-fixing commits.
 The sample css file (bugIDs-2016-07-11.csv) is included in the package:
 https://github.com/YoshikiHigo/NH3/releases/tag/v1.0
 Each line of the csv file means a bug ID that was corrected from Bugzilla's database(
