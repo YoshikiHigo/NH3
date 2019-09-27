@@ -17,7 +17,10 @@ https://github.com/YoshikiHigo/NH3/releases/tag/v1.0
 To build Ammonia, you need another project MPAnalyzer, which can be accessed here:
 https://github.com/YoshikiHigo/MPAnalyzer
 
-We recommend to build Ammonia (and MPAnalyzer) on Eclispe environment.
 Both Ammonia and MPAnalyzer are being developed with Eclipse and their repositories include Eclipse's setting files.
+Neither NH3 nor MPAnalyzer uses build tools such as maven and gradle.
+Consequently, we recommend to use Eclipse to build them.
 
-
+After building the tools, we probably want to run the tools.
+Sample commands to run Ammonia and MPAnalyzer are introduced in README.txt in the following package:
+https://github.com/YoshikiHigo/NH3/releases/tag/v1.0
